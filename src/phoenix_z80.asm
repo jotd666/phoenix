@@ -1528,18 +1528,7 @@ CompareHLtoBC:
 08B1: 21 C8 43        LD      HL,unknown_43C8            
 08B4: CD 30 09        CALL    $0930               ; 
 08B7: C9              RET                         
-08B8: FF              RST     0X38                
-08B9: FF              RST     0X38                
-08BA: FF              RST     0X38                
-08BB: FF              RST     0X38                
-08BC: FF              RST     0X38                
-08BD: FF              RST     0X38                
-08BE: FF              RST     0X38                
-08BF: FF              RST     0X38                
-08C0: FF              RST     0X38                
-08C1: FF              RST     0X38                
-08C2: FF              RST     0X38                
-08C3: FF              RST     0X38                
+              
 08C4: 21 C0 43        LD      HL,unknown_43C0            
 08C7: 7E              LD      A,(HL)              
 08C8: E6 08           AND     $08                 
@@ -1564,16 +1553,7 @@ CompareHLtoBC:
 08ED: CD 00 09        CALL    $0900               ; 
 08F0: 01 00 16        LD      BC,$1600            
 08F3: C3 26 09        JP      $0926               ; 
-08F6: FF              RST     0X38                
-08F7: FF              RST     0X38                
-08F8: FF              RST     0X38                
-08F9: FF              RST     0X38                
-08FA: FF              RST     0X38                
-08FB: FF              RST     0X38                
-08FC: FF              RST     0X38                
-08FD: FF              RST     0X38                
-08FE: FF              RST     0X38                
-08FF: FF              RST     0X38                
+              
 0900: 3A A0 43        LD      A,(IN0Current)      ; 
 0903: 2F              CPL                         
 0904: E6 60           AND     $60                 
@@ -1594,10 +1574,7 @@ CompareHLtoBC:
 091C: 3E FF           LD      A,$FF               
 091E: 32 60 43        LD      (unknown_4360),A           
 0921: C9              RET                         
-0922: FF              RST     0X38                
-0923: FF              RST     0X38                
-0924: FF              RST     0X38                
-0925: FF              RST     0X38                
+               
 0926: 7E              LD      A,(HL)              
 0927: E6 07           AND     $07                 
 0929: 81              ADD     A,C                 
@@ -1636,8 +1613,7 @@ CompareHLtoBC:
 095C: 3E 30           LD      A,$30               
 095E: 32 61 43        LD      (unknown_4361),A           
 0961: C9              RET                         
-0962: FF              RST     0X38                
-0963: FF              RST     0X38                
+                
 0964: 2C              INC     L                   
 0965: 2C              INC     L                   
 0966: 2C              INC     L                   
@@ -1653,8 +1629,7 @@ CompareHLtoBC:
 0972: E6 F7           AND     $F7                 
 0974: 77              LD      (HL),A              
 0975: C9              RET                         
-0976: FF              RST     0X38                
-0977: FF              RST     0X38                
+               
 0978: 7E              LD      A,(HL)              
 0979: E6 3A           AND     $3A                 
 097B: C2 43 47        JP      NZ,unknown_4743            
@@ -1673,16 +1648,7 @@ CompareHLtoBC:
 0991: C9              RET                         
 0992: 32 9F 43        LD      (unknown_439F),A           
 0995: C9              RET                         
-0996: FF              RST     0X38                
-0997: FF              RST     0X38                
-0998: FF              RST     0X38                
-0999: FF              RST     0X38                
-099A: FF              RST     0X38                
-099B: FF              RST     0X38                
-099C: FF              RST     0X38                
-099D: FF              RST     0X38                
-099E: FF              RST     0X38                
-099F: FF              RST     0X38                
+              
 09A0: 01 C2 43        LD      BC,unknown_43C2            
 09A3: 11 E2 43        LD      DE,unknown_43E2            
 09A6: CD BA 09        CALL    $09BA               ; 
@@ -1696,10 +1662,7 @@ CompareHLtoBC:
 09B0: FE CE           CP      $CE                 
 09B2: C2 A6 09        JP      NZ,$09A6            ; 
 09B5: C9              RET                         
-09B6: FF              RST     0X38                
-09B7: FF              RST     0X38                
-09B8: FF              RST     0X38                
-09B9: FF              RST     0X38                
+             
 09BA: 21 00 0A        LD      HL,$0A00            
 09BD: 0A              LD      A,(BC)              
 09BE: E6 F8           AND     $F8                 
@@ -1735,10 +1698,7 @@ CompareHLtoBC:
 0A63: A7              AND     A                   
 0A64: C2 56 0A        JP      NZ,$0A56            ; 
 0A67: C9              RET                         
-0A68: FF              RST     0X38                
-0A69: FF              RST     0X38                
-0A6A: FF              RST     0X38                
-0A6B: FF              RST     0X38                
+               
 0A6C: 01 70 4B        LD      BC,unknown_4B70            
 0A6F: 11 B3 4B        LD      DE,unknown_4BB3            
 0A72: C5              PUSH    BC                  
@@ -1771,12 +1731,7 @@ CompareHLtoBC:
 0A94: FE 03           CP      $03                 
 0A96: C2 72 0A        JP      NZ,$0A72            ; 
 0A99: C9              RET                         
-0A9A: FF              RST     0X38                
-0A9B: FF              RST     0X38                
-0A9C: FF              RST     0X38                
-0A9D: FF              RST     0X38                
-0A9E: FF              RST     0X38                
-0A9F: FF              RST     0X38                
+              
 0AA0: 2E E2           LD      L,$E2               
 0AA2: 56              LD      D,(HL)              
 0AA3: 23              INC     HL                  
@@ -1856,9 +1811,7 @@ CompareHLtoBC:
 0B29: 2E A4           LD      L,$A4               
 0B2B: 36 00           LD      (HL),$00            
 0B2D: C9              RET                         
-0B2E: FF              RST     0X38                
-0B2F: FF              RST     0X38                
-0B30: FF              RST     0X38                
+               
 0B31: F0              RET     P                   
 0B32: E0              RET     PO                  
 0B33: B0              OR      B                   
@@ -1889,11 +1842,7 @@ CompareHLtoBC:
 0B57: F6 03           OR      $03                 
 0B59: 77              LD      (HL),A              
 0B5A: C9              RET                         
-0B5B: FF              RST     0X38                
-0B5C: FF              RST     0X38                
-0B5D: FF              RST     0X38                
-0B5E: FF              RST     0X38                
-0B5F: FF              RST     0X38                
+               
 0B60: 21 A5 43        LD      HL,unknown_43A5            
 0B63: 34              INC     (HL)                
 0B64: 7E              LD      A,(HL)              
@@ -1928,8 +1877,7 @@ CompareHLtoBC:
 0B95: CD D0 01        CALL    $01D0               ; 
 0B98: CD E4 01        CALL    $01E4               ; 
 0B9B: C3 F0 1D        JP      $1DF0               ; 
-0B9E: FF              RST     0X38                
-0B9F: FF              RST     0X38                
+                
 0BA0: 21 B8 43        LD      HL,unknown_43B8            
 0BA3: 7E              LD      A,(HL)              
 0BA4: E6 0F           AND     $0F                 
@@ -1942,11 +1890,7 @@ CompareHLtoBC:
 0BAE: 77              LD      (HL),A              
 0BAF: 32 00 58        LD      ($5800),A           ; 58xx scroll register
 0BB2: C3 A0 03        JP      $03A0               ; 
-0BB5: FF              RST     0X38                
-0BB6: FF              RST     0X38                
-0BB7: FF              RST     0X38                
-0BB8: FF              RST     0X38                
-0BB9: FF              RST     0X38                
+              
 0BBA: 47              LD      B,A                 
 0BBB: 0F              RRCA                        
 0BBC: D2 C0 0F        JP      NC,$0FC0            ; 
@@ -1954,9 +1898,7 @@ CompareHLtoBC:
 0BC0: 78              LD      A,B                 
 0BC1: DA 70 20        JP      C,$2070             ; 
 0BC4: C3 E8 20        JP      $20E8               ; 
-0BC7: FF              RST     0X38                
-0BC8: FF              RST     0X38                
-0BC9: FF              RST     0X38                
+                
 0BCA: 21 D0 42        LD      HL,unknown_42D0            
 0BCD: 01 DF FF        LD      BC,$FFDF            
 0BD0: 36 64           LD      (HL),$64            
@@ -1973,20 +1915,7 @@ CompareHLtoBC:
 0BEB: 11 48 0A        LD      DE,$0A48            
 0BEE: CD 48 35        CALL    $3548               ; 
 0BF1: C9              RET                         
-0BF2: FF              RST     0X38                
-0BF3: FF              RST     0X38                
-0BF4: FF              RST     0X38                
-0BF5: FF              RST     0X38                
-0BF6: FF              RST     0X38                
-0BF7: FF              RST     0X38                
-0BF8: FF              RST     0X38                
-0BF9: FF              RST     0X38                
-0BFA: FF              RST     0X38                
-0BFB: FF              RST     0X38                
-0BFC: FF              RST     0X38                
-0BFD: FF              RST     0X38                
-0BFE: FF              RST     0X38                
-0BFF: FF              RST     0X38                
+               
 0C00: E5              PUSH    HL                  
 0C01: 7D              LD      A,L                 
 0C02: D6 72           SUB     $72                 
@@ -2008,32 +1937,7 @@ CompareHLtoBC:
 0C1E: 3E FF           LD      A,$FF               
 0C20: 32 69 43        LD      (unknown_4369),A           
 0C23: C3 A4 0E        JP      $0EA4               ; 
-0C26: FF              RST     0X38                
-0C27: FF              RST     0X38                
-0C28: FF              RST     0X38                
-0C29: FF              RST     0X38                
-0C2A: FF              RST     0X38                
-0C2B: FF              RST     0X38                
-0C2C: FF              RST     0X38                
-0C2D: FF              RST     0X38                
-0C2E: FF              RST     0X38                
-0C2F: FF              RST     0X38                
-0C30: FF              RST     0X38                
-0C31: FF              RST     0X38                
-0C32: FF              RST     0X38                
-0C33: FF              RST     0X38                
-0C34: FF              RST     0X38                
-0C35: FF              RST     0X38                
-0C36: FF              RST     0X38                
-0C37: FF              RST     0X38                
-0C38: FF              RST     0X38                
-0C39: FF              RST     0X38                
-0C3A: FF              RST     0X38                
-0C3B: FF              RST     0X38                
-0C3C: FF              RST     0X38                
-0C3D: FF              RST     0X38                
-0C3E: FF              RST     0X38                
-0C3F: FF              RST     0X38                
+
 0C40: 21 FF 43        LD      HL,unknown_43FF            
 0C43: 06 05           LD      B,$05               
 0C45: CD 8B 08        CALL    $088B               ; 
@@ -2041,10 +1945,7 @@ CompareHLtoBC:
 0C4B: CD 6B 0C        CALL    $0C6B               ; 
 0C4E: CD D8 0C        CALL    $0CD8               ; 
 0C51: C9              RET                         
-0C52: FF              RST     0X38                
-0C53: FF              RST     0X38                
-0C54: FF              RST     0X38                
-0C55: FF              RST     0X38                
+               
 0C56: 21 CC 43        LD      HL,unknown_43CC            
 0C59: E5              PUSH    HL                  
 0C5A: CD 84 0C        CALL    $0C84               ; 
@@ -2055,9 +1956,7 @@ CompareHLtoBC:
 0C62: FE E0           CP      $E0                 
 0C64: C2 59 0C        JP      NZ,$0C59            ; 
 0C67: C9              RET                         
-0C68: FF              RST     0X38                
-0C69: FF              RST     0X38                
-0C6A: FF              RST     0X38                
+               
 0C6B: 01 CE 43        LD      BC,unknown_43CE            
 0C6E: 11 EE 43        LD      DE,unknown_43EE            
 0C71: CD BA 09        CALL    $09BA               ; 
@@ -2071,9 +1970,7 @@ CompareHLtoBC:
 0C7B: FE E2           CP      $E2                 
 0C7D: C2 71 0C        JP      NZ,$0C71            ; 
 0C80: C9              RET                         
-0C81: FF              RST     0X38                
-0C82: FF              RST     0X38                
-0C83: FF              RST     0X38                
+               
 0C84: 7E              LD      A,(HL)              
 0C85: E6 08           AND     $08                 
 0C87: C8              RET     Z                   
@@ -2106,10 +2003,7 @@ CompareHLtoBC:
 0CAA: FE E8           CP      $E8                 
 0CAC: D2 6E 09        JP      NC,$096E            ; 
 0CAF: C9              RET                         
-0CB0: FF              RST     0X38                
-0CB1: FF              RST     0X38                
-0CB2: FF              RST     0X38                
-0CB3: FF              RST     0X38                
+              
 0CB4: FE DC           CP      $DC                 
 0CB6: D8              RET     C                   
 0CB7: FE E9           CP      $E9                 
@@ -2127,10 +2021,7 @@ CompareHLtoBC:
 0CCE: 3E 10           LD      A,$10               
 0CD0: 32 63 43        LD      (unknown_4363),A           
 0CD3: C9              RET                         
-0CD4: FF              RST     0X38                
-0CD5: FF              RST     0X38                
-0CD6: FF              RST     0X38                
-0CD7: FF              RST     0X38                
+               
 0CD8: 01 CC 43        LD      BC,unknown_43CC            
 0CDB: 11 EC 43        LD      DE,unknown_43EC            
 0CDE: C5              PUSH    BC                  
@@ -2145,30 +2036,11 @@ CompareHLtoBC:
 0CEB: A7              AND     A                   
 0CEC: C2 DE 0C        JP      NZ,$0CDE            ; 
 0CEF: C9              RET                         
-0CF0: FF              RST     0X38                
-0CF1: FF              RST     0X38                
-0CF2: FF              RST     0X38                
-0CF3: FF              RST     0X38                
+              
 0CF4: D1              POP     DE                  
 0CF5: C1              POP     BC                  
 0CF6: C9              RET                         
-0CF7: FF              RST     0X38                
-0CF8: FF              RST     0X38                
-0CF9: FF              RST     0X38                
-0CFA: FF              RST     0X38                
-0CFB: FF              RST     0X38                
-0CFC: FF              RST     0X38                
-0CFD: FF              RST     0X38                
-0CFE: FF              RST     0X38                
-0CFF: FF              RST     0X38                
-0D00: FF              RST     0X38                
-0D01: FF              RST     0X38                
-0D02: FF              RST     0X38                
-0D03: FF              RST     0X38                
-0D04: FF              RST     0X38                
-0D05: FF              RST     0X38                
-0D06: FF              RST     0X38                
-0D07: FF              RST     0X38                
+       
 0D08: 21 93 43        LD      HL,unknown_4393            
 0D0B: 34              INC     (HL)                
 0D0C: 7E              LD      A,(HL)              
@@ -2181,10 +2053,7 @@ CompareHLtoBC:
 0D14: E6 0F           AND     $0F                 
 0D16: 77              LD      (HL),A              
 0D17: C9              RET                         
-0D18: FF              RST     0X38                
-0D19: FF              RST     0X38                
-0D1A: FF              RST     0X38                
-0D1B: FF              RST     0X38                
+               
 0D1C: 01 70 4B        LD      BC,unknown_4B70            
 0D1F: 21 50 4B        LD      HL,unknown_4B50            
 0D22: CD 30 0D        CALL    $0D30               ; 
@@ -2195,7 +2064,7 @@ CompareHLtoBC:
 0D2A: B9              CP      C                   
 0D2B: C2 22 0D        JP      NZ,$0D22            ; 
 0D2E: C9              RET                         
-0D2F: FF              RST     0X38                
+              
 0D30: 56              LD      D,(HL)              
 0D31: 23              INC     HL                  
 0D32: 0A              LD      A,(BC)              
@@ -2231,9 +2100,7 @@ CompareHLtoBC:
 0D58: C0              RET     NZ                  
 0D59: 34              INC     (HL)                
 0D5A: C9              RET                         
-0D5B: FF              RST     0X38                
-0D5C: FF              RST     0X38                
-0D5D: FF              RST     0X38                
+              
 0D5E: 2B              DEC     HL                  
 0D5F: 0A              LD      A,(BC)              
 0D60: 86              ADD     A,(HL)              
@@ -2243,14 +2110,7 @@ CompareHLtoBC:
 0D65: C0              RET     NZ                  
 0D66: 34              INC     (HL)                
 0D67: C9              RET                         
-0D68: FF              RST     0X38                
-0D69: FF              RST     0X38                
-0D6A: FF              RST     0X38                
-0D6B: FF              RST     0X38                
-0D6C: FF              RST     0X38                
-0D6D: FF              RST     0X38                
-0D6E: FF              RST     0X38                
-0D6F: FF              RST     0X38                
+              
 0D70: 01 70 4B        LD      BC,unknown_4B70            
 0D73: 21 50 4B        LD      HL,unknown_4B50            
 0D76: CD 86 0D        CALL    $0D86               ; 
@@ -2261,8 +2121,7 @@ CompareHLtoBC:
 0D7F: B9              CP      C                   
 0D80: C2 76 0D        JP      NZ,$0D76            ; 
 0D83: C9              RET                         
-0D84: FF              RST     0X38                
-0D85: FF              RST     0X38                
+                
 0D86: 56              LD      D,(HL)              
 0D87: 23              INC     HL                  
 0D88: 5E              LD      E,(HL)              
@@ -2300,9 +2159,7 @@ CompareHLtoBC:
 0DB3: 86              ADD     A,(HL)              
 0DB4: 0B              DEC     BC                  
 0DB5: C3 D2 0D        JP      $0DD2               ; 
-0DB8: FF              RST     0X38                
-0DB9: FF              RST     0X38                
-0DBA: FF              RST     0X38                
+               
 0DBB: 0A              LD      A,(BC)              
 0DBC: 0F              RRCA                        
 0DBD: E6 03           AND     $03                 
@@ -2313,9 +2170,7 @@ CompareHLtoBC:
 0DC3: E6 04           AND     $04                 
 0DC5: 84              ADD     A,H                 
 0DC6: C3 D2 0D        JP      $0DD2               ; 
-0DC9: FF              RST     0X38                
-0DCA: FF              RST     0X38                
-0DCB: FF              RST     0X38                
+                
 0DCC: 0B              DEC     BC                  
 0DCD: 0A              LD      A,(BC)              
 0DCE: 0F              RRCA                        
@@ -2329,9 +2184,7 @@ CompareHLtoBC:
 0DD8: 0B              DEC     BC                  
 0DD9: EB              EX      DE,HL               
 0DDA: C9              RET                         
-0DDB: FF              RST     0X38                
-0DDC: FF              RST     0X38                
-0DDD: FF              RST     0X38                
+              
 0DDE: 1B              DEC     DE                  
 0DDF: 1B              DEC     DE                  
 0DE0: 3A 94 43        LD      A,(unknown_4394)           
@@ -2344,8 +2197,7 @@ CompareHLtoBC:
 0DEB: 13              INC     DE                  
 0DEC: 7E              LD      A,(HL)              
 0DED: C9              RET                         
-0DEE: FF              RST     0X38                
-0DEF: FF              RST     0X38                
+               
 0DF0: 01 C4 43        LD      BC,unknown_43C4            
 0DF3: 21 E6 43        LD      HL,unknown_43E6            
 0DF6: CD 10 0E        CALL    $0E10               ; 
@@ -2356,10 +2208,7 @@ CompareHLtoBC:
 0E05: 21 EE 43        LD      HL,unknown_43EE            
 0E08: CD 10 0E        CALL    $0E10               ; 
 0E0B: C9              RET                         
-0E0C: FF              RST     0X38                
-0E0D: FF              RST     0X38                
-0E0E: FF              RST     0X38                
-0E0F: FF              RST     0X38                
+               
 0E10: 0A              LD      A,(BC)              
 0E11: E6 08           AND     $08                 
 0E13: C8              RET     Z                   
@@ -2409,8 +2258,7 @@ CompareHLtoBC:
 0E51: BD              CP      L                   
 0E52: C2 45 0E        JP      NZ,$0E45            ; 
 0E55: C9              RET                         
-0E56: FF              RST     0X38                
-0E57: FF              RST     0X38                
+              
 0E58: 7A              LD      A,D                 
 0E59: BE              CP      (HL)                
 0E5A: D8              RET     C                   
@@ -2513,36 +2361,12 @@ CompareHLtoBC:
 0EDC: 2E 64           LD      L,$64               
 0EDE: 36 FF           LD      (HL),$FF            
 0EE0: 2E BA           LD      L,$BA               
-0EE2: 35              DEC     (HL)                
+0EE2: 35              DEC     (HL)       
+; jump table??         
 0EE3: E1              POP     HL                  
 0EE4: E1              POP     HL                  
 0EE5: E9              JP      (HL)                
-0EE6: FF              RST     0X38                
-0EE7: FF              RST     0X38                
-0EE8: FF              RST     0X38                
-0EE9: FF              RST     0X38                
-0EEA: FF              RST     0X38                
-0EEB: FF              RST     0X38                
-0EEC: FF              RST     0X38                
-0EED: FF              RST     0X38                
-0EEE: FF              RST     0X38                
-0EEF: FF              RST     0X38                
-0EF0: FF              RST     0X38                
-0EF1: FF              RST     0X38                
-0EF2: FF              RST     0X38                
-0EF3: FF              RST     0X38                
-0EF4: FF              RST     0X38                
-0EF5: FF              RST     0X38                
-0EF6: FF              RST     0X38                
-0EF7: FF              RST     0X38                
-0EF8: FF              RST     0X38                
-0EF9: FF              RST     0X38                
-0EFA: FF              RST     0X38                
-0EFB: FF              RST     0X38                
-0EFC: FF              RST     0X38                
-0EFD: FF              RST     0X38                
-0EFE: FF              RST     0X38                
-0EFF: FF              RST     0X38                
+               
 0F00: 21 A6 43        LD      HL,unknown_43A6            
 0F03: 7E              LD      A,(HL)              
 0F04: FE C0           CP      $C0                 
