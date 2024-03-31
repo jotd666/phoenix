@@ -1,7 +1,7 @@
 ;43A0 	IN0Current 	Current value of IN0
 ;43A1 	IN0Previous 	Previous value of IN0
 ;43A2 	M43A2 	???
-;43A4 	M43A4 	Function table jump ??
+;43A4 	game_state_43A4 	Function table jump ??
 ;43A5 	M43A5 	?? delay count ??
 ;438F 	CoinCount 	Number of coins inserted (max counted is 9)
 ;439A:439B 	Counter 	16 bit counter (MSB:LSB)
@@ -106,7 +106,7 @@ WaitVBlankCoin:
 0096: 2C              INC     L                   ; To 43A1
 0097: 70              LD      (HL),B              ; Store old value
 0098: 2E 9B           LD      L,$9B               ; Bump the ...
-009A: CD 00 02        CALL    AddOneToMem         ; ... ?? counter
+009A: CD 00 02        CALL    AddOneToMem_0200         ; ... ?? counter
 009D: 2E 8F           LD      L,$8F               ; Get number ...
 009F: 7E              LD      A,(HL)              ; ... of coins
 ;
@@ -121,10 +121,10 @@ WaitVBlankCoin:
 00A8: CD BB 00        CALL    CheckInputBits      ; Has the coin input gone from 1 to 0?
 00AB: C8              RET     Z                   ; No ... no coins inserted ... done
 00AC: 2E 8F           LD      L,$8F               ; Add one ...
-00AE: 34              INC     (HL)                ; ... to coin count
+00AE: 34              INC     (HL)                ; ... to coin count (438F)
 00AF: 7E              LD      A,(HL)              ; Current value ...
 00B0: C6 20           ADD     $20                 ; ... to number tile
-00B2: 32 42 41        LD      (unknown_4142),A           ; Change number of coins on screen
+00B2: 32 42 41        LD      (unknown_4142),A    ; Change number of coins on screen
 00B5: C9              RET                         ; Done
 
 ; Never called
@@ -149,7 +149,7 @@ CheckInputBits:
 00C5: E6 0F           AND     $0F                 
 00C7: F6 20           OR      $20                 
 00C9: 12              LD      (DE),A              
-00CA: CD 10 02        CALL    AddOneRow           ; 
+00CA: CD 10 02        CALL    AddOneRow_0210           ; 
 00CD: 05              DEC     B                   
 00CE: C8              RET     Z                   
 00CF: 7E              LD      A,(HL)              
@@ -160,7 +160,7 @@ CheckInputBits:
 00D4: E6 0F           AND     $0F                 
 00D6: F6 20           OR      $20                 
 00D8: 12              LD      (DE),A              
-00D9: CD 10 02        CALL    AddOneRow           ; 
+00D9: CD 10 02        CALL    AddOneRow_0210           ; 
 00DC: 2B              DEC     HL                  
 00DD: 05              DEC     B                   
 00DE: C2 C4 00        JP      NZ,$00C4            ; 
@@ -169,34 +169,34 @@ CheckInputBits:
 00E2: FF             
 
 00E3: 21 99 43        LD      HL,unknown_4399            
-00E6: CD 00 02        CALL    AddOneToMem         ; 
+00E6: CD 00 02        CALL    AddOneToMem_0200         ; 
 00E9: 01 01 00        LD      BC,$0001            
-00EC: CD 58 02        CALL    CompareBCtoMem      ; 
+00EC: CD 58 02        CALL    CompareBCtoMem_0258      ; 
 00EF: CA E1 01        JP      Z,$01E1             ; 
 00F2: 01 02 00        LD      BC,$0002            
 00F5: 11 1F 01        LD      DE,$011F            
-00F8: CD 60 02        CALL    SubtractIfEnough    ; 
+00F8: CD 60 02        CALL    SubtractIfEnough_0260    ; 
 00FB: D2 96 01        JP      NC,$0196            ; 
 00FE: 01 20 01        LD      BC,$0120            
-0101: CD 58 02        CALL    CompareBCtoMem      ; 
+0101: CD 58 02        CALL    CompareBCtoMem_0258      ; 
 0104: CA CA 0B        JP      Z,$0BCA             ; 
 0107: 0E B0           LD      C,$B0               
-0109: CD 58 02        CALL    CompareBCtoMem      ; 
+0109: CD 58 02        CALL    CompareBCtoMem_0258      ; 
 010C: CA E1 01        JP      Z,$01E1             ; 
 010F: 0E B8           LD      C,$B8               
-0111: CD 58 02        CALL    CompareBCtoMem      ; 
+0111: CD 58 02        CALL    CompareBCtoMem_0258      ; 
 0114: CA 80 05        JP      Z,$0580             ; 
 0117: 0E C0           LD      C,$C0               
 0119: 11 DF 02        LD      DE,$02DF            
-011C: CD 60 02        CALL    SubtractIfEnough    ; 
+011C: CD 60 02        CALL    SubtractIfEnough_0260    ; 
 011F: D2 78 00        JP      NC,$0078            ; 
 0122: 01 00 03        LD      BC,$0300            
 0125: 11 AF 03        LD      DE,$03AF            
-0128: CD 60 02        CALL    SubtractIfEnough    ; 
+0128: CD 60 02        CALL    SubtractIfEnough_0260    ; 
 012B: D2 DC 21        JP      NC,$21DC            ; 
 012E: 01 E6 03        LD      BC,$03E6            
 0131: 11 FF FF        LD      DE,$FFFF            
-0134: CD 60 02        CALL    SubtractIfEnough    ; 
+0134: CD 60 02        CALL    SubtractIfEnough_0260    ; 
 0137: D2 B0 03        JP      NC,$03B0            ; 
 013A: C9              RET                         
 
@@ -214,7 +214,7 @@ CheckInputBits:
 0153: 00              NOP                         
 0154: 2E B8           LD      L,$B8               
 0156: 06 08           LD      B,$08               
-0158: CD D8 05        CALL    $05D8               ; 
+0158: CD D8 05        CALL    clear_area_05D8               ; 
 015B: 2E BA           LD      L,$BA               
 015D: 36 10           LD      (HL),$10            
 015F: 2E BE           LD      L,$BE               
@@ -266,7 +266,7 @@ CheckInputBits:
 01A6: 2C              INC     L                   
 01A7: 71              LD      (HL),C              
 01A8: 01 60 18        LD      BC,$1860            
-01AB: CD 06 02        CALL    AddBCtoMem          ; 
+01AB: CD 06 02        CALL    AddBCtoMem_0206          ; 
 01AE: 7E              LD      A,(HL)              
 01AF: 2D              DEC     L                   
 01B0: 66              LD      H,(HL)              
@@ -283,7 +283,7 @@ CheckInputBits:
 01BB: D6 06           SUB     $06                 
 01BD: 4F              LD      C,A                 
 01BE: CA C8 01        JP      Z,$01C8             ; 
-01C1: CD 17 02        CALL    SubtractOneRow      ; 
+01C1: CD 17 02        CALL    SubtractOneRow_0217      ; 
 01C4: 0D              DEC     C                   
 01C5: C2 C1 01        JP      NZ,$01C1            ; 
 01C8: 7E              LD      A,(HL)              
@@ -298,7 +298,7 @@ CheckInputBits:
 01D4: C6 05           ADD     $05                 ; ... go get ...
 01D6: 6F              LD      L,A                 ; ... data
 01D7: 06 1A           LD      B,$1A               ; 26 columns
-01D9: CD ED 01        CALL    DrawColumn          ; Draw next column
+01D9: CD ED 01        CALL    DrawColumn_01ED          ; Draw next column
 01DC: 0D              DEC     C                   ; All columns done?
 01DD: C2 D0 01        JP      NZ,$01D0            ; No ... draw all columns
 01E0: C9              RET                         ; Done
@@ -313,13 +313,13 @@ CheckInputBits:
 ; Remember the screen is rotated.
 ; The draws a column in screen memory (row on the screen)
 ;
-DrawColumn:
+DrawColumn_01ED:
 01ED: 7E              LD      A,(HL)              ; Copy the data ...
 01EE: 12              LD      (DE),A              ; .. to the screen
 01EF: 23              INC     HL                  ; Next in data
-01F0: CD 17 02        CALL    SubtractOneRow      ; Move DE to next row
+01F0: CD 17 02        CALL    SubtractOneRow_0217      ; Move DE to next row
 01F3: 05              DEC     B                   ; All drawn?
-01F4: C2 ED 01        JP      NZ,DrawColumn       ; Draw them all
+01F4: C2 ED 01        JP      NZ,DrawColumn_01ED       ; Draw them all
 01F7: C9              RET                         ; Done
 
 ; Pad to 0200
@@ -327,7 +327,7 @@ DrawColumn:
 
 ; Two-byte +1 to (HL-1) : (HL).
 ;
-AddOneToMem:
+AddOneToMem_0200:
 0200: 34              INC     (HL)                ; Add one to LSB
 0201: C0              RET     NZ                  ; We didn't overflow ... done
 0202: 2D              DEC     L                   ; Back up to MSB
@@ -337,7 +337,7 @@ AddOneToMem:
 
 ; Two-byte addition. BC is added to (HL-1) : (HL).
 ;
-AddBCtoMem:
+AddBCtoMem_0206:
 0206: 7E              LD      A,(HL)              ; Get the lower byte
 0207: 81              ADD     A,C                 ; Add C to the lower
 0208: 77              LD      (HL),A              ; Store the new lower
@@ -352,7 +352,7 @@ AddBCtoMem:
 
 ; Add 32 (one row) to DE (two bytes)
 ;
-AddOneRow:
+AddOneRow_0210:
 0210: 7B              LD      A,E                 ; Add ...
 0211: C6 20           ADD     $20                 ; ... 32 to ...
 0213: 5F              LD      E,A                 ; ... E
@@ -361,7 +361,7 @@ AddOneRow:
 0216: C9              RET                         ; Done
 
 ; Subtract 32 (one rom) from DE (two bytes)
-SubtractOneRow:
+SubtractOneRow_0217:
 0217: 7B              LD      A,E                 ; Subtract ...
 0218: D6 20           SUB     $20                 ; ... 32 from ...
 021A: 5F              LD      E,A                 ; ... E
@@ -374,7 +374,7 @@ SubtractOneRow:
 ; 3-byte (6 digit) BCD addition. Add BC*10 to (HL-2):(HL-1):(HL).
 ; The games keeps the lowest digit of the scores to 0.
 ;
-AddToScore:
+AddToScore_0220:
 0220: AF              XOR     A                   ; !! Pointless. We are about to change A and the flags
 0221: 7E              LD      A,(HL)              ; Lowest 2 digits
 0222: 81              ADD     A,C                 ; Add C to score
@@ -429,7 +429,7 @@ AddToScore:
 
 ; Two byte compare of BC to memory at (HL-1):(HL)
 ;
-CompareBCtoMem:
+CompareBCtoMem_0258:
 0258: 7E              LD      A,(HL)              ; Value from memory
 0259: B9              CP      C                   ; Are the lower values the same?
 025A: C0              RET     NZ                  ; No ... return not-zero
@@ -441,17 +441,17 @@ CompareBCtoMem:
 
 ; Subtract DE from memory if memory is greater/equal to BC.
 ;
-SubtractIfEnough:
-0260: CD 70 02        CALL    SubtractFromMemory  ; Try subtraction. Is memory larger (or equal) to BC?
+SubtractIfEnough_0260:
+0260: CD 70 02        CALL    SubtractFromMemory_0270  ; Try subtraction. Is memory larger (or equal) to BC?
 0263: D8              RET     C                   ; No ... ignore request
-0264: CD 77 02        CALL    SubtractToMemory    ; Yes ... subtract DE from memory
+0264: CD 77 02        CALL    SubtractToMemory_0277    ; Yes ... subtract DE from memory
 0267: C9              RET                         ; Done
 
 0268: FF FF FF FF FF FF FF FF          
 
 ; Two byte subtraction of memory from BC. BC = BC -  (HL-1):(HL)
 ;
-SubtractFromMemory:
+SubtractFromMemory_0270:
 0270: 7E              LD      A,(HL)              ; Get the low byte
 0271: 91              SUB     C                   ; Subtract from C
 0272: 2D              DEC     L                   ; Point to upper byte
@@ -461,7 +461,7 @@ SubtractFromMemory:
 0276: C9              RET                         ; Done
 
 ; Two byte subtraction of DE from memory. (HL-1):(HL) = (HL-1):(HL) - DE
-SubtractToMemory:
+SubtractToMemory_0277:
 0277: 7B              LD      A,E                 ; Lower byte
 0278: 96              SUB     (HL)                ; Subtract it from memory
 0279: 2D              DEC     L                   ; Point to upper byte
@@ -474,7 +474,7 @@ SubtractToMemory:
 
 ; Two byte compare of HL to BC
 ;
-CompareHLtoBC:
+CompareHLtoBC_0280:
 0280: 7D              LD      A,L                 ; Compare lower ...
 0281: B9              CP      C                   ; ... bytes
 0282: C0              RET     NZ                  ; Not the same ... return NZ
@@ -597,14 +597,14 @@ CompareHLtoBC:
 0353: E6 03           AND     $03                 ; Lives
 0355: C6 03           ADD     $03                 
 0357: 47              LD      B,A                 
-0358: 21 90 43        LD      HL,unknown_4390            
+0358: 21 90 43        LD      HL,nb_lives_p1_4390            
 035B: 70              LD      (HL),B              
 035C: 2E A2           LD      L,$A2               
 035E: 7E              LD      A,(HL)              
 035F: FE 01           CP      $01                 
 0361: CA 67 03        JP      Z,$0367             ; 
 0364: 2E 91           LD      L,$91               
-0366: 70              LD      (HL),B              
+0366: 70              LD      (HL),B     ; nb lives player 2         
 0367: 2E 90           LD      L,$90               
 0369: 7E              LD      A,(HL)              
 036A: F6 20           OR      $20                 
@@ -643,8 +643,9 @@ CompareHLtoBC:
 0399: B9              CP      C                   
 039A: C2 89 03        JP      NZ,$0389            ; 
 039D: C9              RET                         
-039E: FF              RST     0X38                
-039F: FF              RST     0X38                
+
+039E: FF FF             
+
 03A0: 21 3F 4B        LD      HL,unknown_4B3F            
 03A3: 11 47 00        LD      DE,$0047            
 03A6: 72              LD      (HL),D              
@@ -656,14 +657,14 @@ CompareHLtoBC:
 03AC: C2 A6 03        JP      NZ,$03A6            ; 
 03AF: C9              RET                         
 03B0: 01 A0 07        LD      BC,$07A0            
-03B3: CD 70 02        CALL    SubtractFromMemory  ; 
+03B3: CD 70 02        CALL    SubtractFromMemory_0270  ; 
 03B6: DA CE 03        JP      C,$03CE             ; 
-03B9: CD 58 02        CALL    CompareBCtoMem      ; 
+03B9: CD 58 02        CALL    CompareBCtoMem_0258      ; 
 03BC: CA EB 03        JP      Z,$03EB             ; 
 03BF: 01 60 0B        LD      BC,$0B60            
-03C2: CD 70 02        CALL    SubtractFromMemory  ; 
+03C2: CD 70 02        CALL    SubtractFromMemory_0270  ; 
 03C5: DA CE 03        JP      C,$03CE             ; 
-03C8: CD 58 02        CALL    CompareBCtoMem      ; 
+03C8: CD 58 02        CALL    CompareBCtoMem_0258      ; 
 03CB: CA E2 03        JP      Z,$03E2             ; 
 03CE: CD 73 01        CALL    $0173               ; 
 03D1: 21 A0 43        LD      HL,unknown_43A0            
@@ -681,7 +682,7 @@ CompareHLtoBC:
 03E8: C3 F1 03        JP      $03F1               ; 
 03EB: 01 04 01        LD      BC,$0104            
 03EE: 11 08 00        LD      DE,$0008            
-03F1: 21 A4 43        LD      HL,unknown_43A4            
+03F1: 21 A4 43        LD      HL,game_state_43A4            
 03F4: 70              LD      (HL),B              
 03F5: 2E B8           LD      L,$B8               
 03F7: 71              LD      (HL),C              
@@ -693,9 +694,10 @@ CompareHLtoBC:
 
 03FE: FF FF          
 
+; seems to be the main scheduling routine
 ; Jump to ?? function by number in 43A4
-0400: 21 0E 04        LD      HL,$040E            ; Jump table
-0403: 3A A4 43        LD      A,(M43A4)           ; ??
+0400: 21 0E 04        LD      HL,jump_table_040E            ; Jump table
+0403: 3A A4 43        LD      A,(game_state_43A4)           ; ??
 0406: 07              RLCA                        ; *2
 0407: 85              ADD     A,L                 ; Offset ...
 0408: 6F              LD      L,A                 ; ... into the table
@@ -706,14 +708,16 @@ CompareHLtoBC:
 040D: E9              JP      (HL)                ; Jump to function
 
 ; Notice these addresses are MSB:LSB (backwards from the processors endianness)
-040E: 04 30 
-0410: 04 AC                  
-0412: 05 15                  
-0414: 08 00       ; Restart
-0416: 0A EA 
-0418: 0B 60             
-041A: 24 00                        
-041C: 24 4C          
+jump_table_040E:
+  .word	$0430 
+  .word	$04AC                  
+  .word	$0515                  
+  .word	game_playing_0800
+  .word	player_hit_0AEA 
+  .word	game_over_0B60     
+  .word	$2400                        
+  .word	$244C          
+; bpset 0406,(A==0) || (A==1) || (A==2) || (A==6) || (A==7),{printf "%d",A;g}
 
 041E: 3A A3 43        LD      A,(unknown_43A3)           
 0421: E6 01           AND     $01                 
@@ -726,7 +730,7 @@ CompareHLtoBC:
 042E: 18 05           JR      $435                ; 
 
 ; ?? Function 0
-0430: 21 A4 43        LD      HL,unknown_43A4            ; Next function to run ...
+0430: 21 A4 43        LD      HL,game_state_43A4            ; Next function to run ...
 0433: 36 01           LD      (HL),$01            ; ... is 1 ??
 0435: 2C              INC     L                   
 0436: 36 80           LD      (HL),$80            
@@ -754,10 +758,7 @@ CompareHLtoBC:
 0458: CD 60 04        CALL    $0460               ; 
 045B: C9              RET                         
 
-045C: FF              RST     0X38                
-045D: FF              RST     0X38                
-045E: FF              RST     0X38                
-045F: FF              RST     0X38                
+045C: FF FF FF FF    
 
 ; Copy memory bank to bank
 ; B=from bank number, C=to bank number
@@ -843,7 +844,7 @@ CompareHLtoBC:
 04DF: 06 06           LD      B,$06               
 04E1: CD C4 00        CALL    $00C4               ; 
 04E4: C9              RET                         
-04E5: FF              RST     0X38                
+04E5: FF                    
 04E6: 21 A3 43        LD      HL,unknown_43A3            
 04E9: 7E              LD      A,(HL)              
 04EA: A7              AND     A                   
@@ -856,20 +857,20 @@ CompareHLtoBC:
 04FA: FF              RST     0X38                
 04FB: 3E 00           LD      A,$00               
 04FD: 12              LD      (DE),A              
-04FE: CD 10 02        CALL    AddOneRow           ; 
+04FE: CD 10 02        CALL    AddOneRow_0210           ; 
 0501: 05              DEC     B                   
 0502: C2 FB 04        JP      NZ,$04FB            ; 
 0505: C9              RET                         
 0506: 21 92 43        LD      HL,unknown_4392            
 0509: 06 06           LD      B,$06               
-050B: CD D8 05        CALL    $05D8               ; 
+050B: CD D8 05        CALL    clear_area_05D8               ; 
 050E: 3A 50 4B        LD      A,(unknown_4B50)           
 0511: 32 94 43        LD      (unknown_4394),A           
 0514: C9              RET                         
 
 ; ?? Function 2
 0515: CD 1E 04        CALL    $041E               ; 
-0518: 21 A4 43        LD      HL,unknown_43A4            
+0518: 21 A4 43        LD      HL,game_state_43A4            
 051B: 36 03           LD      (HL),$03            
 051D: CD 80 05        CALL    $0580               ; 
 0520: CD 47 05        CALL    $0547               ; 
@@ -881,7 +882,7 @@ CompareHLtoBC:
 ;
 0532: 21 50 4B        LD      HL,unknown_4B50            
 0535: 06 A0           LD      B,$A0               
-0537: CD D8 05        CALL    $05D8               ; 
+0537: CD D8 05        CALL    clear_area_05D8               ; 
 053A: CD EC 05        CALL    $05EC               ; 
 053D: CD 50 06        CALL    $0650               ; 
 0540: CD 10 06        CALL    $0610               ; 
@@ -895,7 +896,7 @@ CompareHLtoBC:
 054F: CD E0 05        CALL    $05E0               ; 
 0552: 21 E0 43        LD      HL,unknown_43E0            
 0555: 06 20           LD      B,$20               
-0557: CD D8 05        CALL    $05D8               ; 
+0557: CD D8 05        CALL    clear_area_05D8               ; 
 055A: C9              RET                         
 
 055B: FF FF FF FF FF 
@@ -997,13 +998,18 @@ CompareHLtoBC:
 05D3: 1D              DEC     E                   
 05D4: 00              NOP                         
 05D5: 48              LD      C,B                 
-05D6: FF              RST     0X38                
-05D7: FF              RST     0X38                
+
+05D6: FF FF
+    
+; < HL: start address
+; < B: number of bytes to clear
+clear_area_05D8:	
 05D8: AF              XOR     A                   
 05D9: 77              LD      (HL),A              
 05DA: 23              INC     HL                  
 05DB: 05              DEC     B                   
 05DC: C2 D9 05        JP      NZ,$05D9            ; 
+
 05DF: C9              RET                         
 05E0: 7E              LD      A,(HL)              
 05E1: 12              LD      (DE),A              
@@ -1311,7 +1317,7 @@ CompareHLtoBC:
 077D: 2B              DEC     HL                  
 077E: AF              XOR     A                   
 077F: 12              LD      (DE),A              
-0780: CD 17 02        CALL    SubtractOneRow      ; 
+0780: CD 17 02        CALL    SubtractOneRow_0217      ; 
 0783: AF              XOR     A                   
 0784: 12              LD      (DE),A              
 0785: EB              EX      DE,HL               
@@ -1329,7 +1335,7 @@ CompareHLtoBC:
 0792: 7E              LD      A,(HL)              
 0793: 12              LD      (DE),A              
 0794: 23              INC     HL                  
-0795: CD 17 02        CALL    SubtractOneRow      ; 
+0795: CD 17 02        CALL    SubtractOneRow_0217      ; 
 0798: 7E              LD      A,(HL)              
 0799: 12              LD      (DE),A              
 079A: 0B              DEC     BC                  
@@ -1376,7 +1382,7 @@ CompareHLtoBC:
 07C4: 12              LD      (DE),A              
 07C5: 13              INC     DE                  
 07C6: 12              LD      (DE),A              
-07C7: CD 17 02        CALL    SubtractOneRow      ; 
+07C7: CD 17 02        CALL    SubtractOneRow_0217      ; 
 07CA: AF              XOR     A                   
 07CB: 12              LD      (DE),A              
 07CC: 1B              DEC     DE                  
@@ -1400,7 +1406,7 @@ CompareHLtoBC:
 07E1: 12              LD      (DE),A              
 07E2: 23              INC     HL                  
 07E3: 1B              DEC     DE                  
-07E4: CD 17 02        CALL    SubtractOneRow      ; 
+07E4: CD 17 02        CALL    SubtractOneRow_0217      ; 
 07E7: 7E              LD      A,(HL)              
 07E8: 12              LD      (DE),A              
 07E9: 23              INC     HL                  
@@ -1414,10 +1420,10 @@ CompareHLtoBC:
 07F3: 32 00 58        LD      ($5800),A           ; 58xx scroll register
 07F6: CD 80 03        CALL    $0380               ; 
 07F9: C3 1E 04        JP      $041E               ; 
-07FC: FF              RST     0X38                
-07FD: FF              RST     0X38                
-07FE: FF              RST     0X38                
-07FF: FF              RST     0X38                
+
+07FC: FF FF FF FF      
+
+game_playing_0800:
 0800: 21 14 08        LD      HL,$0814            
 0803: 3A B8 43        LD      A,(unknown_43B8)           
 0806: 07              RLCA                        
@@ -1736,7 +1742,7 @@ CompareHLtoBC:
 0AA2: 56              LD      D,(HL)              
 0AA3: 23              INC     HL                  
 0AA4: 5E              LD      E,(HL)              
-0AA5: CD 10 02        CALL    AddOneRow           ; 
+0AA5: CD 10 02        CALL    AddOneRow_0210           ; 
 0AA8: 1B              DEC     DE                  
 0AA9: 01 04 04        LD      BC,$0404            
 0AAC: 2E A6           LD      L,$A6               
@@ -1763,12 +1769,13 @@ CompareHLtoBC:
 0ADD: C2 D8 0A        JP      NZ,$0AD8            ; 
 0AE0: C1              POP     BC                  
 0AE1: D1              POP     DE                  
-0AE2: CD 17 02        CALL    SubtractOneRow      ; 
+0AE2: CD 17 02        CALL    SubtractOneRow_0217      ; 
 0AE5: 0D              DEC     C                   
 0AE6: C2 D6 0A        JP      NZ,$0AD6            ; 
 0AE9: C9              RET                         
 
-; ?? Function 4
+; called all the time player is exploding
+player_hit_0AEA:
 0AEA: 21 B9 43        LD      HL,unknown_43B9            
 0AED: 7E              LD      A,(HL)              
 0AEE: E6 F8           AND     $F8                 
@@ -1778,7 +1785,7 @@ CompareHLtoBC:
 0AF6: 56              LD      D,(HL)              
 0AF7: 2C              INC     L                   
 0AF8: 5E              LD      E,(HL)              
-0AF9: CD 10 02        CALL    AddOneRow           ; 
+0AF9: CD 10 02        CALL    AddOneRow_0210           ; 
 0AFC: 1B              DEC     DE                  
 0AFD: 00              NOP                         
 0AFE: 2E A5           LD      L,$A5               
@@ -1843,6 +1850,8 @@ CompareHLtoBC:
 0B59: 77              LD      (HL),A              
 0B5A: C9              RET                         
                
+; called during "game over" screen
+game_over_0B60:
 0B60: 21 A5 43        LD      HL,unknown_43A5            
 0B63: 34              INC     (HL)                
 0B64: 7E              LD      A,(HL)              
@@ -1852,7 +1861,7 @@ CompareHLtoBC:
 0B6D: 0E 01           LD      C,$01               
 0B6F: FE 80           CP      $80                 
 0B71: C2 95 0B        JP      NZ,$0B95            ; 
-0B74: 21 A4 43        LD      HL,unknown_43A4            
+0B74: 21 A4 43        LD      HL,game_state_43A4            
 0B77: 36 00           LD      (HL),$00            
 0B79: 2E 90           LD      L,$90               
 0B7B: 7E              LD      A,(HL)              
@@ -2015,7 +2024,7 @@ CompareHLtoBC:
 0CC2: BE              CP      (HL)                
 0CC3: D0              RET     NC                  
 0CC4: 3E 04           LD      A,$04               
-0CC6: 32 A4 43        LD      (M43A4),A           ; 
+0CC6: 32 A4 43        LD      (game_state_43A4),A           ; 
 0CC9: 3E 60           LD      A,$60               
 0CCB: 32 A5 43        LD      (M43A5),A           ; 
 0CCE: 3E 10           LD      A,$10               
@@ -2435,7 +2444,7 @@ CompareHLtoBC:
 0F65: C2 58 0F        JP      NZ,$0F58            ; 
 0F68: D1              POP     DE                  
 0F69: C1              POP     BC                  
-0F6A: CD 17 02        CALL    SubtractOneRow      ; 
+0F6A: CD 17 02        CALL    SubtractOneRow_0217      ; 
 0F6D: 0D              DEC     C                   
 0F6E: C2 56 0F        JP      NZ,$0F56            ; 
 0F71: C9              RET                         
@@ -2445,7 +2454,7 @@ CompareHLtoBC:
 0F76: 56              LD      D,(HL)              
 0F77: 2C              INC     L                   
 0F78: 5E              LD      E,(HL)              
-0F79: CD 17 02        CALL    SubtractOneRow      ; 
+0F79: CD 17 02        CALL    SubtractOneRow_0217      ; 
 0F7C: 1B              DEC     DE                  
 0F7D: 01 04 04        LD      BC,$0404            
 0F80: CD 56 0F        CALL    $0F56               ; 
@@ -2510,7 +2519,7 @@ CompareHLtoBC:
 0FE0: 2C              INC     L                   
 0FE1: 5E              LD      E,(HL)              
 0FE2: 00              NOP                         
-0FE3: CD 10 02        CALL    AddOneRow           ; 
+0FE3: CD 10 02        CALL    AddOneRow_0210           ; 
 0FE6: 78              LD      A,B                 
 0FE7: E6 0E           AND     $0E                 
 0FE9: 0F              RRCA                        
@@ -2699,7 +2708,7 @@ CompareHLtoBC:
 1EE6: 1A              LD      A,(DE)              
 1EE7: 80              ADD     A,B                 
 1EE8: 47              LD      B,A                 
-1EE9: CD 17 02        CALL    SubtractOneRow      ; 
+1EE9: CD 17 02        CALL    SubtractOneRow_0217      ; 
 1EEC: 0D              DEC     C                   
 1EED: C2 E6 1E        JP      NZ,$1EE6            ; 
 1EF0: 1A              LD      A,(DE)              
@@ -3253,7 +3262,7 @@ CompareHLtoBC:
 23C2: E6 F0           AND     $F0                 
 23C4: FE 70           CP      $70                 
 23C6: C0              RET     NZ                  
-23C7: 21 A4 43        LD      HL,unknown_43A4            
+23C7: 21 A4 43        LD      HL,game_state_43A4            
 23CA: 36 06           LD      (HL),$06            
 23CC: 2C              INC     L                   
 23CD: 36 60           LD      (HL),$60            
@@ -3322,7 +3331,8 @@ CompareHLtoBC:
 2447: 2E A5           LD      L,$A5               
 2449: 35              DEC     (HL)                
 244A: 7E              LD      A,(HL)              
-244B: C9              RET                         
+244B: C9              RET   
+                      
 244C: 21 A5 43        LD      HL,unknown_43A5            
 244F: 35              DEC     (HL)                
 2450: 7E              LD      A,(HL)              
@@ -3748,13 +3758,13 @@ CompareHLtoBC:
 271E: FE 80           CP      $80                 
 2720: C2 17 27        JP      NZ,$2717            ; 
 2723: 1E 9D           LD      E,$9D               
-2725: 3A A4 43        LD      A,(M43A4)           ; 
+2725: 3A A4 43        LD      A,(game_state_43A4)           ; 
 2728: FE 06           CP      $06                 
 272A: C2 39 27        JP      NZ,$2739            ; 
 272D: 1A              LD      A,(DE)              
 272E: 47              LD      B,A                 
 272F: 0E 00           LD      C,$00               
-2731: CD 20 02        CALL    AddToScore          ; 
+2731: CD 20 02        CALL    AddToScore_0220          ; 
 2734: AF              XOR     A                   
 2735: 12              LD      (DE),A              
 2736: 32 97 43        LD      (unknown_4397),A           
@@ -3782,7 +3792,7 @@ CompareHLtoBC:
 2758: 78              LD      A,B                 
 2759: E6 0F           AND     $0F                 
 275B: 47              LD      B,A                 
-275C: CD 20 02        CALL    AddToScore          ; 
+275C: CD 20 02        CALL    AddToScore_0220          ; 
 275F: AF              XOR     A                   
 2760: 12              LD      (DE),A              
 2761: 32 97 43        LD      (unknown_4397),A           
@@ -4304,10 +4314,10 @@ CompareHLtoBC:
 32AF: C9              RET                         
 32B0: 21 50 43        LD      HL,unknown_4350            
 32B3: 06 30           LD      B,$30               
-32B5: CD D8 05        CALL    $05D8               ; 
+32B5: CD D8 05        CALL    clear_area_05D8               ; 
 32B8: 2E 9A           LD      L,$9A               
 32BA: 06 04           LD      B,$04               
-32BC: CD D8 05        CALL    $05D8               ; 
+32BC: CD D8 05        CALL    clear_area_05D8               ; 
 32BF: 3A BB 43        LD      A,(unknown_43BB)           
 32C2: A7              AND     A                   
 32C3: C8              RET     Z                   
@@ -4317,7 +4327,7 @@ CompareHLtoBC:
 32C7: 4F              LD      C,A                 
 32C8: 21 70 4B        LD      HL,unknown_4B70            
 32CB: 06 40           LD      B,$40               
-32CD: CD D8 05        CALL    $05D8               ; 
+32CD: CD D8 05        CALL    clear_area_05D8               ; 
 32D0: 16 4B           LD      D,$4B               
 32D2: 26 3F           LD      H,$3F               
 32D4: 3E 40           LD      A,$40               
@@ -4992,10 +5002,10 @@ CompareHLtoBC:
 37B8: 2D              DEC     L                   
 37B9: 2D              DEC     L                   
 37BA: 00              NOP                         
-37BB: CD 17 02        CALL    SubtractOneRow      ; 
+37BB: CD 17 02        CALL    SubtractOneRow_0217      ; 
 37BE: 3E 20           LD      A,$20               
 37C0: 12              LD      (DE),A              
-37C1: CD 10 02        CALL    AddOneRow           ; 
+37C1: CD 10 02        CALL    AddOneRow_0210           ; 
 37C4: 06 02           LD      B,$02               
 37C6: C3 C4 00        JP      $00C4               ; 
                
@@ -5514,7 +5524,7 @@ CompareHLtoBC:
 3B40: 77              LD      (HL),A              
 3B41: C9              RET                         
 3B42: 8D              ADC     A,L                 
-3B43: 21 A4 43        LD      HL,unknown_43A4            
+3B43: 21 A4 43        LD      HL,game_state_43A4            
 3B46: 7E              LD      A,(HL)              
 3B47: FE 03           CP      $03                 
 3B49: CC D6 23        CALL    Z,$23D6             ; 
