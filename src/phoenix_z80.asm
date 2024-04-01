@@ -1,25 +1,36 @@
 ;0000-3FFF: ROM
 
-;4000-4FFF: video/general purpose RAM:
+;4000-4FFF: video/general purpose RAM, banked with 2 memory banks
 
 ;4000-4340: fg tiles video ram (26*32 208*256)
 ;43A0 	IN0Current 	Current value of IN0
 ;43A1 	IN0Previous 	Previous value of IN0
-;43A2 	M43A2 	???
-;43A4 	game_state_43A4 	Function table jump ??
-;43A5 	M43A5 	?? delay count ??
+;43A2 	game_in_play_43A2  0 game not playing, !=0: playing, 1 or 2 nb players
+;43A4 	game_state_43A4 	Function table jump
+;43A5 	timer_43A5 	general purpose state timer
+;43B8   current stage
+;43BA   nb enemies to kill before stage completed (not vultures, only birds stage)
+;43BB   nb vultures to kill before stage completed
 ;438F 	CoinCount 	Number of coins inserted (max counted is 9)
 ;439A:439B 	Counter 	16 bit counter (MSB:LSB)
 ;43C2:43C3  player ship X/Y (X changes, Y stays on the bottom of screen)
 ;4800-4B40: bg tiles video ram (scrollable part)
 
+; to skip a level, MAME cheat sets 43BA or 43BB depending on stage, and on final stage
+; just changes game_state_43A4 to 6 to set boss explode sequence
+
 ;5000-53FF: video registers
+;50xx: write a value with bit 1 cleared to enable bank 0
+;      else bank 1 is shown
 ;5800-5BFF: scroll registers
 ;6000-63ff: sound
 ;6800-6bff: sound
 ;7000-73ff: input
 ;7800-7bff: dip switches
-
+;
+; no interrupts are used at all (which allows for safe bank switching, which
+; contains the stack...)
+;
 ;http://www.computerarcheology.com/Arcade/Phoenix/
 
 0000: 00              NOP                         ; Start/restart and interrupts end up at 0008
@@ -36,19 +47,20 @@
 000B: 26 50           LD      H,$50               ; 50xx video register
 000D: 36 00           LD      (HL),$00            ; Select the first bank of RAM
 000F: CD 50 00        CALL    InitSoundScreen_0050     ; Turn sound off and clear both screen areas
-;
-
 0012: 21 00 18        LD      HL,$1800            ; Screen draw info
 0015: 0E 03           LD      C,$03               ; 3 columns (rotated to 3 rows)
 0017: CD D0 01        CALL    $01D0               ; Draw the first 3 rows of the background (scores and coins);
+; init has ended, enter the mainloop, always called no matter what
+mainloop_001A:
 001A: CD 80 00        CALL    WaitVBlankCoin_0080      ; Wait for VBlank and count any coins
-001D: 3A A2 43        LD      A,(M43A2)           ; 
+001D: 3A A2 43        LD      A,(game_in_play_43A2)           ; 
 0020: A7              AND     A                   
 0021: CA 2D 00        JP      Z,$002D             ; 
-0024: CD 00 04        CALL    $0400               ; 
+; called only when game is in play
+0024: CD 00 04        CALL    in_game_scheduler_0400               ; 
 0027: CD 00 27        CALL    $2700               ; 
-002A: C3 1A 00        JP      $001A               ; 
-
+002A: C3 1A 00        JP      mainloop_001A               ; 
+; called only when game not in play
 002D: 3E 0F           LD      A,$0F               
 002F: 26 60           LD      H,$60               ; 60xx sound A
 0031: 77              LD      (HL),A              
@@ -60,10 +72,10 @@
 003C: A7              AND     A                   
 003D: CA 46 00        JP      Z,$0046             ; 
 0040: CD 88 02        CALL    $0288               ; 
-0043: C3 1A 00        JP      $001A               ; 
+0043: C3 1A 00        JP      mainloop_001A               ; 
 ;
 0046: CD E3 00        CALL    $00E3               ; 
-0049: C3 1A 00        JP      $001A               ; 
+0049: C3 1A 00        JP      mainloop_001A               ; 
 
 004C: FF FF FF FF  
 
@@ -74,7 +86,7 @@ InitSoundScreen_0050:
 0054: 26 60           LD      H,$60               ; 60xx sound A
 0056: 36 00           LD      (HL),$00            ; Sound off
 0058: 26 58           LD      H,$58               ; 58xx scroll register
-005A: 36 00           LD      (HL),$00            ; First memory bank
+005A: 36 00           LD      (HL),$00            ; set scrolling to zero
 005C: CD 6B 00        CALL    ClearScreenPlane_006B    ; Clear the plane
 005F: 26 50           LD      H,$50               ; 50xx video register
 0061: 36 01           LD      (HL),$01            ; Second memory bank
@@ -216,6 +228,7 @@ CheckInputBits:
 
 013B: FF FF FF FF FF    
 
+; no idea of what it does. If commented out, first level is skipped
 0140: CD A0 03        CALL    $03A0               ; 
 0143: CD 80 00        CALL    WaitVBlankCoin_0080      ; 
 0146: CD 80 03        CALL    $0380               ; 
@@ -241,7 +254,8 @@ CheckInputBits:
 016B: 26 58           LD      H,$58               ; 58xx scroll register
 016D: 36 00           LD      (HL),$00            
 016F: CD 80 00        CALL    WaitVBlankCoin_0080      ; 
-0172: C9              RET                         
+0172: C9              RET         
+                
 0173: 7E              LD      A,(HL)              
 0174: E6 7F           AND     $7F                 
 0176: 06 CE           LD      B,$CE               
@@ -520,10 +534,10 @@ CompareHLtoBC_0280:
 02B6: CD 50 03        CALL    $0350               ; 
 02B9: CD 40 01        CALL    $0140               ; 
 02BC: 26 50           LD      H,$50               ; 50xx video register
-02BE: 36 01           LD      (HL),$01            
+02BE: 36 01           LD      (HL),$01            ; set bank 1
 02C0: CD 40 01        CALL    $0140               ; 
 02C3: 26 50           LD      H,$50               ; 50xx video register
-02C5: 36 00           LD      (HL),$00            
+02C5: 36 00           LD      (HL),$00            ; set bank 0
 02C7: C9              RET                         
                 
                 
@@ -532,7 +546,7 @@ CompareHLtoBC_0280:
 02CD: FE 02           CP      $02                 
 02CF: CA D4 02        JP      Z,$02D4             ; 
 02D2: 0E 02           LD      C,$02               
-02D4: 21 A2 43        LD      HL,unknown_43A2            
+02D4: 21 A2 43        LD      HL,game_in_play_43A2            
 02D7: 71              LD      (HL),C              
 02D8: 3A 00 78        LD      A,($7800)           ; 78xx DSW0
 02DB: E6 10           AND     $10                 ; Coinage
@@ -561,10 +575,12 @@ CompareHLtoBC_0280:
 0308: 11 41 41        LD      DE,unknown_4141            
 030B: 06 06           LD      B,$06               
 030D: CD C4 00        CALL    $00C4               ; 
-0310: C9              RET                         
+0310: C9              RET  
+                       
 0311: FF              RST     0X38                
 0312: FF              RST     0X38                
-0313: FF              RST     0X38                
+0313: FF              RST     0X38 
+               
 0314: 1A              LD      A,(DE)              
 0315: 96              SUB     (HL)                
 0316: 1D              DEC     E                   
@@ -587,10 +603,12 @@ CompareHLtoBC_0280:
 0327: 23              INC     HL                  
 0328: 1A              LD      A,(DE)              
 0329: 77              LD      (HL),A              
-032A: C9              RET                         
+032A: C9              RET         
+                
 032B: FF              RST     0X38                
 032C: FF              RST     0X38                
-032D: FF              RST     0X38                
+032D: FF              RST     0X38  
+              
 032E: 21 80 43        LD      HL,unknown_4380            
 0331: 36 00           LD      (HL),$00            
 0333: 23              INC     HL                  
@@ -605,8 +623,10 @@ CompareHLtoBC_0280:
 0346: 11 21 40        LD      DE,unknown_4021            
 0349: 06 06           LD      B,$06               
 034B: CD C4 00        CALL    $00C4               ; 
-034E: C9              RET                         
-034F: FF              RST     0X38                
+034E: C9              RET          
+               
+034F: FF              RST     0X38  
+              
 0350: 3A 00 78        LD      A,($7800)           ; 78xx DSW0
 0353: E6 03           AND     $03                 ; Lives
 0355: C6 03           ADD     $03                 
@@ -686,8 +706,8 @@ CompareHLtoBC_0280:
 03D5: E6 01           AND     $01                 
 03D7: B0              OR      B                   
 03D8: 77              LD      (HL),A              
-03D9: C3 00 04        JP      $0400               ; 
-03DC: C3 00 04        JP      $0400               ; 
+03D9: C3 00 04        JP      in_game_scheduler_0400               ; 
+03DC: C3 00 04        JP      in_game_scheduler_0400               ; 
 
 03DF: FF FF FF
 
@@ -710,6 +730,7 @@ CompareHLtoBC_0280:
 
 ; seems to be the main scheduling routine
 ; Jump to ?? function by number in 43A4
+in_game_scheduler_0400:
 0400: 21 0E 04        LD      HL,jump_table_040E            ; Jump table
 0403: 3A A4 43        LD      A,(game_state_43A4)           ; ??
 0406: 07              RLCA                        ; *2
@@ -723,14 +744,14 @@ CompareHLtoBC_0280:
 
 ; Notice these addresses are MSB:LSB (backwards from the processors endianness)
 jump_table_040E:
-  .word	$0430 
-  .word	$04AC                  
-  .word	$0515                  
+  .word	init_new_play_0430 
+  .word	init_new_play_clear_screen_04AC                  
+  .word	init_new_play_step_2_0515                  
   .word	game_playing_0800
   .word	player_hit_0AEA 
   .word	game_over_0B60     
-  .word	$2400                        
-  .word	$244C          
+  .word	boss_stage_completed_2400                        
+  .word	end_of_level_transition_244C          
 ; bpset 0406,(A==0) || (A==1) || (A==2) || (A==6) || (A==7),{printf "%d",A;g}
 
 041E: 3A A3 43        LD      A,(unknown_43A3)           
@@ -743,7 +764,8 @@ jump_table_040E:
 042D: C9              RET                         
 042E: 18 05           JR      $435                ; 
 
-; ?? Function 0
+; initialize new play or demo
+init_new_play_0430:
 0430: 21 A4 43        LD      HL,game_state_43A4            ; Next function to run ...
 0433: 36 01           LD      (HL),$01            ; ... is 1 ??
 0435: 2C              INC     L                   
@@ -769,7 +791,7 @@ jump_table_040E:
 0451: 2E A3           LD      L,$A3               
 0453: 36 00           LD      (HL),$00            
 0455: 01 00 01        LD      BC,$0100            
-0458: CD 60 04        CALL    $0460               ; 
+0458: CD 60 04        CALL    copy_bank_0460               ; 
 045B: C9              RET                         
 
 045C: FF FF FF FF    
@@ -777,6 +799,7 @@ jump_table_040E:
 ; Copy memory bank to bank
 ; B=from bank number, C=to bank number
 ; Starts at 4320
+copy_bank_0460:
 0460: 21 00 50        LD      HL,$5000            ; 50xx video register
 0463: 11 20 43        LD      DE,unknown_4320            
 0466: 70              LD      (HL),B              
@@ -823,13 +846,14 @@ jump_table_040E:
 04A0: 2E A3           LD      L,$A3               
 04A2: 36 01           LD      (HL),$01            
 04A4: 01 01 00        LD      BC,$0001            
-04A7: CD 60 04        CALL    $0460               ; 
+04A7: CD 60 04        CALL    copy_bank_0460               ; 
 04AA: C9              RET                         
 
 04AB: FF
 
 ; ?? Function 1
-04AC: 21 A5 43        LD      HL,unknown_43A5            
+init_new_play_clear_screen_04AC:
+04AC: 21 A5 43        LD      HL,timer_43A5            
 04AF: 35              DEC     (HL)                
 04B0: 7E              LD      A,(HL)              
 04B1: 2D              DEC     L                   
@@ -883,9 +907,10 @@ jump_table_040E:
 0514: C9              RET                         
 
 ; ?? Function 2
+init_new_play_step_2_0515:
 0515: CD 1E 04        CALL    $041E               ; 
 0518: 21 A4 43        LD      HL,game_state_43A4            
-051B: 36 03           LD      (HL),$03            
+051B: 36 03           LD      (HL),$03         ; advance state machine to "playing"   
 051D: CD 80 05        CALL    $0580               ; 
 0520: CD 47 05        CALL    $0547               ; 
 0523: CD A0 09        CALL    $09A0               ; 
@@ -1045,7 +1070,7 @@ clear_area_05D8:
 05F8: 23              INC     HL                  
 05F9: 5E              LD      E,(HL)              
 05FA: 21 70 4B        LD      HL,unknown_4B70            
-05FD: 3A BA 43        LD      A,(unknown_43BA)           
+05FD: 3A BA 43        LD      A,(nb_to_kill_before_stage_completed_43BA)           
 0600: 47              LD      B,A                 
 0601: A7              AND     A                   
 0602: C8              RET     Z                   
@@ -1072,7 +1097,7 @@ clear_area_05D8:
 061E: 6E              LD      L,(HL)              
 061F: 26 15           LD      H,$15               
 0621: 11 72 4B        LD      DE,unknown_4B72            
-0624: 3A BA 43        LD      A,(unknown_43BA)           
+0624: 3A BA 43        LD      A,(nb_to_kill_before_stage_completed_43BA)           
 0627: 47              LD      B,A                 
 0628: A7              AND     A                   
 0629: C8              RET     Z                   
@@ -1122,7 +1147,7 @@ clear_area_05D8:
 065C: 23              INC     HL                  
 065D: 5E              LD      E,(HL)              
 065E: 21 50 4B        LD      HL,unknown_4B50            
-0661: 3A BA 43        LD      A,(unknown_43BA)           
+0661: 3A BA 43        LD      A,(nb_to_kill_before_stage_completed_43BA)           
 0664: 47              LD      B,A                 
 0665: A7              AND     A                   
 0666: C8              RET     Z                   
@@ -1132,27 +1157,33 @@ clear_area_05D8:
 066A: 2C              INC     L                   
 066B: 05              DEC     B                   
 066C: C2 67 06        JP      NZ,$0667            ; 
-066F: C9              RET                         
+066F: C9              RET
+   
+; seems never referenced or called	
 0670: 21 B1 43        LD      HL,unknown_43B1            
 0673: 46              LD      B,(HL)              
 0674: 2E B9           LD      L,$B9               
 0676: 4E              LD      C,(HL)              
 0677: 79              LD      A,C                 
 0678: 90              SUB     B                   
-0679: 77              LD      (HL),A              
-067A: 21 B9 43        LD      HL,unknown_43B9            
+0679: 77              LD      (HL),A    
+ 
+update_scrolling_067A:         
+067A: 21 B9 43        LD      HL,current_scroll_value_43B9            
 067D: 7E              LD      A,(HL)              
-067E: 35              DEC     (HL)                
-067F: 32 00 58        LD      ($5800),A           ; 58xx scroll register
+067E: 35              DEC     (HL)                ; decrease scroll value
+067F: 32 00 58        LD      ($5800),A           ; 58xx scroll register, change scroll value
 0682: E6 07           AND     $07                 
-0684: C0              RET     NZ                  
+0684: C0              RET     NZ 
+; if 8 pixels were scrolled, then feed scroll
+; by updating a character row                 
 0685: 01 47 20        LD      BC,$2047            
 0688: 11 21 4B        LD      DE,unknown_4B21            
-068B: 7E              LD      A,(HL)              
+068B: 7E              LD      A,(HL)       ; scroll value       
 068C: 0F              RRCA                        
 068D: 0F              RRCA                        
-068E: 0F              RRCA                        
-068F: E6 1F           AND     $1F                 
+068E: 0F              RRCA                 ; divided by 8 to get character offset       
+068F: E6 1F           AND     $1F          ; masked (useless as 256/8 = 32...)                 
 0691: 83              ADD     A,E                 
 0692: 5F              LD      E,A                 
 0693: 2E B2           LD      L,$B2               
@@ -1173,12 +1204,14 @@ clear_area_05D8:
 06A5: C2 99 06        JP      NZ,$0699            ; 
 06A8: 7D              LD      A,L                 
 06A9: 32 B3 43        LD      (unknown_43B3),A           
-06AC: C9              RET                         
+06AC: C9              RET    
+                     
 06AD: FF              RST     0X38                
 06AE: FF              RST     0X38                
-06AF: FF              RST     0X38                
+06AF: FF              RST     0X38   
+             
 06B0: 21 AB 43        LD      HL,unknown_43AB            
-06B3: 3A B9 43        LD      A,(unknown_43B9)           
+06B3: 3A B9 43        LD      A,(current_scroll_value_43B9)           
 06B6: 4F              LD      C,A                 
 06B7: BE              CP      (HL)                
 06B8: C0              RET     NZ                  
@@ -1221,9 +1254,11 @@ clear_area_05D8:
 06E8: 21 00 18        LD      HL,$1800            
 06EB: 0E 01           LD      C,$01               
 06ED: C3 D0 01        JP      $01D0               ; 
-06F0: CD 7A 06        CALL    $067A               ; 
+
+06F0: CD 7A 06        CALL    update_scrolling_067A               ; 
 06F3: CD 40 20        CALL    $2040               ; 
 06F6: C3 B0 06        JP      $06B0               ; 
+
 06F9: FF              RST     0X38                
 06FA: FF              RST     0X38                
 06FB: FF              RST     0X38                
@@ -1231,6 +1266,7 @@ clear_area_05D8:
 06FD: FF              RST     0X38                
 06FE: FF              RST     0X38                
 06FF: FF              RST     0X38                
+
 0700: 01 C0 43        LD      BC,unknown_43C0            
 0703: 11 E0 43        LD      DE,unknown_43E0            
 0706: CD 18 07        CALL    $0718               ; 
@@ -1430,7 +1466,7 @@ clear_area_05D8:
 07ED: 0B              DEC     BC                  
 07EE: C9              RET                         
 07EF: FF              RST     0X38                
-07F0: 3A B9 43        LD      A,(unknown_43B9)           
+07F0: 3A B9 43        LD      A,(current_scroll_value_43B9)           
 07F3: 32 00 58        LD      ($5800),A           ; 58xx scroll register
 07F6: CD 80 03        CALL    $0380               ; 
 07F9: C3 1E 04        JP      $041E               ; 
@@ -1795,7 +1831,7 @@ read_controls_to_move_ship_0900:
 
 ; called all the time player is exploding
 player_hit_0AEA:
-0AEA: 21 B9 43        LD      HL,unknown_43B9            
+0AEA: 21 B9 43        LD      HL,current_scroll_value_43B9            
 0AED: 7E              LD      A,(HL)              
 0AEE: E6 F8           AND     $F8                 
 0AF0: 77              LD      (HL),A              
@@ -1871,7 +1907,7 @@ player_hit_0AEA:
                
 ; called during "game over" screen
 game_over_0B60:
-0B60: 21 A5 43        LD      HL,unknown_43A5            
+0B60: 21 A5 43        LD      HL,timer_43A5            
 0B63: 34              INC     (HL)                
 0B64: 7E              LD      A,(HL)              
 0B65: FE 40           CP      $40                 
@@ -1900,7 +1936,7 @@ game_over_0B60:
 0B8B: C8              RET     Z                   
 0B8C: 36 00           LD      (HL),$00            
 0B8E: 01 00 01        LD      BC,$0100            
-0B91: CD 60 04        CALL    $0460               ; 
+0B91: CD 60 04        CALL    copy_bank_0460               ; 
 0B94: C9              RET                         
 0B95: CD D0 01        CALL    $01D0               ; 
 0B98: CD E4 01        CALL    $01E4               ; 
@@ -1943,7 +1979,8 @@ game_over_0B60:
 0BEB: 11 48 0A        LD      DE,$0A48            
 0BEE: CD 48 35        CALL    $3548               ; 
 0BF1: C9              RET                         
-               
+
+moving_bird_shot_0C00:               
 0C00: E5              PUSH    HL                  
 0C01: 7D              LD      A,L                 
 0C02: D6 72           SUB     $72                 
@@ -1958,13 +1995,13 @@ game_over_0B60:
 0C0F: 7E              LD      A,(HL)              
 0C10: E1              POP     HL                  
 0C11: FE 07           CP      $07                 
-0C13: DA A4 0E        JP      C,$0EA4             ; 
+0C13: DA A4 0E        JP      C,bird_shot_0EA4             ; 
 0C16: FE 09           CP      $09                 
-0C18: D2 A4 0E        JP      NC,$0EA4            ; 
+0C18: D2 A4 0E        JP      NC,bird_shot_0EA4            ; 
 0C1B: 11 20 10        LD      DE,$1020            
 0C1E: 3E FF           LD      A,$FF               
 0C20: 32 69 43        LD      (unknown_4369),A           
-0C23: C3 A4 0E        JP      $0EA4               ; 
+0C23: C3 A4 0E        JP      bird_shot_0EA4               ; 
 
 0C40: 21 FF 43        LD      HL,unknown_43FF            
 0C43: 06 05           LD      B,$05               
@@ -2045,7 +2082,7 @@ game_over_0B60:
 0CC4: 3E 04           LD      A,$04               
 0CC6: 32 A4 43        LD      (game_state_43A4),A           ; 
 0CC9: 3E 60           LD      A,$60               
-0CCB: 32 A5 43        LD      (M43A5),A           ; 
+0CCB: 32 A5 43        LD      (timer_43A5),A           ; 
 0CCE: 3E 10           LD      A,$10               
 0CD0: 32 63 43        LD      (unknown_4363),A           
 0CD3: C9              RET                         
@@ -2279,14 +2316,15 @@ game_over_0B60:
 0E46: 23              INC     HL                  
 0E47: 23              INC     HL                  
 0E48: E6 08           AND     $08                 
-0E4A: C4 58 0E        CALL    NZ,$0E58            ; 
+0E4A: C4 58 0E        CALL    NZ,moving_bird_close_to_shot_0E58            ; 
 0E4D: 23              INC     HL                  
 0E4E: 23              INC     HL                  
 0E4F: 3E B0           LD      A,$B0               
 0E51: BD              CP      L                   
 0E52: C2 45 0E        JP      NZ,$0E45            ; 
 0E55: C9              RET                         
-              
+   
+moving_bird_close_to_shot_0E58:   
 0E58: 7A              LD      A,D                 
 0E59: BE              CP      (HL)                
 0E5A: D8              RET     C                   
@@ -2303,9 +2341,11 @@ game_over_0B60:
 0E67: D6 0C           SUB     $0C                 
 0E69: BB              CP      E                   
 0E6A: D0              RET     NC                  
-0E6B: C3 00 0C        JP      $0C00               ; 
+0E6B: C3 00 0C        JP      moving_bird_shot_0C00               ; 
+
 0E6E: FF              RST     0X38                
-0E6F: FF              RST     0X38                
+0E6F: FF              RST     0X38 
+               
 0E70: 23              INC     HL                  
 0E71: 0A              LD      A,(BC)              
 0E72: E6 F8           AND     $F8                 
@@ -2320,14 +2360,17 @@ game_over_0B60:
 0E7F: 23              INC     HL                  
 0E80: 23              INC     HL                  
 0E81: E6 08           AND     $08                 
-0E83: C4 90 0E        CALL    NZ,$0E90            ; 
+0E83: C4 90 0E        CALL    NZ,swarm_bird_close_to_shot_0E90            ; 
 0E86: 23              INC     HL                  
 0E87: 23              INC     HL                  
 0E88: 3E B0           LD      A,$B0               
 0E8A: BD              CP      L                   
 0E8B: C2 7E 0E        JP      NZ,$0E7E            ; 
-0E8E: C9              RET                         
-0E8F: FF              RST     0X38                
+0E8E: C9              RET            
+             
+0E8F: FF              RST     0X38  
+
+swarm_bird_close_to_shot_0E90:              
 0E90: 7E              LD      A,(HL)              
 0E91: C6 02           ADD     $02                 
 0E93: BA              CP      D                   
@@ -2342,7 +2385,11 @@ game_over_0B60:
 0E9E: BB              CP      E                   
 0E9F: C0              RET     NZ                  
 0EA0: 11 02 0C        LD      DE,$0C02            
-0EA3: 00              NOP                         
+0EA3: 00              NOP
+
+; swarm or moving, when shot, ends up here
+; deactivates bird and counts one less
+bird_shot_0EA4:                         
 0EA4: 2B              DEC     HL                  
 0EA5: 2B              DEC     HL                  
 0EA6: 0B              DEC     BC                  
@@ -2387,10 +2434,11 @@ game_over_0B60:
 0EDA: 2C              INC     L                   
 0EDB: 71              LD      (HL),C              
 0EDC: 2E 64           LD      L,$64               
-0EDE: 36 FF           LD      (HL),$FF            
+0EDE: 36 FF           LD      (HL),$FF  ; sets 4364 to $FF ???            
 0EE0: 2E BA           LD      L,$BA               
-0EE2: 35              DEC     (HL)       
-; jump table??         
+0EE2: 35              DEC     (HL)    ; one less enemy to kill (43BA)   
+; pops stack and jumps
+; occurs when bird enemy is shot        
 0EE3: E1              POP     HL                  
 0EE4: E1              POP     HL                  
 0EE5: E9              JP      (HL)                
@@ -2552,7 +2600,7 @@ game_over_0B60:
 0FF7: 68              LD      L,B                 
 0FF8: 3E 05           LD      A,$05               
 0FFA: 32 96 43        LD      (unknown_4396),A           
-0FFD: C3 A4 0E        JP      $0EA4               ; 
+0FFD: C3 A4 0E        JP      bird_shot_0EA4               ; 
              
 14E0: 47              LD      B,A                 
 14E1: 3A 00 78        LD      A,($7800)           ; 78xx DSW0
@@ -2719,7 +2767,7 @@ game_over_0B60:
 1DF3: D6 01           SUB     $01                 
 1DF5: C8              RET     Z                   
 1DF6: 32 8F 43        LD      (CoinCount),A       ; 
-; makes no sense from there! replaced by halt
+; makes no sense from there! replaced by halt, probably never reached
 1DF9: 76              HALT                        
 
 1EE0: 11 3D 43        LD      DE,unknown_433D            
@@ -2747,7 +2795,7 @@ game_over_0B60:
 200D: E6 03           AND     $03                 
 200F: 47              LD      B,A                 
 2010: 34              INC     (HL)                
-2011: 3A BA 43        LD      A,(unknown_43BA)           
+2011: 3A BA 43        LD      A,(nb_to_kill_before_stage_completed_43BA)           
 2014: A7              AND     A                   
 2015: CA BA 21        JP      Z,$21BA             ; 
 2018: FE 05           CP      $05                 
@@ -2770,7 +2818,7 @@ game_over_0B60:
 2037: C3 AC 23        JP      $23AC               ; 
    
 2040: 21 AF 43        LD      HL,unknown_43AF            
-2043: 3A B9 43        LD      A,(unknown_43B9)           
+2043: 3A B9 43        LD      A,(current_scroll_value_43B9)           
 2046: 4F              LD      C,A                 
 2047: BE              CP      (HL)                
 2048: C0              RET     NZ                  
@@ -2911,7 +2959,7 @@ game_over_0B60:
 210A: 01 04 04        LD      BC,$0404            
 210D: C3 D6 0A        JP      $0AD6               ; 
 
-211C: 21 B9 43        LD      HL,unknown_43B9            
+211C: 21 B9 43        LD      HL,current_scroll_value_43B9            
 211F: 7E              LD      A,(HL)              
 2120: FE 10           CP      $10                 
 2122: D8              RET     C                   
@@ -2980,7 +3028,7 @@ game_over_0B60:
 21CD: FE 0B           CP      $0B                 
 21CF: DA 04 22        JP      C,$2204             ; 
 21D2: 3E 10           LD      A,$10               
-21D4: 32 BA 43        LD      (unknown_43BA),A           
+21D4: 32 BA 43        LD      (nb_to_kill_before_stage_completed_43BA),A           
 21D7: C3 26 05        JP      $0526               ; 
 21DA: FF              RST     0X38                
 21DB: FF              RST     0X38                
@@ -3119,8 +3167,10 @@ game_over_0B60:
 22AC: BA              CP      D                   
 22AD: C2 A3 22        JP      NZ,$22A3            ; 
 22B0: C3 E0 22        JP      $22E0               ; 
-22B3: FF              RST     0X38                
-22B4: CD 7A 06        CALL    $067A               ; 
+
+22B3: FF              RST     0X38     
+           
+22B4: CD 7A 06        CALL    update_scrolling_067A               ; 
 22B7: 21 B4 43        LD      HL,unknown_43B4            
 22BA: 35              DEC     (HL)                
 22BB: 7E              LD      A,(HL)              
@@ -3142,7 +3192,7 @@ game_over_0B60:
 22DD: C9              RET                         
               
 22E0: 3E 71           LD      A,$71               
-22E2: 32 B9 43        LD      (unknown_43B9),A           
+22E2: 32 B9 43        LD      (current_scroll_value_43B9),A           
 22E5: 32 00 58        LD      ($5800),A           ; 58xx scroll register
 22E8: C9              RET                         
                
@@ -3215,7 +3265,7 @@ game_over_0B60:
 2357: 6E              LD      L,(HL)              
 2358: C6 08           ADD     $08                 
 235A: 67              LD      H,A                 
-235B: 3A B9 43        LD      A,(unknown_43B9)           
+235B: 3A B9 43        LD      A,(current_scroll_value_43B9)           
 235E: 0F              RRCA                        
 235F: 0F              RRCA                        
 2360: 0F              RRCA                        
@@ -3307,6 +3357,7 @@ game_over_0B60:
 23F8: CD 02 3B        CALL    $3B02               ; 
 23FB: C3 98 3A        JP      $3A98               ; 
                
+boss_stage_completed_2400:
 2400: CD 2C 24        CALL    $242C               ; 
 2403: CA 52 25        JP      Z,$2552             ; 
 2406: FE 20           CP      $20                 
@@ -3329,7 +3380,7 @@ game_over_0B60:
 2423: 21 00 2B        LD      HL,$2B00            
 2426: C3 85 20        JP      $2085               ; 
                
-242C: 21 B9 43        LD      HL,unknown_43B9            
+242C: 21 B9 43        LD      HL,current_scroll_value_43B9            
 242F: 7E              LD      A,(HL)              
 2430: E6 F8           AND     $F8                 
 2432: 77              LD      (HL),A              
@@ -3351,8 +3402,10 @@ game_over_0B60:
 2449: 35              DEC     (HL)                
 244A: 7E              LD      A,(HL)              
 244B: C9              RET   
-                      
-244C: 21 A5 43        LD      HL,unknown_43A5            
+      
+; called when boss has exploded, wraps back to level 1
+end_of_level_transition_244C:	  
+244C: 21 A5 43        LD      HL,timer_43A5            
 244F: 35              DEC     (HL)                
 2450: 7E              LD      A,(HL)              
 2451: 0F              RRCA                        
@@ -3360,7 +3413,7 @@ game_over_0B60:
 2455: A7              AND     A                   
 2456: C0              RET     NZ                  
 2457: 2D              DEC     L                   
-2458: 36 02           LD      (HL),$02            
+2458: 36 02           LD      (HL),$02       ; sets 43A4 to 2 (restart game state)     
 245A: 2E B8           LD      L,$B8               
 245C: 7E              LD      A,(HL)              
 245D: E6 F0           AND     $F0                 
@@ -3436,10 +3489,10 @@ game_over_0B60:
 24E0: 3A AA 43        LD      A,(unknown_43AA)           
 24E3: E6 0F           AND     $0F                 
 24E5: C0              RET     NZ                  
-24E6: 3A B9 43        LD      A,(unknown_43B9)           
+24E6: 3A B9 43        LD      A,(current_scroll_value_43B9)           
 24E9: FE A0           CP      $A0                 
 24EB: D8              RET     C                   
-24EC: C3 7A 06        JP      $067A               ; 
+24EC: C3 7A 06        JP      update_scrolling_067A               ; 
 24EF: FA 22 C3        JP      M,$C322             
 24F2: CD AA 30        CALL    $30AA               ; 
 24F5: C6 60           ADD     $60                 
@@ -3458,7 +3511,7 @@ game_over_0B60:
 250A: 78              LD      A,B                 
 250B: D6 04           SUB     $04                 
 250D: 47              LD      B,A                 
-250E: 3A B9 43        LD      A,(unknown_43B9)           
+250E: 3A B9 43        LD      A,(current_scroll_value_43B9)           
 2511: 2F              CPL                         
 2512: 3C              INC     A                   
 2513: E6 F8           AND     $F8                 
@@ -3471,7 +3524,7 @@ game_over_0B60:
 2520: D5              PUSH    DE                  
 2521: CD 80 03        CALL    $0380               ; 
 2524: D1              POP     DE                  
-2525: 3A B9 43        LD      A,(unknown_43B9)           
+2525: 3A B9 43        LD      A,(current_scroll_value_43B9)           
 2528: C6 60           ADD     $60                 
 252A: 0F              RRCA                        
 252B: 47              LD      B,A                 
@@ -3495,7 +3548,8 @@ game_over_0B60:
 254A: 5F              LD      E,A                 
 254B: 06 04           LD      B,$04               
 254D: C3 C4 00        JP      $00C4               ; 
-2550: 32 80 2E        LD      ($2E80),A           ; 
+; this code makes no sense, probably unused, never seems to be called
+2550: 32 80 2E        LD      ($2E80),A           ; write to rom?? bogus
 2553: A4              AND     H                   
 2554: 36 07           LD      (HL),$07            
 2556: 2C              INC     L                   
@@ -3613,7 +3667,7 @@ game_over_0B60:
 25FC: E1              POP     HL                  
 25FD: C9              RET                         
                   
-2605: 3A B9 43        LD      A,(unknown_43B9)           
+2605: 3A B9 43        LD      A,(current_scroll_value_43B9)           
 2608: 2F              CPL                         
 2609: 0F              RRCA                        
 260A: 0F              RRCA                        
@@ -3643,9 +3697,9 @@ game_over_0B60:
 2631: E6 07           AND     $07                 
 2633: 86              ADD     A,(HL)              
 2634: 57              LD      D,A                 
-2635: 3A B9 43        LD      A,(unknown_43B9)           
+2635: 3A B9 43        LD      A,(current_scroll_value_43B9)           
 2638: 92              SUB     D                   
-2639: 32 B9 43        LD      (unknown_43B9),A           
+2639: 32 B9 43        LD      (current_scroll_value_43B9),A           
 263C: 32 00 58        LD      ($5800),A           ; 58xx scroll register
 263F: 3A 9B 43        LD      A,(Counter+1)       ; 
 2642: 0F              RRCA                        
@@ -3663,7 +3717,7 @@ game_over_0B60:
 2659: C6 D0           ADD     $D0                 
 265B: 6F              LD      L,A                 
 265C: 26 3E           LD      H,$3E               
-265E: 3A B9 43        LD      A,(unknown_43B9)           
+265E: 3A B9 43        LD      A,(current_scroll_value_43B9)           
 2661: 86              ADD     A,(HL)              
 2662: C3 39 26        JP      $2639               ; 
 2665: D2 AE 26        JP      NC,$26AE            ; 
@@ -3677,7 +3731,7 @@ game_over_0B60:
 2676: FE 10           CP      $10                 
 2678: DA 7C 26        JP      C,$267C             ; 
 267B: 04              INC     B                   
-267C: 3A BA 43        LD      A,(unknown_43BA)           
+267C: 3A BA 43        LD      A,(nb_to_kill_before_stage_completed_43BA)           
 267F: FE 03           CP      $03                 
 2681: D2 85 26        JP      NC,$2685            ; 
 2684: 04              INC     B                   
@@ -3755,7 +3809,7 @@ game_over_0B60:
 26FA: 32 D7 4B        LD      (unknown_4BD7),A           
 26FD: C9              RET                         
    
-2700: 21 A2 43        LD      HL,unknown_43A2            
+2700: 21 A2 43        LD      HL,game_in_play_43A2            
 2703: 7E              LD      A,(HL)              
 2704: A7              AND     A                   
 2705: C8              RET     Z                   
@@ -3792,8 +3846,10 @@ game_over_0B60:
 273D: CC 68 27        CALL    Z,$2768             ; 
 2740: CD A8 27        CALL    $27A8               ; 
 2743: C3 10 3A        JP      $3A10               ; 
+
 2746: FF              RST     0X38                
-2747: FF              RST     0X38                
+2747: FF              RST     0X38 
+               
 2748: 1A              LD      A,(DE)              
 2749: 1C              INC     E                   
 274A: FE 01           CP      $01                 
@@ -3916,12 +3972,14 @@ game_over_0B60:
 300F: 6E              LD      L,(HL)              
 3010: 67              LD      H,A                 
 3011: E9              JP      (HL)                
-3012: C9              RET                         
+3012: C9              RET  
+                       
 3013: FF              RST     0X38                
 3014: FF              RST     0X38                
 3015: FF              RST     0X38                
 3016: FF              RST     0X38                
-3017: FF              RST     0X38                
+3017: FF              RST     0X38 
+               
 3018: 32 64 30        LD      ($3064),A           ; 
 301B: 28 30           JR      Z,$304D             ; 
 301D: BA              CP      D                   
@@ -3999,7 +4057,7 @@ game_over_0B60:
 3092: 90              SUB     B                   
 3093: 81              ADD     A,C                 
 3094: 4F              LD      C,A                 
-3095: 3A BA 43        LD      A,(unknown_43BA)           
+3095: 3A BA 43        LD      A,(nb_to_kill_before_stage_completed_43BA)           
 3098: D6 05           SUB     $05                 
 309A: D2 9F 30        JP      NC,$309F            ; 
 309D: 3E 10           LD      A,$10               
@@ -4330,7 +4388,8 @@ game_over_0B60:
 32A9: 2E 50           LD      L,$50               
 32AB: 0D              DEC     C                   
 32AC: C2 8F 32        JP      NZ,$328F            ; 
-32AF: C9              RET                         
+32AF: C9              RET 
+                        
 32B0: 21 50 43        LD      HL,unknown_4350            
 32B3: 06 30           LD      B,$30               
 32B5: CD D8 05        CALL    clear_area_05D8               ; 
