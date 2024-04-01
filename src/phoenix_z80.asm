@@ -1,3 +1,8 @@
+;0000-3FFF: ROM
+
+;4000-4FFF: video/general purpose RAM:
+
+;4000-4340: fg tiles video ram (26*32 208*256)
 ;43A0 	IN0Current 	Current value of IN0
 ;43A1 	IN0Previous 	Previous value of IN0
 ;43A2 	M43A2 	???
@@ -5,6 +10,15 @@
 ;43A5 	M43A5 	?? delay count ??
 ;438F 	CoinCount 	Number of coins inserted (max counted is 9)
 ;439A:439B 	Counter 	16 bit counter (MSB:LSB)
+;43C2:43C3  player ship X/Y (X changes, Y stays on the bottom of screen)
+;4800-4B40: bg tiles video ram (scrollable part)
+
+;5000-53FF: video registers
+;5800-5BFF: scroll registers
+;6000-63ff: sound
+;6800-6bff: sound
+;7000-73ff: input
+;7800-7bff: dip switches
 
 ;http://www.computerarcheology.com/Arcade/Phoenix/
 
@@ -21,13 +35,13 @@
 ;
 000B: 26 50           LD      H,$50               ; 50xx video register
 000D: 36 00           LD      (HL),$00            ; Select the first bank of RAM
-000F: CD 50 00        CALL    InitSoundScreen     ; Turn sound off and clear both screen areas
+000F: CD 50 00        CALL    InitSoundScreen_0050     ; Turn sound off and clear both screen areas
 ;
 
 0012: 21 00 18        LD      HL,$1800            ; Screen draw info
 0015: 0E 03           LD      C,$03               ; 3 columns (rotated to 3 rows)
 0017: CD D0 01        CALL    $01D0               ; Draw the first 3 rows of the background (scores and coins);
-001A: CD 80 00        CALL    WaitVBlankCoin      ; Wait for VBlank and count any coins
+001A: CD 80 00        CALL    WaitVBlankCoin_0080      ; Wait for VBlank and count any coins
 001D: 3A A2 43        LD      A,(M43A2)           ; 
 0020: A7              AND     A                   
 0021: CA 2D 00        JP      Z,$002D             ; 
@@ -54,17 +68,17 @@
 004C: FF FF FF FF  
 
 ; Initialize the sound (off) and screen (clear)
-InitSoundScreen:
+InitSoundScreen_0050:
 0050: 26 68           LD      H,$68               ; 68xx sound B
 0052: 36 00           LD      (HL),$00            ; Sound off
 0054: 26 60           LD      H,$60               ; 60xx sound A
 0056: 36 00           LD      (HL),$00            ; Sound off
 0058: 26 58           LD      H,$58               ; 58xx scroll register
 005A: 36 00           LD      (HL),$00            ; First memory bank
-005C: CD 6B 00        CALL    ClearScreenPlane    ; Clear the plane
+005C: CD 6B 00        CALL    ClearScreenPlane_006B    ; Clear the plane
 005F: 26 50           LD      H,$50               ; 50xx video register
 0061: 36 01           LD      (HL),$01            ; Second memory bank
-0063: CD 6B 00        CALL    ClearScreenPlane    ; Clear the plane
+0063: CD 6B 00        CALL    ClearScreenPlane_006B    ; Clear the plane
 0066: 26 50           LD      H,$50               ; 50xx video register
 0068: 36 00           LD      (HL),$00            ; Back to first memory bank
 006A: C9              RET                         ; Done
@@ -73,7 +87,7 @@ InitSoundScreen:
 ; Set the lower bit of the video register to pick fore/back.
 ; 4000 - 4BF8 (inclusive)
 ;
-ClearScreenPlane:
+ClearScreenPlane_006B:
 006B: 21 F8 4B        LD      HL,unknown_4BF8            ; Highest point
 006E: 3E 3F           LD      A,$3F               ; Stop when H reaches 3F
 0070: 36 00           LD      (HL),$00            ; Clear the memory
@@ -89,11 +103,11 @@ ClearScreenPlane:
 
 ; Wait for the vertical blanking and then handle coin counting
 ;
-WaitVBlankCoin:
+WaitVBlankCoin_0080:
 0080: 26 78           LD      H,$78               ; 78xx DSW0 Check ...
 0082: 7E              LD      A,(HL)              ; ... screen blanking flag
 0083: E6 80           AND     $80                 ; Wait for it ...
-0085: CA 80 00        JP      Z,WaitVBlankCoin    ; ... to set
+0085: CA 80 00        JP      Z,WaitVBlankCoin_0080    ; ... to set
 0088: 7E              LD      A,(HL)              ; Check screen blanking flag
 0089: E6 80           AND     $80                 ; Wait for it ...
 008B: C2 88 00        JP      NZ,$0088            ; ... to clear (0=in blanking)
@@ -203,7 +217,7 @@ CheckInputBits:
 013B: FF FF FF FF FF    
 
 0140: CD A0 03        CALL    $03A0               ; 
-0143: CD 80 00        CALL    WaitVBlankCoin      ; 
+0143: CD 80 00        CALL    WaitVBlankCoin_0080      ; 
 0146: CD 80 03        CALL    $0380               ; 
 0149: 21 A3 43        LD      HL,unknown_43A3            
 014C: 36 02           LD      (HL),$02            
@@ -226,7 +240,7 @@ CheckInputBits:
 016A: 77              LD      (HL),A              
 016B: 26 58           LD      H,$58               ; 58xx scroll register
 016D: 36 00           LD      (HL),$00            
-016F: CD 80 00        CALL    WaitVBlankCoin      ; 
+016F: CD 80 00        CALL    WaitVBlankCoin_0080      ; 
 0172: C9              RET                         
 0173: 7E              LD      A,(HL)              
 0174: E6 7F           AND     $7F                 
@@ -1493,16 +1507,20 @@ game_playing_0800:
 086E: D0              RET     NC                  
 086F: 1E 68           LD      E,$68               
 0871: C9              RET                         
+
 0872: FF              RST     0X38                
 0873: FF              RST     0X38                
 0874: FF              RST     0X38                
 0875: FF              RST     0X38                
+
 0876: CD 00 07        CALL    $0700               ; 
 0879: CD 86 08        CALL    $0886               ; 
 087C: CD A0 08        CALL    $08A0               ; 
 087F: CD A0 09        CALL    $09A0               ; 
 0882: CD 7A 09        CALL    $097A               ; 
-0885: C9              RET                         
+0885: C9              RET  
+                       
+; copies byte pairs 2 bytes below
 0886: 21 EB 43        LD      HL,unknown_43EB            
 0889: 06 03           LD      B,$03               
 088B: 56              LD      D,(HL)              
@@ -1529,8 +1547,8 @@ game_playing_0800:
 08A6: CD 30 09        CALL    $0930               ; 
 08A9: 3A B8 43        LD      A,(unknown_43B8)           
 08AC: E6 0F           AND     $0F                 
-08AE: FE 03           CP      $03                 
-08B0: C0              RET     NZ                  
+08AE: FE 03           CP      $03            
+08B0: C0              RET     NZ      ; nop to get 2 bullets all the time   
 08B1: 21 C8 43        LD      HL,unknown_43C8            
 08B4: CD 30 09        CALL    $0930               ; 
 08B7: C9              RET                         
@@ -1556,10 +1574,11 @@ game_playing_0800:
 08E8: 36 FF           LD      (HL),$FF            
 08EA: 35              DEC     (HL)                
 08EB: 2E C2           LD      L,$C2               
-08ED: CD 00 09        CALL    $0900               ; 
+08ED: CD 00 09        CALL    read_controls_to_move_ship_0900               ; 
 08F0: 01 00 16        LD      BC,$1600            
 08F3: C3 26 09        JP      $0926               ; 
               
+read_controls_to_move_ship_0900:
 0900: 3A A0 43        LD      A,(IN0Current)      ; 
 0903: 2F              CPL                         
 0904: E6 60           AND     $60                 
@@ -1605,11 +1624,11 @@ game_playing_0800:
 0944: 12              LD      (DE),A              
 0945: 13              INC     DE                  
 0946: 13              INC     DE                  
-0947: 3A C2 43        LD      A,(unknown_43C2)           
+0947: 3A C2 43        LD      A,(player_ship_x_43C2)           
 094A: C6 04           ADD     $04                 
 094C: 12              LD      (DE),A              
 094D: 13              INC     DE                  
-094E: 3A C3 43        LD      A,(unknown_43C3)           
+094E: 3A C3 43        LD      A,(player_ship_y_43C3)           
 0951: D6 08           SUB     $08                 
 0953: 12              LD      (DE),A              
 0954: 1B              DEC     DE                  
@@ -1655,7 +1674,7 @@ game_playing_0800:
 0992: 32 9F 43        LD      (unknown_439F),A           
 0995: C9              RET                         
               
-09A0: 01 C2 43        LD      BC,unknown_43C2            
+09A0: 01 C2 43        LD      BC,player_ship_x_43C2            
 09A3: 11 E2 43        LD      DE,unknown_43E2            
 09A6: CD BA 09        CALL    $09BA               ; 
 09A9: 03              INC     BC                  
@@ -2461,7 +2480,7 @@ game_over_0B60:
 0F83: C8              RET     Z                   
 0F84: 00              NOP                         
 0F85: 00              NOP                         
-0F86: 3A C2 43        LD      A,(unknown_43C2)           
+0F86: 3A C2 43        LD      A,(player_ship_x_43C2)           
 0F89: D6 0E           SUB     $0E                 
 0F8B: 47              LD      B,A                 
 0F8C: C6 2D           ADD     $2D                 
@@ -3937,7 +3956,7 @@ game_over_0B60:
 304D: 36 2E           LD      (HL),$2E            
 304F: 2C              INC     L                   
 3050: 36 00           LD      (HL),$00            
-3052: 3A C2 43        LD      A,(unknown_43C2)           
+3052: 3A C2 43        LD      A,(player_ship_x_43C2)           
 3055: 0F              RRCA                        
 3056: D8              RET     C                   
 3057: 36 40           LD      (HL),$40            
@@ -4162,7 +4181,7 @@ game_over_0B60:
 31C5: 46              LD      B,(HL)              
 31C6: 2C              INC     L                   
 31C7: 56              LD      D,(HL)              
-31C8: 3A C2 43        LD      A,(unknown_43C2)           
+31C8: 3A C2 43        LD      A,(player_ship_x_43C2)           
 31CB: 0E 04           LD      C,$04               
 31CD: B8              CP      B                   
 31CE: D2 D6 31        JP      NC,$31D6            ; 
@@ -4777,7 +4796,7 @@ game_over_0B60:
 3673: 46              LD      B,(HL)              
 3674: 2C              INC     L                   
 3675: 2C              INC     L                   
-3676: 3A C2 43        LD      A,(unknown_43C2)           
+3676: 3A C2 43        LD      A,(player_ship_x_43C2)           
 3679: E6 F8           AND     $F8                 
 367B: B8              CP      B                   
 367C: D2 80 36        JP      NC,$3680            ; 
@@ -4806,7 +4825,7 @@ game_over_0B60:
 369D: 2D              DEC     L                   
 369E: 36 00           LD      (HL),$00            
 36A0: 2C              INC     L                   
-36A1: 3A C2 43        LD      A,(unknown_43C2)           
+36A1: 3A C2 43        LD      A,(player_ship_x_43C2)           
 36A4: E6 F8           AND     $F8                 
 36A6: B8              CP      B                   
 36A7: DA AB 36        JP      C,$36AB             ; 
