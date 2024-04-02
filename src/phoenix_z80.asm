@@ -8,7 +8,7 @@
 ;43A2 	game_in_play_43A2  0 game not playing, !=0: playing, 1 or 2 nb players
 ;43A4 	game_state_43A4 	Function table jump
 ;43A5 	timer_43A5 	general purpose state timer
-;43B8   current stage
+;43B8   current stage, always odd (even values are used for transitions)
 ;43BA   nb enemies to kill before stage completed (not vultures, only birds stage)
 ;43BB   nb vultures to kill before stage completed
 ;438F 	CoinCount 	Number of coins inserted (max counted is 9)
@@ -31,6 +31,8 @@
 ; no interrupts are used at all (which allows for safe bank switching, which
 ; contains the stack...)
 ;
+; "bird" means small birds, I'm calling the big birds vultures (or eagles?)
+
 ;http://www.computerarcheology.com/Arcade/Phoenix/
 
 0000: 00              NOP                         ; Start/restart and interrupts end up at 0008
@@ -757,7 +759,7 @@ jump_table_040E:
 041E: 3A A3 43        LD      A,(unknown_43A3)           
 0421: E6 01           AND     $01                 
 0423: 47              LD      B,A                 
-0424: 3A B8 43        LD      A,(unknown_43B8)           
+0424: 3A B8 43        LD      A,(current_stage_43B8)           
 0427: E6 02           AND     $02                 
 0429: B0              OR      B                   
 042A: 32 00 50        LD      ($5000),A           ; 50xx video register
@@ -969,7 +971,7 @@ init_new_play_step_2_0515:
 057F: 20 21           JR      NZ,$5A2             ; 
 0581: 98              SBC     B                   
 0582: 05              DEC     B                   
-0583: 3A B8 43        LD      A,(unknown_43B8)           
+0583: 3A B8 43        LD      A,(current_stage_43B8)           
 0586: E6 0F           AND     $0F                 
 0588: 85              ADD     A,L                 
 0589: 6F              LD      L,A                 
@@ -978,9 +980,11 @@ init_new_play_step_2_0515:
 058D: 11 AB 43        LD      DE,unknown_43AB            
 0590: 06 0C           LD      B,$0C               
 0592: CD E0 05        CALL    $05E0               ; 
-0595: C9              RET                         
+0595: C9              RET
+                         
 0596: FF              RST     0X38                
 0597: FF              RST     0X38                
+
 0598: A8              XOR     B                   
 0599: A8              XOR     B                   
 059A: C0              RET     NZ                  
@@ -1061,7 +1065,7 @@ clear_area_05D8:
 05EA: FF              RST     0X38                
 05EB: FF              RST     0X38                
 05EC: 21 00 15        LD      HL,$1500            
-05EF: 3A B8 43        LD      A,(unknown_43B8)           
+05EF: 3A B8 43        LD      A,(current_stage_43B8)           
 05F2: E6 0F           AND     $0F                 
 05F4: 07              RLCA                        
 05F5: 85              ADD     A,L                 
@@ -1086,7 +1090,7 @@ clear_area_05D8:
 060E: FF              RST     0X38                
 060F: FF              RST     0X38                
 0610: 21 3A 06        LD      HL,$063A            
-0613: 3A B8 43        LD      A,(unknown_43B8)           
+0613: 3A B8 43        LD      A,(current_stage_43B8)           
 0616: 0F              RRCA                        
 0617: E6 0F           AND     $0F                 
 0619: 85              ADD     A,L                 
@@ -1138,7 +1142,7 @@ clear_area_05D8:
 064E: FF              RST     0X38                
 064F: FF              RST     0X38                
 0650: 21 20 15        LD      HL,$1520            
-0653: 3A B8 43        LD      A,(unknown_43B8)           
+0653: 3A B8 43        LD      A,(current_stage_43B8)           
 0656: E6 0F           AND     $0F                 
 0658: 07              RLCA                        
 0659: 85              ADD     A,L                 
@@ -1282,6 +1286,7 @@ update_scrolling_067A:
 0717: C9              RET                         
 0718: CD 20 07        CALL    $0720               ; 
 071B: C3 40 07        JP      $0740               ; 
+
 071E: E6 EF           AND     $EF                 
 0720: 0A              LD      A,(BC)              
 0721: 67              LD      H,A                 
@@ -1290,26 +1295,35 @@ update_scrolling_067A:
 0725: 7C              LD      A,H                 
 0726: E6 EF           AND     $EF                 
 0728: 02              LD      (BC),A              
-0729: 07              RLCA                        
+0729: 07              RLCA		; A rotated 3 times
 072A: 07              RLCA                        
-072B: 07              RLCA                        
+072B: 07              RLCA        
+; select one address out of 8 in table from $738 
+; some slots are illegal and aren't reached (else game reboots)
+; allowed states are 0,1,3,4 only              
 072C: E6 07           AND     $07                 
-072E: C6 38           ADD     $38                 
+072E: C6 38           ADD     $38         ; table from $738         
 0730: 6F              LD      L,A                 
 0731: 26 07           LD      H,$07               
-0733: 6E              LD      L,(HL)              
-0734: E9              JP      (HL)                
+0733: 6E              LD      L,(HL)    
+; jump from jump table to $07xx
+0734: E9              JP      (HL) 
+               
 0735: 6C              LD      L,H                 
 0736: FF              RST     0X38                
-0737: 8A              ADC     A,D                 
-0738: 63              LD      H,E                 
-0739: 79              LD      A,C                 
-073A: FF              RST     0X38                
-073B: 9E              SBC     (HL)                
-073C: BE              CP      (HL)                
-073D: FF              RST     0X38                
-073E: FF              RST     0X38                
-073F: FF              RST     0X38                
+0737: 8A              ADC     A,D 
+   
+table_0738:   
+0738: .byte	$63       ; $763
+0739: .byte	$79       ; $779
+073A: .byte	$FF       ; 
+073B: .byte	$9E       ; $79E
+073C: .byte	$BE       ; $7BE
+073D: .byte	$FF       ; 
+073E: .byte	$FF       ; 
+073F: .byte	$FF       ; 
+
+; looks like random? not sure
 0740: 0A              LD      A,(BC)              
 0741: 67              LD      H,A                 
 0742: E6 08           AND     $08                 
@@ -1325,19 +1339,29 @@ update_scrolling_067A:
 074F: 02              LD      (BC),A              
 0750: 03              INC     BC                  
 0751: 7C              LD      A,H                 
-0752: C6 5B           ADD     $5B                 
+0752: C6 5B           ADD     $5B      ; table from $75B            
+; some slots are illegal and aren't reached (else game reboots)
+; allowed states are 0,1,3,4 only              
 0754: 6F              LD      L,A                 
 0755: 26 07           LD      H,$07               
 0757: 6E              LD      L,(HL)              
-0758: E9              JP      (HL)                
+; jump from jump table to $07xx
+0758: E9              JP      (HL)    
+            
 0759: 5E              LD      E,(HL)              
-075A: 0A              LD      A,(BC)              
-075B: 6D              LD      L,L                 
-075C: 88              ADC     A,B                 
-075D: FF              RST     0X38                
-075E: AA              XOR     D                   
-075F: D2 FF FF        JP      NC,$FFFF            
-0762: FF              RST     0X38                
+075A: 0A              LD      A,(BC)
+
+table_075B:              
+075B: .byte	$6D      ; $76D         
+075C: .byte	$88      ; $788         
+075D: .byte	$FF      ;         
+075E: .byte	$AA      ; $7AA         
+075F: .byte	$D2      ; $7D2
+0760: .byte	$FF      ;
+0761: .byte	$FF      ;
+0762: .byte	$FF      ;
+
+             
 0763: EB              EX      DE,HL               
 0764: 56              LD      D,(HL)              
 0765: 23              INC     HL                  
@@ -1346,8 +1370,11 @@ update_scrolling_067A:
 0768: AF              XOR     A                   
 0769: 12              LD      (DE),A              
 076A: EB              EX      DE,HL               
-076B: C9              RET                         
-076C: EB              EX      DE,HL               
+076B: C9              RET      
+                   
+076C: EB
+
+           
 076D: EB              EX      DE,HL               
 076E: 23              INC     HL                  
 076F: 23              INC     HL                  
@@ -1372,7 +1399,8 @@ update_scrolling_067A:
 0784: 12              LD      (DE),A              
 0785: EB              EX      DE,HL               
 0786: C9              RET                         
-0787: 23              INC     HL                  
+0787: 23              INC     HL    
+              
 0788: EB              EX      DE,HL               
 0789: 23              INC     HL                  
 078A: 23              INC     HL                  
@@ -1403,7 +1431,8 @@ update_scrolling_067A:
 07A6: 12              LD      (DE),A              
 07A7: EB              EX      DE,HL               
 07A8: C9              RET                         
-07A9: FF              RST     0X38                
+07A9: FF              RST     0X38    
+            
 07AA: EB              EX      DE,HL               
 07AB: 23              INC     HL                  
 07AC: 23              INC     HL                  
@@ -1439,7 +1468,9 @@ update_scrolling_067A:
 07CD: 12              LD      (DE),A              
 07CE: EB              EX      DE,HL               
 07CF: C9              RET                         
-07D0: CD 4C EB        CALL    $EB4C               
+07D0: CD 4C
+
+07D2: EX      DE,HL      
 07D3: 23              INC     HL                  
 07D4: 23              INC     HL                  
 07D5: 56              LD      D,(HL)              
@@ -1464,8 +1495,10 @@ update_scrolling_067A:
 07EB: 7E              LD      A,(HL)              
 07EC: 12              LD      (DE),A              
 07ED: 0B              DEC     BC                  
-07EE: C9              RET                         
-07EF: FF              RST     0X38                
+07EE: C9              RET 
+                        
+07EF: FF              RST     0X38     
+           
 07F0: 3A B9 43        LD      A,(current_scroll_value_43B9)           
 07F3: 32 00 58        LD      ($5800),A           ; 58xx scroll register
 07F6: CD 80 03        CALL    $0380               ; 
@@ -1474,8 +1507,8 @@ update_scrolling_067A:
 07FC: FF FF FF FF      
 
 game_playing_0800:
-0800: 21 14 08        LD      HL,$0814            
-0803: 3A B8 43        LD      A,(unknown_43B8)           
+0800: 21 14 08        LD      HL,jump_table_0814            
+0803: 3A B8 43        LD      A,(current_stage_43B8)           
 0806: 07              RLCA                        
 0807: E6 1E           AND     $1E                 
 0809: 85              ADD     A,L                 
@@ -1484,29 +1517,34 @@ game_playing_0800:
 080C: 2C              INC     L                   
 080D: 6E              LD      L,(HL)              
 080E: 67              LD      H,A                 
-080F: E9              JP      (HL)                
-0810: FF              RST     0X38                
-0811: FF              RST     0X38                
-0812: FF              RST     0X38                
-0813: FF              RST     0X38                
-0814: 08              EX      AF,AF'              
-0815: 34              INC     (HL)                
-0816: 20 00           JR      NZ,$818             ; 
-0818: 08              EX      AF,AF'              
-0819: 34              INC     (HL)                
-081A: 20 00           JR      NZ,$81C             ; 
-081C: 22 30 34        LD      ($3430),HL          ; 
-081F: 00              NOP                         
-0820: 22 30 34        LD      ($3430),HL          ; 
-0823: 00              NOP                         
-0824: 22 30 22        LD      ($2230),HL          ; 
-0827: B4              OR      H                   
-0828: 22 CA 20        LD      ($20CA),HL          ; 
-082B: 00              NOP                         
-082C: 22 4C 22        LD      ($224C),HL          ; 
-082F: 4C              LD      C,H                 
-0830: 22 4C 22        LD      ($224C),HL          ; 
-0833: 4C              LD      C,H                 
+080F: E9              JP      (HL)
+                
+0810: FF                
+0811: FF                
+0812: FF                
+0813: FF 
+      
+jump_table_0814:
+	.word	transition_to_birds_level_0834 
+	.word	birds_level_2000 
+	.word	transition_to_birds_level_0834 
+	.word	birds_level_2000 
+	.word	transition_to_vultures_and_last_level_2230 
+	.word	vultures_level_3400 
+	.word	transition_to_vultures_and_last_level_2230
+	.word	vultures_level_3400
+	.word	transition_to_vultures_and_last_level_2230
+	.word	mothership_arrives_22B4
+	.word	mothership_level_22CA 
+	.word	birds_level_2000 
+	* seems difficult to reach!
+	.word	$224C 
+	.word	$224C 
+	.word	$224C 
+	.word	$224C
+
+; scrolls & shows next birds level
+transition_to_birds_level_0834:
 0834: CD F0 06        CALL    $06F0               ; 
 0837: 21 B4 43        LD      HL,unknown_43B4            
 083A: 35              DEC     (HL)                
@@ -1521,10 +1559,11 @@ game_playing_0800:
 084C: A7              AND     A                   
 084D: C0              RET     NZ                  
 084E: 2E B8           LD      L,$B8               
-0850: 34              INC     (HL)                
+0850: 34              INC     (HL)     	; next stage           
 0851: 2E A4           LD      L,$A4               
 0853: 36 02           LD      (HL),$02            
-0855: C9              RET                         
+0855: C9              RET       
+                  
 0856: FF              RST     0X38                
 0857: FF              RST     0X38                
 0858: FF              RST     0X38                
@@ -1579,13 +1618,13 @@ game_playing_0800:
 089E: FF              RST     0X38                
 089F: FF              RST     0X38                
 08A0: CD C4 08        CALL    $08C4               ; 
-08A3: 21 C4 43        LD      HL,unknown_43C4            
+08A3: 21 C4 43        LD      HL,player_shot_1_structure_43C4            
 08A6: CD 30 09        CALL    $0930               ; 
-08A9: 3A B8 43        LD      A,(unknown_43B8)           
+08A9: 3A B8 43        LD      A,(current_stage_43B8)           
 08AC: E6 0F           AND     $0F                 
 08AE: FE 03           CP      $03            
 08B0: C0              RET     NZ      ; nop to get 2 bullets all the time   
-08B1: 21 C8 43        LD      HL,unknown_43C8            
+08B1: 21 C8 43        LD      HL,player_shot_2_structure_43C8            
 08B4: CD 30 09        CALL    $0930               ; 
 08B7: C9              RET                         
               
@@ -1942,7 +1981,7 @@ game_over_0B60:
 0B98: CD E4 01        CALL    $01E4               ; 
 0B9B: C3 F0 1D        JP      $1DF0               ; 
                 
-0BA0: 21 B8 43        LD      HL,unknown_43B8            
+0BA0: 21 B8 43        LD      HL,current_stage_43B8            
 0BA3: 7E              LD      A,(HL)              
 0BA4: E6 0F           AND     $0F                 
 0BA6: FE 04           CP      $04                 
@@ -2011,7 +2050,7 @@ moving_bird_shot_0C00:
 0C4E: CD D8 0C        CALL    $0CD8               ; 
 0C51: C9              RET                         
                
-0C56: 21 CC 43        LD      HL,unknown_43CC            
+0C56: 21 CC 43        LD      HL,player_shot_3_structure_43CC            
 0C59: E5              PUSH    HL                  
 0C5A: CD 84 0C        CALL    $0C84               ; 
 0C5D: E1              POP     HL                  
@@ -2087,7 +2126,7 @@ moving_bird_shot_0C00:
 0CD0: 32 63 43        LD      (unknown_4363),A           
 0CD3: C9              RET                         
                
-0CD8: 01 CC 43        LD      BC,unknown_43CC            
+0CD8: 01 CC 43        LD      BC,player_shot_3_structure_43CC            
 0CDB: 11 EC 43        LD      DE,unknown_43EC            
 0CDE: C5              PUSH    BC                  
 0CDF: CD 18 07        CALL    $0718               ; 
@@ -2262,21 +2301,26 @@ moving_bird_shot_0C00:
 0DEB: 13              INC     DE                  
 0DEC: 7E              LD      A,(HL)              
 0DED: C9              RET                         
-               
-0DF0: 01 C4 43        LD      BC,unknown_43C4            
+      
+player_shots_vs_birds_collision_0DF0:	  
+0DF0: 01 C4 43        LD      BC,player_shot_1_structure_43C4            
 0DF3: 21 E6 43        LD      HL,unknown_43E6            
-0DF6: CD 10 0E        CALL    $0E10               ; 
-0DF9: 01 C8 43        LD      BC,unknown_43C8            
+0DF6: CD 10 0E        CALL    player_shot_vs_bird_collision_0E10               ; 
+0DF9: 01 C8 43        LD      BC,player_shot_2_structure_43C8            
 0DFC: 21 EA 43        LD      HL,unknown_43EA            
-0DFF: C3 10 0E        JP      $0E10               ; 
-0E02: 01 CC 43        LD      BC,unknown_43CC            
+0DFF: C3 10 0E        JP      player_shot_vs_bird_collision_0E10     
+
+; this is never reached, there are only 2 possible shots
+0E02: 01 CC 43        LD      BC,player_shot_3_structure_43CC            
 0E05: 21 EE 43        LD      HL,unknown_43EE            
-0E08: CD 10 0E        CALL    $0E10               ; 
+0E08: CD 10 0E        CALL    player_shot_vs_bird_collision_0E10               ; 
 0E0B: C9              RET                         
-               
+            
+player_shot_vs_bird_collision_0E10:			
 0E10: 0A              LD      A,(BC)              
 0E11: E6 08           AND     $08                 
-0E13: C8              RET     Z                   
+0E13: C8              RET     Z     ; shot not active: return
+; this shot is active              
 0E14: 56              LD      D,(HL)              
 0E15: 2C              INC     L                   
 0E16: 5E              LD      E,(HL)              
@@ -2310,7 +2354,8 @@ moving_bird_shot_0C00:
 0E3D: 03              INC     BC                  
 0E3E: 0A              LD      A,(BC)              
 0E3F: E6 F8           AND     $F8                 
-0E41: 5F              LD      E,A                 
+0E41: 5F              LD      E,A       
+; shot close to a bird in motion (not in swarm)          
 0E42: 21 70 4B        LD      HL,unknown_4B70            
 0E45: 7E              LD      A,(HL)              
 0E46: 23              INC     HL                  
@@ -2388,8 +2433,12 @@ swarm_bird_close_to_shot_0E90:
 0EA3: 00              NOP
 
 ; swarm or moving, when shot, ends up here
-; deactivates bird and counts one less
-bird_shot_0EA4:                         
+; deactivates bird, player shot and counts one less enemy
+; < HL: pointer on current enemy
+; < BC: pointer on current player shot
+bird_shot_0EA4:               
+; position ourselves on the previous enemy/shot, those are the
+; ones we need to deactivate          
 0EA4: 2B              DEC     HL                  
 0EA5: 2B              DEC     HL                  
 0EA6: 0B              DEC     BC                  
@@ -2397,10 +2446,10 @@ bird_shot_0EA4:
 0EA8: 0B              DEC     BC                  
 0EA9: 0A              LD      A,(BC)              
 0EAA: E6 F7           AND     $F7                 
-0EAC: 02              LD      (BC),A              
+0EAC: 02              LD      (BC),A 	; disable shot ($18 => $10)             
 0EAD: 7E              LD      A,(HL)              
 0EAE: E6 F7           AND     $F7                 
-0EB0: 77              LD      (HL),A              
+0EB0: 77              LD      (HL),A    ; disable enemy           
 0EB1: 7D              LD      A,L                 
 0EB2: C6 42           ADD     $42                 
 0EB4: 6F              LD      L,A                 
@@ -2597,6 +2646,7 @@ bird_shot_0EA4:
 0FF0: EB              EX      DE,HL               
 0FF1: 01 DF FF        LD      BC,$FFDF            
 0FF4: C3 40 35        JP      $3540               ; 
+
 0FF7: 68              LD      L,B                 
 0FF8: 3E 05           LD      A,$05               
 0FFA: 32 96 43        LD      (unknown_4396),A           
@@ -2786,9 +2836,10 @@ bird_shot_0EA4:
 1EF8: 77              LD      (HL),A              
 1EF9: 00              NOP                         
 1EFA: C9              RET                         
-         
+   
+birds_level_2000:   
 2000: CD 76 08        CALL    $0876               ; 
-2003: CD F0 0D        CALL    $0DF0               ; 
+2003: CD F0 0D        CALL    player_shots_vs_birds_collision_0DF0               ; 
 2006: CD A0 24        CALL    $24A0               ; 
 2009: 21 5F 43        LD      HL,unknown_435F            
 200C: 7E              LD      A,(HL)              
@@ -2809,9 +2860,11 @@ bird_shot_0EA4:
 2026: A7              AND     A                   
 2027: CA 30 21        JP      Z,$2130             ; 
 202A: C3 46 21        JP      $2146               ; 
+
 202D: FF              RST     0X38                
 202E: FF              RST     0X38                
-202F: FF              RST     0X38                
+202F: FF              RST     0X38   
+             
 2030: E6 03           AND     $03                 
 2032: FE 01           CP      $01                 
 2034: 11 50 1B        LD      DE,$1B50            
@@ -3023,7 +3076,7 @@ bird_shot_0EA4:
 21BF: CD 40 0C        CALL    $0C40               ; 
 21C2: CD C0 0F        CALL    $0FC0               ; 
 21C5: CD C4 24        CALL    $24C4               ; 
-21C8: 3A B8 43        LD      A,(unknown_43B8)           
+21C8: 3A B8 43        LD      A,(current_stage_43B8)           
 21CB: E6 0F           AND     $0F                 
 21CD: FE 0B           CP      $0B                 
 21CF: DA 04 22        JP      C,$2204             ; 
@@ -3083,7 +3136,10 @@ bird_shot_0EA4:
 222A: 77              LD      (HL),A              
 222B: C3 80 03        JP      $0380               ; 
 222E: FF              RST     0X38                
-222F: FF              RST     0X38                
+222F: FF              RST     0X38              
+
+* screen fills with stars to announce vultures
+transition_to_vultures_and_last_level_2230:  
 2230: 21 9C 43        LD      HL,unknown_439C            
 2233: 7E              LD      A,(HL)              
 2234: 34              INC     (HL)                
@@ -3098,7 +3154,8 @@ bird_shot_0EA4:
 2245: D6 0E           SUB     $0E                 
 2247: FE 0D           CP      $0D                 
 2249: C2 60 22        JP      NZ,$2260            ; 
-224C: 21 B8 43        LD      HL,unknown_43B8            
+
+224C: 21 B8 43        LD      HL,current_stage_43B8            
 224F: 34              INC     (HL)                
 2250: 2E A4           LD      L,$A4               
 2252: 36 02           LD      (HL),$02            
@@ -3148,7 +3205,7 @@ bird_shot_0EA4:
 228D: 1D              DEC     E                   
 228E: C2 7A 22        JP      NZ,$227A            ; 
 2291: C9              RET                         
-2292: 21 B8 43        LD      HL,unknown_43B8            
+2292: 21 B8 43        LD      HL,current_stage_43B8            
 2295: 7E              LD      A,(HL)              
 2296: E6 08           AND     $08                 
 2298: CA F0 22        JP      Z,$22F0             ; 
@@ -3170,6 +3227,7 @@ bird_shot_0EA4:
 
 22B3: FF              RST     0X38     
            
+mothership_arrives_22B4:
 22B4: CD 7A 06        CALL    update_scrolling_067A               ; 
 22B7: 21 B4 43        LD      HL,unknown_43B4            
 22BA: 35              DEC     (HL)                
@@ -3180,10 +3238,11 @@ bird_shot_0EA4:
 22C3: 36 FF           LD      (HL),$FF            
 22C5: C9              RET                         
              
+mothership_level_22CA:
 22CA: 21 B4 43        LD      HL,unknown_43B4            
 22CD: 7E              LD      A,(HL)              
 22CE: FE C0           CP      $C0                 
-22D0: C2 34 08        JP      NZ,$0834            ; 
+22D0: C2 34 08        JP      NZ,transition_to_birds_level_0834            ; 
 22D3: 36 30           LD      (HL),$30            
 22D5: 2E 67           LD      L,$67               
 22D7: 36 FF           LD      (HL),$FF            
@@ -3339,7 +3398,7 @@ bird_shot_0EA4:
 23D1: 36 FF           LD      (HL),$FF            
 23D3: C9              RET                         
               
-23D6: 21 B8 43        LD      HL,unknown_43B8            
+23D6: 21 B8 43        LD      HL,current_stage_43B8            
 23D9: 7E              LD      A,(HL)              
 23DA: E6 0F           AND     $0F                 
 23DC: FE 01           CP      $01                 
@@ -3458,11 +3517,11 @@ end_of_level_transition_244C:
 249D: C8              RET     Z                   
 249E: 87              ADD     A,A                 
 249F: C9              RET                         
-24A0: 3A B8 43        LD      A,(unknown_43B8)           
+24A0: 3A B8 43        LD      A,(current_stage_43B8)           
 24A3: E6 0F           AND     $0F                 
 24A5: FE 08           CP      $08                 
 24A7: D8              RET     C                   
-24A8: 11 C4 43        LD      DE,unknown_43C4            
+24A8: 11 C4 43        LD      DE,player_shot_1_structure_43C4            
 24AB: 21 E6 43        LD      HL,unknown_43E6            
 24AE: CD 51 23        CALL    $2351               ; 
 24B1: 3A 9B 43        LD      A,(Counter+1)       ; 
@@ -3473,7 +3532,7 @@ end_of_level_transition_244C:
 24BC: CD 51 23        CALL    $2351               ; 
 24BF: C9              RET                         
                 
-24C4: 3A B8 43        LD      A,(unknown_43B8)           
+24C4: 3A B8 43        LD      A,(current_stage_43B8)           
 24C7: E6 0F           AND     $0F                 
 24C9: FE 08           CP      $08                 
 24CB: DA F0 06        JP      C,$06F0             ; 
@@ -3528,7 +3587,7 @@ end_of_level_transition_244C:
 2528: C6 60           ADD     $60                 
 252A: 0F              RRCA                        
 252B: 47              LD      B,A                 
-252C: 3A B8 43        LD      A,(unknown_43B8)           
+252C: 3A B8 43        LD      A,(current_stage_43B8)           
 252F: E6 F0           AND     $F0                 
 2531: 80              ADD     A,B                 
 2532: 06 90           LD      B,$90               
@@ -3621,7 +3680,7 @@ end_of_level_transition_244C:
 25B4: 4F              LD      C,A                 
 25B5: 2D              DEC     L                   
 25B6: 46              LD      B,(HL)              
-25B7: 3A B8 43        LD      A,(unknown_43B8)           
+25B7: 3A B8 43        LD      A,(current_stage_43B8)           
 25BA: 16 03           LD      D,$03               
 25BC: FE 10           CP      $10                 
 25BE: DA CA 25        JP      C,$25CA             ; 
@@ -3629,7 +3688,7 @@ end_of_level_transition_244C:
 25C3: FE 20           CP      $20                 
 25C5: DA CA 25        JP      C,$25CA             ; 
 25C8: 16 05           LD      D,$05               
-25CA: 21 CC 43        LD      HL,unknown_43CC            
+25CA: 21 CC 43        LD      HL,player_shot_3_structure_43CC            
 25CD: 7E              LD      A,(HL)              
 25CE: E6 08           AND     $08                 
 25D0: CA E0 25        JP      Z,$25E0             ; 
@@ -3963,7 +4022,7 @@ end_of_level_transition_244C:
 3003: 7E              LD      A,(HL)              
 3004: 34              INC     (HL)                
 3005: E6 07           AND     $07                 
-3007: 21 18 30        LD      HL,$3018            
+3007: 21 18 30        LD      HL,jump_table_3018            
 300A: 07              RLCA                        
 300B: 85              ADD     A,L                 
 300C: 6F              LD      L,A                 
@@ -3979,15 +4038,17 @@ end_of_level_transition_244C:
 3015: FF              RST     0X38                
 3016: FF              RST     0X38                
 3017: FF              RST     0X38 
-               
-3018: 32 64 30        LD      ($3064),A           ; 
-301B: 28 30           JR      Z,$304D             ; 
-301D: BA              CP      D                   
-301E: 31 24 31        LD      SP,$3124            
-3021: 5A              LD      E,D                 
-3022: 31 B4 32        LD      SP,$32B4            
-3025: 2C              INC     L                   
-3026: 30 12           JR      NC,$303A            ; 
+        
+jump_table_3018:
+	.word	$3264
+	.word	$3028
+	.word	$30BA
+	.word	$3124
+	.word	$315A
+	.word	$31B4
+	.word	$322C
+	.word	$3012
+
 3028: 21 57 43        LD      HL,unknown_4357            
 302B: 7E              LD      A,(HL)              
 302C: FE 03           CP      $03                 
@@ -4034,7 +4095,7 @@ end_of_level_transition_244C:
 306C: 77              LD      (HL),A              
 306D: C9              RET                         
 
-3074: 21 B8 43        LD      HL,unknown_43B8            
+3074: 21 B8 43        LD      HL,current_stage_43B8            
 3077: 7E              LD      A,(HL)              
 3078: 0F              RRCA                        
 3079: 00              NOP                         
@@ -4415,7 +4476,7 @@ end_of_level_transition_244C:
 32DA: C6 10           ADD     $10                 
 32DC: 6F              LD      L,A                 
 32DD: 41              LD      B,C                 
-32DE: 3A B8 43        LD      A,(unknown_43B8)           
+32DE: 3A B8 43        LD      A,(current_stage_43B8)           
 32E1: 0F              RRCA                        
 32E2: 0F              RRCA                        
 32E3: D2 E0 05        JP      NC,$05E0            ; 
@@ -4448,11 +4509,12 @@ end_of_level_transition_244C:
 33FA: 2E 6C           LD      L,$6C               
 33FC: 2E 90           LD      L,$90               
 33FE: 2E 90           LD      L,$90  
-             
+
+vultures_level_3400:             
 3400: CD 76 08        CALL    $0876               ; 
-3403: CD 00 38        CALL    $3800               ; 
+3403: CD 00 38        CALL    player_shots_vs_vultures_collision_3800               ; 
 3406: CD 00 26        CALL    $2600               ; 
-3409: CD 00 38        CALL    $3800               ; 
+3409: CD 00 38        CALL    player_shots_vs_vultures_collision_3800               ; 
 340C: CD 80 39        CALL    $3980               ; 
 340F: 3A BB 43        LD      A,(unknown_43BB)           
 3412: A7              AND     A                   
@@ -4666,7 +4728,7 @@ end_of_level_transition_244C:
 3568: 07              RLCA                        
 3569: B0              OR      B                   
 356A: 32 6F 43        LD      (unknown_436F),A           
-356D: 3A B8 43        LD      A,(unknown_43B8)           
+356D: 3A B8 43        LD      A,(current_stage_43B8)           
 3570: FE 40           CP      $40                 
 3572: DA 77 35        JP      C,$3577             ; 
 3575: 3E 30           LD      A,$30               
@@ -5104,8 +5166,10 @@ end_of_level_transition_244C:
 37E1: 1D              DEC     E                   
 37E2: C2 DD 37        JP      NZ,$37DD            ; 
 37E5: C9              RET                         
-             
-3800: 3A C4 43        LD      A,(unknown_43C4)           
+ 
+; only 1 shot, 2-shots cheat doesn't work with vultures
+player_shots_vs_vultures_collision_3800:
+3800: 3A C4 43        LD      A,(player_shot_1_structure_43C4)           
 3803: E6 08           AND     $08                 
 3805: C8              RET     Z                   
 3806: 3A E6 43        LD      A,(unknown_43E6)           
@@ -5268,9 +5332,9 @@ end_of_level_transition_244C:
 390E: 2C              INC     L                   
 390F: 3A E7 43        LD      A,(unknown_43E7)           
 3912: 77              LD      (HL),A              
-3913: 3A C4 43        LD      A,(unknown_43C4)           
+3913: 3A C4 43        LD      A,(player_shot_1_structure_43C4)           
 3916: E6 F7           AND     $F7                 
-3918: 32 C4 43        LD      (unknown_43C4),A           
+3918: 32 C4 43        LD      (player_shot_1_structure_43C4),A           
 391B: C9              RET                         
 391C: 78              LD      A,B                 
 391D: FE 20           CP      $20                 
@@ -5343,7 +5407,7 @@ end_of_level_transition_244C:
 3985: D8              RET     C                   
 3986: FE 10           CP      $10                 
 3988: D0              RET     NC                  
-3989: 21 C4 43        LD      HL,unknown_43C4            
+3989: 21 C4 43        LD      HL,player_shot_1_structure_43C4            
 398C: 11 C0 4B        LD      DE,unknown_4BC0            
 398F: 06 04           LD      B,$04               
 3991: CD E0 05        CALL    $05E0               ; 
@@ -5371,8 +5435,8 @@ end_of_level_transition_244C:
 39BE: 77              LD      (HL),A              
 39BF: 1A              LD      A,(DE)              
 39C0: 32 C6 43        LD      (unknown_43C6),A           
-39C3: CD 00 38        CALL    $3800               ; 
-39C6: 21 C4 43        LD      HL,unknown_43C4            
+39C3: CD 00 38        CALL    player_shots_vs_vultures_collision_3800               ; 
+39C6: 21 C4 43        LD      HL,player_shot_1_structure_43C4            
 39C9: 7E              LD      A,(HL)              
 39CA: E6 08           AND     $08                 
 39CC: CA F0 39        JP      Z,$39F0             ; 
@@ -5383,7 +5447,7 @@ end_of_level_transition_244C:
 39D6: FE 1D           CP      $1D                 
 39D8: DA C3 39        JP      C,$39C3             ; 
 39DB: 21 C0 4B        LD      HL,unknown_4BC0            
-39DE: 11 C4 43        LD      DE,unknown_43C4            
+39DE: 11 C4 43        LD      DE,player_shot_1_structure_43C4            
 39E1: 06 04           LD      B,$04               
 39E3: CD E0 05        CALL    $05E0               ; 
 39E6: 1E E6           LD      E,$E6               
@@ -5409,7 +5473,7 @@ end_of_level_transition_244C:
 3A0D: D8              RET     C                   
 3A0E: E1              POP     HL                  
 3A0F: C9              RET                         
-3A10: 21 B8 43        LD      HL,unknown_43B8            
+3A10: 21 B8 43        LD      HL,current_stage_43B8            
 3A13: 7E              LD      A,(HL)              
 3A14: A7              AND     A                   
 3A15: C2 43 3B        JP      NZ,$3B43            ; 
@@ -5466,7 +5530,7 @@ end_of_level_transition_244C:
 3A67: FE 10           CP      $10                 
 3A69: DA 78 3A        JP      C,$3A78             ; 
 3A6C: 36 10           LD      (HL),$10            
-3A6E: 3A B8 43        LD      A,(unknown_43B8)           
+3A6E: 3A B8 43        LD      A,(current_stage_43B8)           
 3A71: E6 08           AND     $08                 
 3A73: CA 78 3A        JP      Z,$3A78             ; 
 3A76: 36 05           LD      (HL),$05            
