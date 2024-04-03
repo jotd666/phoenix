@@ -3,6 +3,7 @@
 ;4000-4FFF: video/general purpose RAM, banked with 2 memory banks
 
 ;4000-4340: fg tiles video ram (26*32 208*256)
+;4364   if != 0 the "killed bird" sound is played
 ;43A0 	IN0Current 	Current value of IN0
 ;43A1 	IN0Previous 	Previous value of IN0
 ;43A2 	game_in_play_43A2  0 game not playing, !=0: playing, 1 or 2 nb players
@@ -20,8 +21,9 @@
 ; just changes game_state_43A4 to 6 to set boss explode sequence
 
 ;5000-53FF: video registers
-;50xx: write a value with bit 1 cleared to enable bank 0
+;50xx: write a value with bit 0 cleared to enable memory bank 0
 ;      else bank 1 is shown
+;50xx: write a value with bit 0 cleared: select palette #1 else palette #2
 ;5800-5BFF: scroll registers
 ;6000-63ff: sound
 ;6800-6bff: sound
@@ -756,15 +758,17 @@ jump_table_040E:
   .word	end_of_level_transition_244C          
 ; bpset 0406,(A==0) || (A==1) || (A==2) || (A==6) || (A==7),{printf "%d",A;g}
 
-041E: 3A A3 43        LD      A,(unknown_43A3)           
+; selects one of the two available palettes
+set_proper_stage_palette_041E:
+041E: 3A A3 43        LD      A,(unknown_43A3)     ; seems to store memory bank bit with other things      
 0421: E6 01           AND     $01                 
 0423: 47              LD      B,A                 
 0424: 3A B8 43        LD      A,(current_stage_43B8)           
 0427: E6 02           AND     $02                 
 0429: B0              OR      B                   
-042A: 32 00 50        LD      ($5000),A           ; 50xx video register
+042A: 32 00 50        LD      ($5000),A           ; set memory bank & palette
 042D: C9              RET                         
-042E: 18 05           JR      $435                ; 
+042E: 18 05
 
 ; initialize new play or demo
 init_new_play_0430:
@@ -774,7 +778,7 @@ init_new_play_0430:
 0436: 36 80           LD      (HL),$80            
 0438: 2E A3           LD      L,$A3               
 043A: 7E              LD      A,(HL)              
-043B: 36 00           LD      (HL),$00            
+043B: 36 00           LD      (HL),$00     ; set 0 to unknown_43A3       
 043D: FE 02           CP      $02                 
 043F: C8              RET     Z                   
 0440: 77              LD      (HL),A              
@@ -910,7 +914,7 @@ init_new_play_clear_screen_04AC:
 
 ; ?? Function 2
 init_new_play_step_2_0515:
-0515: CD 1E 04        CALL    $041E               ; 
+0515: CD 1E 04        CALL    set_proper_stage_palette_041E               ; 
 0518: 21 A4 43        LD      HL,game_state_43A4            
 051B: 36 03           LD      (HL),$03         ; advance state machine to "playing"   
 051D: CD 80 05        CALL    $0580               ; 
@@ -1502,7 +1506,7 @@ table_075B:
 07F0: 3A B9 43        LD      A,(current_scroll_value_43B9)           
 07F3: 32 00 58        LD      ($5800),A           ; 58xx scroll register
 07F6: CD 80 03        CALL    $0380               ; 
-07F9: C3 1E 04        JP      $041E               ; 
+07F9: C3 1E 04        JP      set_proper_stage_palette_041E               ; 
 
 07FC: FF FF FF FF      
 
@@ -2304,15 +2308,15 @@ moving_bird_shot_0C00:
       
 player_shots_vs_birds_collision_0DF0:	  
 0DF0: 01 C4 43        LD      BC,player_shot_1_structure_43C4            
-0DF3: 21 E6 43        LD      HL,unknown_43E6            
+0DF3: 21 E6 43        LD      HL,unknown_43E6        ; contains pointer on birds table    
 0DF6: CD 10 0E        CALL    player_shot_vs_bird_collision_0E10               ; 
 0DF9: 01 C8 43        LD      BC,player_shot_2_structure_43C8            
-0DFC: 21 EA 43        LD      HL,unknown_43EA            
+0DFC: 21 EA 43        LD      HL,unknown_43EA         ; contains pointer on birds table (same one!)          
 0DFF: C3 10 0E        JP      player_shot_vs_bird_collision_0E10     
 
 ; this is never reached, there are only 2 possible shots
 0E02: 01 CC 43        LD      BC,player_shot_3_structure_43CC            
-0E05: 21 EE 43        LD      HL,unknown_43EE            
+0E05: 21 EE 43        LD      HL,unknown_43EE       ; contains pointer on birds table (same one!)                  
 0E08: CD 10 0E        CALL    player_shot_vs_bird_collision_0E10               ; 
 0E0B: C9              RET                         
             
@@ -2323,7 +2327,7 @@ player_shot_vs_bird_collision_0E10:
 ; this shot is active              
 0E14: 56              LD      D,(HL)              
 0E15: 2C              INC     L                   
-0E16: 5E              LD      E,(HL)              
+0E16: 5E              LD      E,(HL)   ; DE points to contents of HL (433A)           
 0E17: 1A              LD      A,(DE)              
 0E18: FE C0           CP      $C0                 
 0E1A: D0              RET     NC                  
@@ -2333,7 +2337,8 @@ player_shot_vs_bird_collision_0E10:
 0E20: D2 39 0E        JP      NC,$0E39            ; 
 0E23: E6 07           AND     $07                 
 0E25: 07              RLCA                        
-0E26: 07              RLCA                        
+0E26: 07              RLCA 
+; set HL to A*4+$1740 (table in ROM), offset table or something                      
 0E27: C6 40           ADD     $40                 
 0E29: 6F              LD      L,A                 
 0E2A: 26 17           LD      H,$17               
@@ -2347,6 +2352,7 @@ player_shot_vs_bird_collision_0E10:
 0E34: BE              CP      (HL)                
 0E35: D8              RET     C                   
 0E36: C3 70 0E        JP      $0E70               ; 
+
 0E39: 03              INC     BC                  
 0E3A: 03              INC     BC                  
 0E3B: 0A              LD      A,(BC)              
@@ -2455,7 +2461,7 @@ bird_shot_0EA4:
 0EB4: 6F              LD      L,A                 
 0EB5: 46              LD      B,(HL)              
 0EB6: 23              INC     HL                  
-0EB7: 4E              LD      C,(HL)              
+0EB7: 4E              LD      C,(HL)    ; load into BC (ram pointer)          
 0EB8: 21 78 43        LD      HL,unknown_4378            
 0EBB: 7A              LD      A,D                 
 0EBC: FE 10           CP      $10                 
@@ -2483,14 +2489,14 @@ bird_shot_0EA4:
 0EDA: 2C              INC     L                   
 0EDB: 71              LD      (HL),C              
 0EDC: 2E 64           LD      L,$64               
-0EDE: 36 FF           LD      (HL),$FF  ; sets 4364 to $FF ???            
+0EDE: 36 FF           LD      (HL),$FF  ; sets 4364 to $FF: triggers "killed" sfx
 0EE0: 2E BA           LD      L,$BA               
 0EE2: 35              DEC     (HL)    ; one less enemy to kill (43BA)   
 ; pops stack and jumps
 ; occurs when bird enemy is shot        
-0EE3: E1              POP     HL                  
+0EE3: E1              POP     HL        ; skips immediate caller          
 0EE4: E1              POP     HL                  
-0EE5: E9              JP      (HL)                
+0EE5: E9              JP      (HL)      ; what's wrong with using RET??
                
 0F00: 21 A6 43        LD      HL,unknown_43A6            
 0F03: 7E              LD      A,(HL)              
