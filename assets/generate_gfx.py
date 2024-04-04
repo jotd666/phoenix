@@ -7,6 +7,15 @@ this_dir = os.path.abspath(os.path.dirname(__file__))
 indir = os.path.join(this_dir,"gfx")
 
 config = {
+0:
+    {
+    (0,31):(0x10,0X10),
+    (32,63):(1,0x10),
+    (64,95):(0x12,0x12),
+    (96,127):(3,3),
+    (128,159):(4,0x15),
+    (160,255):(1,0x15)
+},
 1:
     {
     (0,31):(8,8),
@@ -18,8 +27,7 @@ config = {
 
 for cs,name in enumerate(["back","fore"]):
 
-    if cs==0:
-        continue  # temp
+
 
     setdir = os.path.join(indir,f"set_{cs}")
     cc = config[cs]
