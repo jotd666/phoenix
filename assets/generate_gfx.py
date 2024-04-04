@@ -1,7 +1,19 @@
-# generate equivalent of Mark C format _gfx.* from MAME tilesaving edition gfxrips
+# this program takes output of MAME gfx save edition (located in "gfx")
+# to create tile sheets with proper palette for all layers & palettes
+# stored in "tiles"
+# once the tiles are generated, there's no need to generate them again
+# I'm tracking them, no need to run this program again, but it's useful to keep it
+# in case regenerating is necessary, or just to understand how it's done & reuse it
+# for other projects
+#
+# for this game, I'm not going to use Mark C format used for most ports I made, for at least 2 reasons
+#
+# - Before he stopped answering my emails and disappeared into overworked outer space,
+#   Mark explicitly stated that he wasn't interested in doing this game for NeoGeo
+# - It started as pngs, and continues as pngs, very easy to understand & monitor
 
-from PIL import Image,ImageOps
-import os,glob,collections,itertools
+from PIL import Image
+import os
 
 this_dir = os.path.abspath(os.path.dirname(__file__))
 indir = os.path.join(this_dir,"gfx")
@@ -43,5 +55,6 @@ for cs,name in enumerate(["back","fore"]):
                     for dy in range(8):
                         out[k].putpixel((x+dx,y+dy),img.getpixel((x+dx,y+dy)))
 
-    out[0].save(f"sheet_{name}_0.png")
-    out[1].save(f"sheet_{name}_1.png")
+    for i in range(2):
+        out[0].save(os.path.join(this_dir,f"tiles/sheet_{name}_{i}.png"))
+
