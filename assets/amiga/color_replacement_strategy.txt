@@ -14,7 +14,7 @@ boss yellow CDF040
 
 stage 2 (palette 1):
 
-remove violet A71BCE, purple D11EAA, boss yellow CDF040 (same as stage 1)
+remove violet A71BCE, boss yellow CDF040
 
 stage 3 (palette 0): 11 colors
 
@@ -30,8 +30,8 @@ dark blue 0A07BD
 
 stage 5 - boss (palette 1):
 
-remove D5FBF9 (white)
-       2DB8E0 (light blue)
+C0C136 => EDC63A (yellows)
+2DB8E0 (light blue)
 
 
 ** fg tiles **:

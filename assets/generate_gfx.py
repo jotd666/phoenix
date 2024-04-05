@@ -56,5 +56,5 @@ for cs,name in enumerate(["back","fore"]):
                         out[k].putpixel((x+dx,y+dy),img.getpixel((x+dx,y+dy)))
 
     for i in range(2):
-        out[0].save(os.path.join(this_dir,f"tiles/sheet_{name}_{i}.png"))
+        out[i].save(os.path.join(this_dir,f"tiles/sheet_{name}_{i}.png"))
 
