@@ -4,7 +4,7 @@
 * (c) JOTD 2023
 *
 
-.include "../src/bagman.inc"
+.include "../src/phoenix.inc"
 .include "custom.i"
 .include "exec_lvos.i"
 .include "dos_lvos.i"
@@ -16,7 +16,8 @@ AFB_68020 = 1
 NO68020 = 1
 
 
-SCREEN_ADDRESS = 0x9000
+BACK_SCREEN_ADDRESS = 0x4000
+FORE_SCREEN_ADDRESS = 0x4800
 
 
 SCORE_FILE_SIZE = 0x50
@@ -42,10 +43,9 @@ OPT_ENABLE_DOUBLE_BUFFERING_BG = 0
 _custom = 0xDFF000
 
 
-NB_PLAYFIELD_PLANES = 4
-TOTAL_NB_COLORS = 32
+NB_PLAYFIELD_PLANES = 3
 NB_BYTES_PER_ROW = 40
-NB_LINES = 288
+NB_LINES = 256
 NB_PLAYFIELD_LINES = NB_LINES
 
 BG_SCREEN_PLANE_SIZE = NB_BYTES_PER_ROW*NB_PLAYFIELD_LINES
@@ -53,14 +53,6 @@ BG_SCREEN_SIZE =  BG_SCREEN_PLANE_SIZE*NB_PLAYFIELD_PLANES
 FG_SCREEN_PLANE_SIZE = BG_SCREEN_PLANE_SIZE
 FG_SCREEN_SIZE =  FG_SCREEN_PLANE_SIZE*NB_PLAYFIELD_PLANES
 
-NB_HOST_SPRITES = 8
-NB_TARGET_SPRITES = 8
-
-SPRITE_X = 0
-SPRITE_Y = 1
-SPRITE_CODE = 2
-SPRITE_CLUT = 3
-SPRITE_SIZEOF = 4
 
 
 | write current PC value to some address
@@ -341,8 +333,6 @@ _user:
 	sne		infinite_lives_flag
 	btst	#2,d0
 	sne		infinite_time_flag
-	btst	#3,d0
-	sne		infinite_pickaxe_time_flag
 	
 	jsr	 _detect_controller_types 
 	clr.b	controller_joypad_0
@@ -692,353 +682,7 @@ osd_wait:
 	bne.b	2b
 	rts
 	
-*osd_calibrate_display:
-*	movem.l	a0/d0-d1,-(a7)
-*	move.l	bg_drawed_screen_ptr,a0
-*	move.w	#NB_LINES-1,d1
-*	clr		d0
-*0:
-*	st.b	(8,a0,d0.W)
-*	st.b	(9,a0,d0.W)
-*	st.b	(10,a0,d0.W)
-*	
-*	add.w	#NB_BYTES_PER_ROW,d0
-*	dbf		D1,0b
-*	movem.l	(a7)+,a0/d0-d1
-*	rts
 
-* < A0: pointer on sprite shadow zone 65A0:
-
-osd_update_sprites:
-	*lea		test_sprites,a0
-	* clear host sprites
-	moveq	#NB_HOST_SPRITES-1,d0
-
-	lea		host_sprites(pc),a2
-0:
-	clr.b	(SPRITE_X,a2)	| clear X is enough to know it's free
-	st.b	(SPRITE_CLUT,a2) | invalid clut
-	addq.w	#SPRITE_SIZEOF,a2
-	dbf		d0,0b
-
-	
-	* check active sprites, we'll disable the sprites that aren't active anymore
-	moveq	#NB_TARGET_SPRITES-1,d7
-1:
-	* code = 0 and clut = 0 => disabled
-	moveq	#0,d2
-	moveq	#0,d3
-	move.b	(a0),d2
-	beq.b	2f
-	move.b	(1,a0),d3
-	beq.b	2f
-	move.b	(3,a0),d1  | sprite Y
-	beq.b	2f			| Y set to 0: not shown
-	cmp.b	#255,d1
-	beq.b	2f			| Y set to 255: not shown	
-	move.b	(2,a0),d0  | sprite X
-	cmp.b	#240,d0
-	bcc.b	2f			| X >= 240: not shown	
-	* bits 6 and 7 are used to flip Y and X
-	* bit 6 is only set in cocktail mode, so we
-	* can let bit 7 pass, add 0x40 if second bank
-	* and filter it later when displaying
-	btst	#5,d3
-	beq.b	11f
-	add.w	#0x40,d2
-11:
-	and.b	#0x1F,d3	| get attributes
-12:
-* < D2: sprite code & flags
-* < D3: sprite color (clut index)
-* > D6: allocated sprite index
-
-	* special case: elevator at screen 2 (ok at screen 3
-	* no need to change anything)
-	cmp.b	#0x33,d2
-	bne.b	21f
-	cmp.b	#0xC,d3
-	bne.b	13f
-	* elevator color hack!
-	* change clut, match player clut
-	move.b	#8,d3		| same colors but match player clut
-	bra.b	21f
-13:
-	cmp.b	#4,d3
-	bne.b	21f
-	* elevator color hack!
-	* change clut, match player clut
-	* also change elevator with different
-	* bitplanes if clut 4 so colors are respected
-	# (red instead of orange on screen 2)
-	move.b	#8,d3	| same CLUT as player so sprite alloc keeps grouping them
-	move.b	#10,d2	| but change graphics with a fake sprite derived from the original
-21:
-
-	* sprite active: allocate a sprite in host table
-	* it HAS to succeed (in Pengo it did, here I'm less sure)
-	bsr		alloc_sprite
-2:
-	addq.w	#4,a0
-	dbf		d7,1b
-	
-	* all sprites are allocated: now display them
-	lea		host_sprites(pc),a2		| input structure
-	lea		sprites,a3				| copperlist
-	lea		sprite_table,a4
-	moveq	#0,d6
-10:
-	move.b	(SPRITE_X,a2),d0
-	bne.b	20f		
-	* slot free: replace sprite by blank
-	move.l	#blank_sprite,d4
-	move.w	d4,(6,a3)
-	swap	d4
-	move.w	d4,(2,a3)
-	jra		30f
-20:
-	* lookup sprite code
-	
-	and.w	#0xFF,d0
-	moveq	#0,d1
-	move.b	(SPRITE_Y,a2),d1
-	moveq	#0,d2
-	move.b	(SPRITE_CODE,a2),d2
-	move.b	d2,d5		| for flip bit
-	bclr	#7,d2		| clear flip bit
-	
-	move.w	d2,d4
-	add.w	d4,d4
-	add.w	d4,d4
-	move.l	(a4,d4.w),d4	| get pointer
-	.ifndef	RELEASE
-	bne.b	25f
-	* sprite doesn't exist: blitz and bail out
-	blitz
-	move.b	d1,d1
-	move.b	d2,d2
-	jra		30f
-25:
-	.endif
-	
-	move.l	d4,a5
-	move.w	d6,d4
-	add.w	d4,d4
-	add.w	d4,d4
-	move.l	(a5,d4.W),a5			| get buffer for this sprite index
-
-	tst.b	d5			| x flip bit
-	bpl.b	21f
-	addq.w	#4,a5
-21:
-	move.l	(a5),d4
-	.ifndef	RELEASE
-	bne.b	22f
-	blitz		| should not happen
-	jra		30f
-22:
-	.endif
-	move.l	d4,a5	| sprite pointer
-
-	* add offsets to both X & Y
-	add.b	#9,d0
-	add.b	#15,d1
-
-	bsr		store_sprite_pos_16
-	move.l	d0,(a5)
-	* set colors
-	lea		cluts+2,a6
-	moveq	#0,d3
-	move.b	(SPRITE_CLUT,a2),d3
-	lsl.w	#3,d3		| times 8
-
-	add.w	d3,a6
-	* check if CLUT doesn't contain only color zero
-	* (we may as well cache the values in spare registers)
-	move.l	(a6)+,d3
-	move.w	(a6)+,d7
-	bne.b	24f
-	tst.l	d3
-	bne.b	24f
-	* all black sprites would hide bagman sprites & tiles
-	* we want to hide them instead (no need to change palette)
-	* inherited from pengo, probably not required
-	move.l	#blank_sprite,d4
-	bra.b	25f
-24:
-	* d6 is the sprite index: compute/set proper color
-	move.w	d6,d5
-	bclr	#0,d5
-	lsl.w	#2,d5	| times 4*2
-	move.w	d5,d2
-	add.w	d2,d2
-	lea		sprite_cols+6,a5	| sprite palette + 2 (first color skipped)
-	add.w	d2,a5
-	* copy 3 colors from cached registers into sprite color copperlist
-	move.w	d3,(4,a5)
-	swap	d3
-	move.w	d3,(a5)
-	move.w	d7,(8,a5)
-25:
-	* set sprite in copperlist
-	move.w	d4,(6,a3)
-	swap	d4
-	move.w	d4,(2,a3)	
-30:
-	* next sprite
-	addq.w	#8,a3		| advance in copperlist
-	lea		(SPRITE_SIZEOF,a2),a2
-	addq	#1,d6
-	cmp.w	#NB_HOST_SPRITES,d6
-	jne	10b	
-	rts
-
-
-* priorities are from last to first
-test_sprites_demo:
-
-
-
-* guard chasing bagman+barrow
-	.byte	0x3A,0x28,0x9D,0xC1,0x00,0x00,0x00,0x38,0x1E,0x08,0x90,0xC1,0x00,0x00,0x00,0xE1
-	.byte	0x00,0x00,0x00,0x41,0x00,0x00,0x00,0xC9,0x2E,0x0C,0x30,0xC1,0x00,0x00,0x00,0x00
-
-* guard only
-
-	.byte  0x30,0xc,0x64,0xc1
-	.rept	28
-	.byte  0x0
-	.endr
-
-* in game with wagons & guards
-	.byte  0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x12,0x1b,0x8,0x5e,0xe1,0x35,0x4,0x69,0xe1
-	.byte  0x35,0x4,0x67,0xff,0x35,0x4,0x18,0xff,0x0,0x0,0x0,0x0,0x31,0xc,0x51,0x63
-
-test_sprites:
-* 7 active sprites 3 wagons, 1 guard, 1 bag carry 1 player 1 elevator:
-* not possible to have enough palettes for all sprites: bag is blue
-
-	.byte  0xbf,0x20,0xb5,0x67,0x33,0x4,0x97,0x8a,0xa0,0x8,0xad,0x69,0x35,0x4,0x4e,0xe1
-	.byte  0x35,0x4,0x36,0x41,0x35,0x4,0xd1,0xc9,0xae,0xc,0x2,0x0,0x30,0xc,0xac,0x69
-
-* 3rd screen 6 sprites
-	.byte  0x3f,0x20,0xae,0x8f,0x33,0xc,0x2f,0x73,0x1f,0x8,0xb6,0x91,0x35,0x4,0x48,0xff
-	.byte  0x35,0x4,0x6c,0xff,0x35,0x4,0x6f,0xc9,0x2e,0xc,0x22,0xc9,0xa7,0xc,0x84,0xbc
-
-	.byte  0x3f,0x20,0x35,0xdf,0x33,0x4,0x97,0x15,0x1a,0x8,0x3d,0xe1,0x35,0x4,0x3d,0xe1
-	.byte  0x35,0x4,0x39,0x41,0x35,0x4,0x6e,0xff,0x31,0xc,0x1d,0xe1,0x27,0xc,0x1c,0x5c
-
-
-* < D0: sprite X
-* < D1: sprite Y
-* < D2: sprite code & flags
-* < D3: sprite color (clut index)
-* > D6: allocated sprite index
-alloc_sprite:
-	* first pass: find a free sprite next to a sprite with
-	* same clut
-	lea		host_sprites(pc),a2
-	moveq	#0,d6
-0:
-	cmp.b	(SPRITE_CLUT,a2),d3
-	bne.b	10f
-	* allocated (else would be -1/invalid) + same clut
-	* check even/odd index
-	btst	#0,d6
-	beq.b	1f
-	* odd: check if previous entry is free
-	tst.b	(SPRITE_X-SPRITE_SIZEOF,a2)
-	beq.b	8f
-	tst.b	(SPRITE_Y-SPRITE_SIZEOF,a2)
-	bne.b	10f
-8:
-	* previous entry is free, same clut: we can use that
-	* entry, no color conflict
-	lea		(-SPRITE_SIZEOF,a2),a2
-9:
-	move.b	d0,(a2)+		| X
-	move.b	d1,(a2)+		| Y
-	move.b	d2,(a2)+		| code
-	move.b	d3,(a2)+		| clut
-	rts						| done
-1:
-	* even: check if next entry is free
-	tst.b	(SPRITE_X+SPRITE_SIZEOF,a2)
-	beq.b	2f
-	tst.b	(SPRITE_Y+SPRITE_SIZEOF,a2)
-	bne.b	10f
-2:
-	* next entry is free, same clut: we can use that
-	* entry, no color conflict
-	lea		(SPRITE_SIZEOF,a2),a2
-	bra.b	9b
-10:
-	* next entry
-	addq.w	#SPRITE_SIZEOF,a2
-	addq	#1,d6
-	cmp.w	#NB_HOST_SPRITES,d6
-	bne.b	0b
-	* second pass if first pass failed (could not match
-	* a pair with one occupied slot with compatible clut,
-	* which happens when there are very few sprites
-	* displayed): we have to find 2 consecutive free slots
-
-	lea		host_sprites(pc),a2
-	moveq	#0,d6
-11:
-	* we consider that a sprite is not allocated
-	* if one of the coordinates is zero (real game
-	* doesn't care and sets X to 255, and Y to 0 at times
-	tst.b	(SPRITE_Y,a2)
-	beq.b	12f
-	tst.b	(SPRITE_X,a2)
-	bne.b	20f
-12:
-	* not allocated: test odd sprite
-	tst.b	(SPRITE_Y+SPRITE_SIZEOF,a2)
-	jeq	9b
-	tst.b	(SPRITE_X+SPRITE_SIZEOF,a2)
-	jeq	9b		| ok, both slots are free, allocate the first one
-20:
-	* next sprite pair
-	lea		(2*SPRITE_SIZEOF,a2),a2
-	addq	#2,d6
-	cmp.w	#NB_HOST_SPRITES,d6
-	bne.b	11b
-	
-	* third pass: last chance/emergency: there ARE free slots
-	* (since only 6 sprites on the target) but maybe too many
-	* different cluts so we can't find a suitable slot. In that
-	* case, pick the first free slot, we'll handle the color changes
-	* with a dynamic copperlist, let's hope that it works out
-	* (only happens in demo screens)
-	*
-	* the strategy globally works because during game, all 4 enemies
-	* share the same palette. bagman uses another one, and ice block
-	* another one too. Blinking stunned enemies can be a problem
-	* because of the extra blue color
-	*
-	lea		host_sprites(pc),a2
-	moveq	#0,d6
-21:
-	tst.b	(SPRITE_X,a2)
-	beq.b	9b		| ok, a slot is free, allocate it
-	tst.b	(SPRITE_Y,a2)
-	beq.b	9b		| ok, a slot is free, allocate it
-30:
-	* next sprite
-	lea		(SPRITE_SIZEOF,a2),a2
-	addq	#1,d6
-	cmp.w	#NB_HOST_SPRITES,d6
-	bne.b	21b
-	* just cannot happen
-	* if we reach that point there's a big problem
-	blitz
-	illegal
-	illegal
-	illegal
-	rts
-	
 
 	
 osd_sound_start:
@@ -2356,6 +2000,14 @@ tile_log_table:
 
 	.section	.datachip
 	
+.macro	DECL_COLORS	offset,nb_colors
+	.set	colidx,\offset
+	.rept	\nb_colors
+	dc.w	color+(colidx*2),0
+	.set	colidx,colidx+1
+	.endr
+	.endm
+
 .macro	DECL_BITPLANES	bpoff_start
 	.set	bpoff,\bpoff_start
 	.rept	NB_PLAYFIELD_PLANES
@@ -2387,6 +2039,15 @@ blank_sprite:
 	.rept	32
 	.long	0
 	.endr
+
+.macro	DECL_EVEN_BITPLANES	bpoff_start,nb_planes
+	.set	bpoff,\bpoff_start
+	.rept	\nb_planes
+	dc.w  bplpt+bpoff,0
+	dc.w  bplpt+bpoff+2,0
+	.set	bpoff,bpoff+8
+	.endr
+	.endm
 	
 	
 	* main copperlist
@@ -2394,11 +2055,13 @@ copperlist:
     *.word   0x1801,0xFFFE	
 
 bg_bitplanes:
-	DECL_BITPLANES	0
+	DECL_EVEN_BITPLANES	0,3
+fg_bitplanes:
+	DECL_EVEN_BITPLANES	3,3
 copperlist_colors:
-	DECL_16_COLORS	0
+	DECL_COLORS	0,8
 sprite_cols:
-	DECL_16_COLORS	16
+	DECL_COLORS	8,8
 sprites:
     * #0
     .word    sprpt+0,0
@@ -2450,6 +2113,14 @@ bg_screen_data_1:
 	.ifne  OPT_ENABLE_DOUBLE_BUFFERING_BG
 bg_screen_data_2:
 	ds.b	BG_SCREEN_SIZE
+	ds.b	NB_BYTES_PER_ROW*12*3
+	.endif
+fg_screen_data_1:
+	ds.b	FG_SCREEN_SIZE
+	ds.b	NB_BYTES_PER_ROW*12*3
+	.ifne  OPT_ENABLE_DOUBLE_BUFFERING_FG
+fg_screen_data_2:
+	ds.b	FG_SCREEN_SIZE
 	ds.b	NB_BYTES_PER_ROW*12*3
 	.endif
 	.align	8

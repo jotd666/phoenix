@@ -1,6 +1,6 @@
 
 from PIL import Image
-import os
+import os,collections
 import bitplanelib
 
 this_dir = os.path.abspath(os.path.dirname(__file__))
@@ -89,7 +89,9 @@ for layer in ["back","fore"]:
 
 black_row = Image.new("RGB",(256,8))
 
-with open(os.path.join(outdir,"palette.68k"),"w") as f:
+tile_cache = collections.defaultdict(list)
+
+with open(os.path.join(outdir,"palette.68k"),"w") as fp:
 
     # generate tiles for each level, back/fore: 10 sheets
     for layer in ["back","fore"]:
@@ -107,17 +109,76 @@ with open(os.path.join(outdir,"palette.68k"),"w") as f:
             for c1,c2 in data.items():
                 img_out = replace_color(img_out,hex2rgb(c1),hex2rgb(c2) if c2 else None)
 
-            palette = bitplanelib.palette_extract(img_out,0xF0)
+            palette = bitplanelib.palette_extract(img_out)
             palette += [(16,16,16)]*(8-len(palette))
 
-            f.write(f"palette_{layer}_{level}:\n")
-            bitplanelib.palette_dump(palette,f)
-            # blacken strips if needed
+            fp.write(f"palette_{layer}_{level}:\n")
+            bitplanelib.palette_dump(palette,fp)
+            # blacken strips if needed, makes lighter tiles
             for y in range(0,ystart):
                 img_out.paste(black_row,(0,y*8))
 
             for y in range(yend,8):
                 img_out.paste(black_row,(0,y*8))
 
-
+            # big tile sheet per level/layer
             #img_out.save(f"sheet_{layer}_{level}_{p}.png")
+            index = 0
+            for y in range(0,64,8):
+                for x in range(0,256,8):
+                    # create 8x8 tiles
+                    tile = Image.new("RGB",(8,8))
+                    for dx in range(8):
+                        for dy in range(8):
+                            p =img_out.getpixel((x+dx,y+dy))
+                            tile.putpixel((dx,dy),p)
+                    #tile.save(f"tile_{x}_{y}_{level}_{layer}.png")
+                    raw = bitplanelib.palette_image2raw(tile,None,palette)
+                    tile_cache[raw].append((index,layer,level))
+                    index += 1
+
+
+# drop the "defaultdict" property
+tile_cache = dict(tile_cache)
+# invert the dict per layer/level
+
+tile_dict = collections.defaultdict(lambda : [0]*256)
+for k,vl in tile_cache.items():
+    for (index,layer,level) in vl:
+        tile_dict[layer,level][index] = k
+
+with open(os.path.join(outdir,"graphics.68k"),"w") as fp:
+    for layer in ["back","fore"]:
+        fp.write(f"\t.global\t{layer}_tile_table\n")
+
+    for layer in ["back","fore"]:
+        fp.write(f"{layer}_tile_table:\n")
+
+        for level in range(1,6):
+            fp.write(f"\t.long\t{layer}_lvl_{level}_tile_table\n")
+
+    fp.write("\n")
+
+    for layer in ["back","fore"]:
+        for level in range(1,6):
+            fp.write(f"{layer}_lvl_{level}_tile_table:\n")
+            for raw in tile_dict[layer,level]:
+                # just use first occurrence for name
+                tile_name = "tile_{}_{}_{}".format(*(tile_cache[raw][0]))
+                fp.write(f"\t.long\t{tile_name}\n")
+            fp.write("\n")
+
+    for layer in ["back","fore"]:
+        for level in range(1,6):
+            for raw in tile_dict[layer,level]:
+                # just use first occurrence for name
+                tile_name = "tile_{}_{}_{}".format(*(tile_cache[raw][0]))
+                fp.write(f"{tile_name}:")
+                bitplanelib.dump_asm_bytes(raw,fp,mit_format=True)
+            fp.write("\n")
+
+##    fp.write("\n")
+##    for k,v in tile_cache.items():
+##        fp.write(f"{v}:\n")
+##
+

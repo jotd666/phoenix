@@ -1,0 +1,8 @@
+	.include "phoenix.inc"
+	
+	.global	phoenix_reset
+	
+	
+phoenix_reset:
+	rts
+	
