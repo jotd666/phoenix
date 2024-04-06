@@ -129,5 +129,5 @@ _resload:
 progstart
     dc.l    0
 exe
-	dc.b	"bagman",0
+	dc.b	"phoenix",0
 	

@@ -7,5 +7,30 @@
 	
 	
 phoenix_reset:
+	lea		fore,a0
+	move.w	#0x3FF,d1
+	move.w	#0x4000,d7
+
+0:
+	move.b	(a0)+,d0
+	jbsr	osd_w_videoram
+	addq	#1,d7
+	dbf		d1,0b
+	lea		back,a0
+	move.w	#0x3FF,d1
+	move.w	#0x4800,d7
+0:
+	move.b	(a0)+,d0
+	jbsr	osd_w_videoram
+	addq	#1,d7
+	dbf		d1,0b
+
+
+	dc.w	0x60FE
 	rts
+	
+fore:
+	.include	"fore.s"
+back:
+	.include	"back.s"
 	

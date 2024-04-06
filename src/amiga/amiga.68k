@@ -16,8 +16,8 @@ AFB_68020 = 1
 NO68020 = 1
 
 
-BACK_SCREEN_ADDRESS = 0x4000
-FORE_SCREEN_ADDRESS = 0x4800
+FORE_SCREEN_ADDRESS = 0x4000
+BACK_SCREEN_ADDRESS = 0x4800
 
 TOTAL_NB_COLORS = 8
 
@@ -51,9 +51,9 @@ NB_BYTES_PER_ROW = 40
 NB_LINES = 256
 NB_PLAYFIELD_LINES = NB_LINES
 
-BG_SCREEN_PLANE_SIZE = NB_BYTES_PER_ROW*NB_PLAYFIELD_LINES
+BG_SCREEN_PLANE_SIZE = NB_BYTES_PER_ROW*NB_PLAYFIELD_LINES*2
 BG_SCREEN_SIZE =  BG_SCREEN_PLANE_SIZE*NB_PLAYFIELD_PLANES
-FG_SCREEN_PLANE_SIZE = BG_SCREEN_PLANE_SIZE
+FG_SCREEN_PLANE_SIZE = NB_BYTES_PER_ROW*NB_PLAYFIELD_LINES
 FG_SCREEN_SIZE =  FG_SCREEN_PLANE_SIZE*NB_PLAYFIELD_PLANES
 
 
@@ -483,11 +483,6 @@ call_bcpl:
 	movem.l (sp)+,d2-d7/a2-a6
 	rts
 
-* change return address from vblank
-* D0: return address (0: no change)
-osd_set_vblank_return_address:
-	move.l	d0,return_address
-	rts
 	
 get_hiscore_name:
     lea normal_hiscorename,a0
@@ -631,17 +626,30 @@ _vblank:
 	move.w	#0x10,_custom+intreq
 3:
     movem.l (a7)+,d0-d7/a0-a6
-	tst.l	return_address
-	beq.b	4f
-	move.l	return_address,(2,a7)		| change return address
-	clr.l	return_address				| just for this time
-4:
     rte
 	
+
 osd_break:
-	blitz
-	rts
-	
+	* sends a WinUAE command to enter WinUAE debugger
+	.ifndef	RELEASE
+	move.l	D0,-(a7)
+	pea     0.w
+	* Normally it would point to where the result of the command is written, but since the last parameter (first pushed)
+	* indicating the number of bytes to write is 0, nothing is written.
+	pea     0.w	
+	pea     1003f-1002f
+	pea     1002f(pc)
+	pea     -1.w
+	pea     82.w
+	jsr     0xf0ff60
+	lea     24(sp),sp
+	move.l	(a7)+,d0
+	.endif
+    rts
+		
+1002: .asciz    "AKS_ENTERDEBUGGER 1"
+1003:
+        .align	
 
 	
 
@@ -943,12 +951,12 @@ platform_init:
 	.endif
 	
 	* restrict borders: we don't see bobs on the borders!
-    move.w #0x1C99,diwstrt(a5)
-    move.w #0x2C81-8,diwstop(a5)
+    move.w #0x1C99+0x20,diwstrt(a5)
+    move.w #0x2481-8,diwstop(a5)
     move.w #0x0038,ddfstrt(a5)
     move.w #0x00D0,ddfstop(a5)
-    move.w #0x200+(NB_PLAYFIELD_PLANES<<12),bplcon0(a5) | 5 bitplanes
-    move.w #0x0024,bplcon2(a5)
+    move.w #0x6600,bplcon0(a5) | 6 bitplanes DPF
+    move.w #0x0064,bplcon2(a5)
 	* AGA-compatible ECS default values
     move.w #0x0C00,bplcon3(a5)     | no AGA specificities, default ECS
     move.w #0x0011,bplcon4(a5)     | ECS default for sprite colors
@@ -1036,6 +1044,7 @@ osd_set_palette:
 	and.w	#0x7,d0
 	
 	lea		back_palettes,a0
+	move.l	(a0,d0.w),a0
 
 	move.w	#TOTAL_NB_COLORS-1,d1
 	lea		bg_colors+2,a1
@@ -1045,6 +1054,7 @@ osd_set_palette:
 	dbf		d1,1b
 	
 	lea		fore_palettes,a0
+	move.l	(a0,d0.w),a0
 
 	move.w	#TOTAL_NB_COLORS-1,d1
 	lea		fg_colors+2,a1
@@ -1109,18 +1119,31 @@ decode_sprite_data:
 * d7 starts at 0x4000-0x43FF or 0x4800-0x4BFF
 * should preserve all registers
 
+* layout
+*
+* 4320                               4000
+* Y=0,X=0                            Y=0,X=24
+* 
+* 
+* 
+* 
+* 
+* 433F                               401F
+* Y=31,X=0                           Y=31,X=24
+
+
 osd_w_videoram:
 	movem.l	d0-d3/d7/a0-a2,-(a7)
 	
-	sub.w	#BACK_SCREEN_ADDRESS,d7
-	bcs.b	0f
-	cmp.w	#0x400,d7
-	bcs.b	write_back_videoram
-
-	sub.w	#0x800,d7
+	sub.w	#FORE_SCREEN_ADDRESS,d7
 	bcs.b	0f
 	cmp.w	#0x400,d7
 	bcs.b	write_fore_videoram
+
+	sub.w	#BACK_SCREEN_ADDRESS-FORE_SCREEN_ADDRESS,d7
+	bcs.b	0f
+	cmp.w	#0x400,d7
+	bcs.b	write_back_videoram
 0:
 	* should not happen
 	blitz
@@ -1132,7 +1155,7 @@ osd_w_videoram:
 write_back_videoram:
     .ifeq OPT_DISABLE_BG_LAYER
 	lea		bg_videoram,a1
-	add.w	d6,a1
+	add.w	d7,a1
 	
 	cmp.b	(a1),d0
 	beq.b	0f		| already the proper value
@@ -1141,15 +1164,16 @@ write_back_videoram:
 	
 	move.l		bg_drawed_screen_ptr,a1
 	lea		back_tile_table,a0
+	move.l	#BG_SCREEN_PLANE_SIZE,d5
 	jbsr		update_tile
 	.endif
 0:
-	movem.l	(a7)+,d0-d3/d6/a0-a2
+	movem.l	(a7)+,d0-d3/d7/a0-a2
 	rts
 write_fore_videoram:
     .ifeq OPT_DISABLE_FG_LAYER
 	lea		fg_videoram,a1
-	add.w	d6,a1
+	add.w	d7,a1
 	
 	cmp.b	(a1),d0
 	beq.b	0f		| already the proper value
@@ -1158,21 +1182,17 @@ write_fore_videoram:
 	
 	move.l		fg_drawed_screen_ptr,a1
 	lea			fore_tile_table,a0
+	move.l	#FG_SCREEN_PLANE_SIZE,d5
 	jbsr		update_tile
 	.endif
 0:
-	movem.l	(a7)+,d0-d3/d6/a0-a2
+	movem.l	(a7)+,d0-d3/d7/a0-a2
 	rts
 
 
 * d7: screen offset
 * d0: tile code
 
-*
-* the layout is strange to say the least
-* first row (last row in memory) is shown "normally" (X is mirrored, but horizontal,
-* Y is at top of the screen)
-* other rows use a X/Y transposed system like Galaxian or Xevious!
 *
 update_tile:
 	* compute Y
@@ -1181,29 +1201,29 @@ update_tile:
 	move.w	d7,d3
 	lsr.w	#5,d7		| this is X
 	neg.w	d7
-	add.w	#32,d7
+	add.w	#30,d7
+	cmp.w	#5,d7
+	bcs.b	0f			| ignore those tiles on the left side (not shown anyway)
 	and.w	#0x1F,d3	| this is Y
-	addq.w	#2,d3
-
-	lea		mulNB_BYTES_PER_ROW_table(pc),a0
+	addq	#1,d3
+	lea		mulNB_BYTES_PER_ROW_table(pc),a2
 
 	
 	* D3 = Y
 
 	add.w	d3,d3
-	move.w	(a0,d3.w),d3
+	move.w	(a2,d3.w),d3
 	lsl.w	#3,d3		| times 8
+	addq.w	#1,d3
 	add.w	d3,a1
-	add.w	d6,a1
+	add.w	d7,a1
 
 	moveq	#NB_PLAYFIELD_PLANES-1,d3
 
 	* optimization when a well-known
 	* empty character is passed (standard charset)
-*	cmp.w	#0xE0,d0	| empty character
-*	jeq	11f
-*	cmp.w	#0x10,d0	| empty character
-*	jeq	11f
+	tst.b	d0
+	jeq	11f
 
 	moveq	#0,D2	| TEMP current level
 	add.w	d2,d2
@@ -1218,7 +1238,7 @@ update_tile:
 	move.b	(a0)+,(offset,a1)	
 	.set	offset,offset+NB_BYTES_PER_ROW
 	.endr
-	add.w	#BG_SCREEN_PLANE_SIZE,a1
+	add.w	d5,a1
 	dbf		d3,4b
 0:
 	rts
@@ -1231,7 +1251,7 @@ update_tile:
 	clr.b	(offset,a1)
 	.set	offset,offset+NB_BYTES_PER_ROW
 	.endr
-	add.w	#BG_SCREEN_PLANE_SIZE,a1
+	add.w	d5,a1
 	dbf		d3,11b
 2:
 	rts
@@ -1305,10 +1325,14 @@ HW_SpriteYTable_\height:
 * what: sets bitplanes in copperlist
 
 set_bg_bitplanes:
-    move.l	bg_displayed_screen_ptr(pc),a0
     moveq #NB_PLAYFIELD_PLANES-1,d1
-	move.l	a0,d0
-    lea	bg_bitplanes+2,a0
+	moveq	#0,d0
+	move.b	scroll_value,d0
+	lea		mulNB_BYTES_PER_ROW_table(pc),a0
+	add.w	d0,d0
+	move.w	(a0,d0.w),d0
+    add.l	bg_displayed_screen_ptr,d0
+    lea		bg_bitplanes+2,a0
 1:
     swap d0
     move.w d0,(a0)
@@ -1336,7 +1360,10 @@ set_fg_bitplanes:
     rts
 
 	
-
+osd_set_scroll_value:
+	move.b	d0,scroll_value
+	rts
+	
 osd_debug_hook:
 	rts
 	
@@ -1706,9 +1733,9 @@ old_actiview:
 	.long	0
 old_stack:
 	.long	0
-return_address:
-	.long	0
-	
+scroll_value:
+	.byte	0
+	align	2
 	
 _tag:
 		.long	WHDLTAG_CUSTOM1_GET
@@ -1732,8 +1759,6 @@ dip_switches:
 system_vbr:
 	.long	0
 	
-orig_color_4:
-	.word	0
 	
 high_score_buffer:
 	ds.b	SCORE_FILE_SIZE
@@ -1937,7 +1962,7 @@ copperlist:
 bg_bitplanes:
 	DECL_EVEN_BITPLANES	0,3
 fg_bitplanes:
-	DECL_EVEN_BITPLANES	3,3
+	DECL_EVEN_BITPLANES	4,3
 bg_colors:
 	DECL_COLORS	0,8
 fg_colors:
