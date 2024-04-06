@@ -13,7 +13,7 @@
 ;43BA   nb enemies to kill before stage completed (not vultures, only birds stage)
 ;43BB   nb vultures to kill before stage completed
 ;438F 	CoinCount 	Number of coins inserted (max counted is 9)
-;439A:439B 	Counter 	16 bit counter (MSB:LSB)
+;439A:439B 	counter_439A 	16 bit counter (MSB:LSB)
 ;43C2:43C3  player ship X/Y (X changes, Y stays on the bottom of screen)
 ;4800-4B40: bg tiles video ram (scrollable part)
 
@@ -949,33 +949,7 @@ init_new_play_step_2_0515:
 
 055B: FF FF FF FF FF
 
-0560: 0C              INC     C
-0561: 10 64           DJNZ    $5C7                ;
-0563: D8              RET     C
-0564: 00              NOP
-0565: 50              LD      D,B
-0566: 00              NOP
-0567: D0              RET     NC
-0568: 00              NOP
-0569: 50              LD      D,B
-056A: 00              NOP
-056B: D0              RET     NC
-056C: 00              NOP
-056D: 58              LD      E,B
-056E: 00              NOP
-056F: 20 00           JR      NZ,$571             ;
-0571: 58              LD      E,B
-0572: 00              NOP
-0573: 20 00           JR      NZ,$575             ;
-0575: 58              LD      E,B
-0576: 00              NOP
-0577: 20 00           JR      NZ,$579             ;
-0579: 58              LD      E,B
-057A: 00              NOP
-057B: 20 00           JR      NZ,$57D             ;
-057D: 58              LD      E,B
-057E: 00              NOP
-057F: 20 21           JR      NZ,$5A2             ;
+0580: 21 98 05        LD      HL,$0598
 0581: 98              SBC     B
 0582: 05              DEC     B
 0583: 3A B8 43        LD      A,(current_stage_43B8)
@@ -989,67 +963,7 @@ init_new_play_step_2_0515:
 0592: CD E0 05        CALL    $05E0               ;
 0595: C9              RET
 
-0596: FF              RST     0X38
-0597: FF              RST     0X38
-
-0598: A8              XOR     B
-0599: A8              XOR     B
-059A: C0              RET     NZ
-059B: C0              RET     NZ
-059C: A8              XOR     B
-059D: A8              XOR     B
-059E: A8              XOR     B
-059F: A8              XOR     B
-05A0: B4              OR      H
-05A1: CC B4 B4        CALL    Z,$B4B4
-05A4: A8              XOR     B
-05A5: A8              XOR     B
-05A6: A8              XOR     B
-05A7: A8              XOR     B
-05A8: 80              ADD     A,B
-05A9: 7F              LD      A,A
-05AA: 00              NOP
-05AB: 00              NOP
-05AC: 40              LD      B,B
-05AD: 3F              CCF
-05AE: 00              NOP
-05AF: 1C              INC     E
-05B0: 00              NOP
-05B1: FF              RST     0X38
-05B2: FF              RST     0X38
-05B3: FF              RST     0X38
-05B4: 60              LD      H,B
-05B5: 5F              LD      E,A
-05B6: 01 02 30        LD      BC,$3002
-05B9: 2F              CPL
-05BA: 00              NOP
-05BB: 1C              INC     E
-05BC: 00              NOP
-05BD: C0              RET     NZ
-05BE: FF              RST     0X38
-05BF: FF              RST     0X38
-05C0: 80              ADD     A,B
-05C1: 7F              LD      A,A
-05C2: 03              INC     BC
-05C3: 04              INC     B
-05C4: 40              LD      B,B
-05C5: 3F              CCF
-05C6: 00              NOP
-05C7: 1F              RRA
-05C8: 00              NOP
-05C9: A0              AND     B
-05CA: FF              RST     0X38
-05CB: FF              RST     0X38
-05CC: 60              LD      H,B
-05CD: 60              LD      H,B
-05CE: 05              DEC     B
-05CF: 06 50           LD      B,$50
-05D1: 30 00           JR      NC,$5D3             ;
-05D3: 1D              DEC     E
-05D4: 00              NOP
-05D5: 48              LD      C,B
-
-05D6: FF FF
+; data section
 
 ; < HL: start address
 ; < B: number of bytes to clear
@@ -1061,6 +975,7 @@ clear_area_05D8:
 05DC: C2 D9 05        JP      NZ,$05D9            ;
 
 05DF: C9              RET
+
 05E0: 7E              LD      A,(HL)
 05E1: 12              LD      (DE),A
 05E2: 23              INC     HL
@@ -1188,8 +1103,8 @@ update_scrolling_067A:
 0684: C0              RET     NZ
 ; if 8 pixels were scrolled, then feed scroll
 ; by updating a character row
-0685: 01 47 20        LD      BC,$2047
-0688: 11 21 4B        LD      DE,unknown_4B21
+0685: 01 47 20        LD      BC,$2047	; 0x20 in B for next char, 0x47 in C for 0x4700 limit
+0688: 11 21 4B        LD      DE,unknown_4B21	; screen address (background tiles)
 068B: 7E              LD      A,(HL)       ; scroll value
 068C: 0F              RRCA
 068D: 0F              RRCA
@@ -1757,7 +1672,7 @@ read_controls_to_move_ship_0900:
 0995: C9              RET
 
 09A0: 01 C2 43        LD      BC,player_ship_x_43C2
-09A3: 11 E2 43        LD      DE,unknown_43E2
+09A3: 11 E2 43        LD      DE,screen_address_43E2
 09A6: CD BA 09        CALL    $09BA               ;
 09A9: 03              INC     BC
 09AA: 03              INC     BC
@@ -2974,7 +2889,7 @@ birds_level_2000:
 20E9: 7A              LD      A,D
 20EA: C6 08           ADD     $08
 20EC: 57              LD      D,A
-20ED: CD 1C 21        CALL    $211C               ;
+20ED: CD 1C 21        CALL    wrap_scroll_value_211C               ;
 20F0: 0F              RRCA
 20F1: 0F              RRCA
 20F2: 0F              RRCA
@@ -3512,7 +3427,7 @@ end_of_level_transition_244C:
 24A8: 11 C4 43        LD      DE,player_shot_1_structure_43C4
 24AB: 21 E6 43        LD      HL,ram_pointer_on_flying_enemies_table_43E6
 24AE: CD 51 23        CALL    $2351               ;
-24B1: 3A 9B 43        LD      A,(Counter+1)       ;
+24B1: 3A 9B 43        LD      A,(counter_439A+1)       ;
 24B4: E6 03           AND     $03
 24B6: FE 03           CP      $03
 24B8: C0              RET     NZ
@@ -3730,7 +3645,7 @@ end_of_level_transition_244C:
 261D: 57              LD      D,A
 261E: E6 03           AND     $03
 2620: 5F              LD      E,A
-2621: 3A 9B 43        LD      A,(Counter+1)       ;
+2621: 3A 9B 43        LD      A,(counter_439A+1)       ;
 2624: 07              RLCA
 2625: 07              RLCA
 2626: E6 0C           AND     $0C
@@ -3748,7 +3663,7 @@ end_of_level_transition_244C:
 2638: 92              SUB     D
 2639: 32 B9 43        LD      (current_scroll_value_43B9),A
 263C: 32 00 58        LD      ($5800),A           ; 58xx scroll register
-263F: 3A 9B 43        LD      A,(Counter+1)       ;
+263F: 3A 9B 43        LD      A,(counter_439A+1)       ;
 2642: 0F              RRCA
 2643: D2 D0 26        JP      NC,$26D0            ;
 2646: CD 68 26        CALL    $2668               ;
@@ -3771,7 +3686,7 @@ end_of_level_transition_244C:
 2668: 3A 6E 43        LD      A,(unknown_436E)
 266B: 00              NOP
 266C: 47              LD      B,A
-266D: 3A 9A 43        LD      A,(Counter)         ;
+266D: 3A 9A 43        LD      A,(counter_439A)         ;
 2670: FE 18           CP      $18
 2672: DA 76 26        JP      C,$2676             ;
 2675: 04              INC     B
@@ -4514,13 +4429,13 @@ vultures_level_3400:
 3421: CD 60 35        CALL    $3560               ;
 3424: CD 98 34        CALL    $3498               ;
 3427: CD AA 34        CALL    $34AA               ;
-342A: 3A 9B 43        LD      A,(Counter+1)       ;
+342A: 3A 9B 43        LD      A,(counter_439A+1)       ;
 342D: 0F              RRCA
 342E: DA C0 0F        JP      C,$0FC0             ;
 3431: CD 30 39        CALL    $3930               ;
 3434: C3 40 0C        JP      $0C40               ;
 3437: FF              RST     0X38
-3438: 3A 9B 43        LD      A,(Counter+1)       ;
+3438: 3A 9B 43        LD      A,(counter_439A+1)       ;
 343B: 0F              RRCA
 343C: DA 52 34        JP      C,$3452             ;
 343F: CD 74 34        CALL    $3474               ;
@@ -4534,7 +4449,7 @@ vultures_level_3400:
 3458: CD AA 34        CALL    $34AA               ;
 345B: C3 C0 0F        JP      $0FC0               ;
 
-3462: 3A 9B 43        LD      A,(Counter+1)       ;
+3462: 3A 9B 43        LD      A,(counter_439A+1)       ;
 3465: 0F              RRCA
 3466: D8              RET     C
 3467: CD 40 0C        CALL    $0C40               ;
@@ -4731,7 +4646,7 @@ vultures_level_3400:
 3586: 07              RLCA
 3587: B0              OR      B
 3588: 47              LD      B,A
-3589: 3A 9A 43        LD      A,(Counter)         ;
+3589: 3A 9A 43        LD      A,(counter_439A)         ;
 358C: 07              RLCA
 358D: 07              RLCA
 358E: E6 20           AND     $20
@@ -4765,12 +4680,13 @@ vultures_level_3400:
 35C0: 78              LD      A,B
 35C1: 07              RLCA
 35C2: 07              RLCA
-35C3: 07              RLCA
-35C4: 6F              LD      L,A
-35C5: 26 3F           LD      H,$3F
+35C3: 07              RLCA					; times 8
+35C4: 6F              LD      L,A			; lsb of jump table $3F00
+35C5: 26 3F           LD      H,$3F			; msb of jump table $3F00
 35C7: 46              LD      B,(HL)
 35C8: 23              INC     HL
 35C9: 4E              LD      C,(HL)
+; game pushes 4 routines in the stack here to be executed/chained
 35CA: C5              PUSH    BC
 35CB: 23              INC     HL
 35CC: 46              LD      B,(HL)
@@ -4790,6 +4706,7 @@ vultures_level_3400:
 35DA: EB              EX      DE,HL
 35DB: C9              RET
 
+; called in vulture stage but from where?
 35E0: 2C              INC     L
 35E1: 2C              INC     L
 35E2: 7E              LD      A,(HL)
@@ -4922,8 +4839,8 @@ vultures_level_3400:
 3690: D8              RET     C
 3691: 77              LD      (HL),A
 3692: C9              RET
-3693: D8              RET     C
-3694: FE 2C           CP      $2C
+
+3695: 2C              INC     L
 3696: 2C              INC     L
 3697: 46              LD      B,(HL)
 3698: 2C              INC     L
@@ -4967,6 +4884,7 @@ vultures_level_3400:
 36CE: E1              POP     HL
 36CF: C9              RET
 
+* called by who?
 36D2: D1              POP     DE
 36D3: C1              POP     BC
 36D4: E1              POP     HL
@@ -4984,8 +4902,9 @@ vultures_level_3400:
 36E3: 32 68 43        LD      (unknown_4368),A
 36E6: C9              RET
 
-36EA: D1              POP     DE
-36EB: C1              POP     BC
+command_36ea:
+36EA: D1              POP     DE		; get param
+36EB: C1              POP     BC		; get param
 36EC: E1              POP     HL
 36ED: 7E              LD      A,(HL)
 36EE: A7              AND     A
@@ -5008,8 +4927,9 @@ vultures_level_3400:
 3703: 32 68 43        LD      (unknown_4368),A
 3706: C9              RET
 
-370A: D1              POP     DE
-370B: C1              POP     BC
+command_370a:
+370A: D1              POP     DE		; get param
+370B: C1              POP     BC		; get param
 370C: E1              POP     HL
 370D: 7E              LD      A,(HL)
 370E: A7              AND     A
@@ -5409,7 +5329,7 @@ player_shots_vs_vultures_collision_3800:
 39A5: 2E C4           LD      L,$C4
 39A7: 36 08           LD      (HL),$08
 39A9: 11 9E 43        LD      DE,unknown_439E
-39AC: 3A 9B 43        LD      A,(Counter+1)       ;
+39AC: 3A 9B 43        LD      A,(counter_439A+1)       ;
 39AF: 0F              RRCA
 39B0: DA BF 39        JP      C,$39BF             ;
 39B3: 1C              INC     E
@@ -5455,7 +5375,7 @@ player_shots_vs_vultures_collision_3800:
 3A05: 2F              CPL
 3A06: 3C              INC     A
 3A07: 57              LD      D,A
-3A08: 3A 9B 43        LD      A,(Counter+1)       ;
+3A08: 3A 9B 43        LD      A,(counter_439A+1)       ;
 3A0B: 0F              RRCA
 3A0C: 0F              RRCA
 3A0D: D8              RET     C
@@ -5665,4 +5585,89 @@ player_shots_vs_vultures_collision_3800:
 3B58: CD 82 3A        CALL    $3A82               ;
 3B5B: C3 90 3A        JP      $3A90               ;
 
+; group of 4 routines to be chained
+; if last of the 4 routines is bogus, but last value is called first
+; so the routine can pop the stack to just drop the FFFF or load parameters!
+; this is case by case!
 
+jump_table_chain_3F00:
+	.word	$FFFF 		; slot 0, not possible
+	.word	$FFFF 
+	.word	$FFFF 
+	.word	$FFFF
+	
+	.word	$20FF 		; slot 1
+	.word	$02FF 
+	.word	$36D2 
+	.word	$36C0
+	
+	.word	$20FF 		; slot 2
+	.word	$03FF 
+	.word	$36D2 
+	.word	$35E0 
+	
+	.word	$30FF 		; slot 3 
+	.word	$04FF 
+	.word	$36D2 
+	.word	$35E0
+	
+	.word	$10FF  		; slot 4
+	.word	$05FF 
+	.word	command_36ea
+	.word	$35E0
+	
+	.word	$10FF 		; slot 5
+	.word	$06FF
+	.word	command_36ea
+	.word	$36C0
+	
+	.word	$1060 		; slot 6
+	.word	$071F 
+	.word	command_370a 
+	.word	$36C0 
+	
+	.word	$F010 		; slot 7
+	.word	$0B1A		; skips the last bogus address (0B25 pops HL)
+	.word	$370A
+	.word	$36C0
+	
+	.word	$40FF 		; slot 8, bogus  
+	.word	$04FF 
+	.word	command_36ea
+	.word	$36C0
+	
+	.word	$10FF 		; slot 9
+	.word	$08FF
+	.word	command_36ea
+	.word	$36C0
+	
+	.word	$4010 		; slot 10
+	.word	$0F17 
+	.word	command_370a
+	.word	$36C0 
+	
+	.word	$10FF 		; slot 11
+	.word	$0AFF
+	.word	command_36ea
+	.word	$35E0 
+	
+	.word	$FFFF 		; slot 12
+	.word	$FFFF
+	.word	$36CC		; no further calls
+	.word	$35E0
+	
+	.word	$FFFF 		; slot 14
+	.word	$FFFF
+	.word	$36CC		; no further calls
+	.word	$35E0
+	
+	.word	$10FF  		; slot 15
+	.word	$06FF 
+	.word	command_36ea 
+	.word	$35E0
+	
+	.word	$1010 		; slot 16
+	.word	$0779
+	.word	command_370a 
+	.word	$35E0
+; 3F80

@@ -14,7 +14,7 @@
 *43BA   nb enemies to kill before stage completed (not vultures, only birds stage)
 *43BB   nb vultures to kill before stage completed
 *438F 	CoinCount 	Number of coins inserted (max counted is 9)
-*439A:439B 	Counter 	16 bit counter (MSB:LSB)
+*439A:439B 	counter_439A 	16 bit counter (MSB:LSB)
 *43C2:43C3  player ship X/Y (X changes, Y stays on the bottom of screen)
 *4800-4B40: bg tiles video ram (scrollable part)
 
@@ -117,6 +117,19 @@
 	lsr.w	#8,d3
 	.endm
 	
+	
+copy_a0_a1_d1:
+	move.b	(a1)+,(a0)+                         	| [$3520: LD      A,(DE)]
+	                        	| [$3521: LD      (HL),A]
+	                           	| [$3522: INC     DE]
+	                           	| [$3523: INC     HL]
+	move.b	(a1)+,(a0)                         	| [$3524: LD      A,(DE)]
+	                         	| [$3525: LD      (HL),A]
+	                           	| [$3526: INC     DE]
+	add.w	d1,a0                            	| [$3527: ADD     HL,BC]
+	rts
+
+
 phoenix_reset:
 
 
@@ -344,7 +357,6 @@ l_0140:
 	move.b	#0x10,(a0)                      	| [$015d: LD      (HL),$10]
 	lea	unknown_43BE,a0                        	| [$015f: LD      L,$BE]
 	jbsr	osd_read_dipswitches                       	| [$0161: LD      A,($7800)] 78xx DSW0
-       ^^^^^^ TODO: review absolute 16-bit address read
 	and.b	#0x0C,d0                         	| [$0164: AND     $0C] Bonus lives
 	rol.b	#2,d0                            	| [$0166: RLCA] * 2
 	add.b	#0x30,d0                         	| [$0168: ADD     $30]
@@ -363,8 +375,8 @@ l_0173:
 	rts                                    	| [$017a: RET     C] [...]
 0:
 	move.b	#0xFE,d1                        	| [$017b: LD      B,$FE]
+	cmp.b	#0x1F,d0
 	bne.b	0f                               	| [...]
-      ^^^^^^ TODO: review cpu flags (move.b,bne.b)
 	rts                                    	| [$017d: RET     Z] [...]
 0:
 	move.b	#0xAE,d1                        	| [$017e: LD      B,$AE]
@@ -403,22 +415,22 @@ l_0196:
 	move.b	(a0),d0                         	| [$019d: LD      A,(HL)]
 	and.b	#0xE0,d0                         	| [$019e: AND     $E0]
 	move.b	d0,d2                           	| [$01a0: LD      C,A]
-	subq.w	#1,a0                           	| [$01a1: DEC     L]
-	move.b	(a0),d1                         	| [$01a2: LD      B,(HL)]
+	                           	| [$01a1: DEC     L]
+	move.b	-(a0),d1                         	| [$01a2: LD      B,(HL)]
 	ILLEGAL  | check A0 value
 	lea	unknown_43A8,a0                        	| [$01a3: LD      L,$A8]
-	move.b	d1,(a0)                         	| [$01a5: LD      (HL),B]
-	addq.w	#1,a0                           	| [$01a6: INC     L]
+	move.b	d1,(a0)+                         	| [$01a5: LD      (HL),B]
+	                           	| [$01a6: INC     L]
 	move.b	d2,(a0)                         	| [$01a7: LD      (HL),C]
 	move.w	#0x1860,d1                      	| [$01a8: LD      BC,$1860]
 	jbsr	AddBCtoMem_0206                   	| [$01ab: CALL    AddBCtoMem_0206]
 	move.b	(a0),d0                         	| [$01ae: LD      A,(HL)]
-	subq.w	#1,a0                           	| [$01af: DEC     L]
-	move.b	(a0),d5                         	| [$01b0: LD      H,(HL)]
+	                           	| [$01af: DEC     L]
+	move.b	-(a0),d5                         	| [$01b0: LD      H,(HL)]
 	move.b	d0,d6                           	| [$01b1: LD      L,A]
 	move.b	d4,d0                           	| [$01b2: LD      A,E]
-	move.b	(a0),d3                         	| [$01b3: LD      D,(HL)]
-	addq.w	#1,a0                           	| [$01b4: INC     L]
+	move.b	(a0)+,d3                         	| [$01b3: LD      D,(HL)]
+	                           	| [$01b4: INC     L]
 	move.b	(a0),d4                         	| [$01b5: LD      E,(HL)]
 	subq.w	#1,a0                           	| [$01b6: DEC     L]
 	move.b	d0,d2                           	| [$01b7: LD      C,A]
@@ -426,17 +438,20 @@ l_0196:
 	move.b	d0,d6                           	| [$01b9: LD      L,A]
 	move.b	d2,d0                           	| [$01ba: LD      A,C]
 	subq.b	#0x06,d0                        	| [$01bb: SUB     $06]
+	LOAD_D3_16_FROM_D3D4
 	move.b	d0,d2                           	| [$01bd: LD      C,A]
 	jeq	l_01c8                             	| [$01be: JP      Z,$01C8]
 l_01c1:
+	
 	jbsr	SubtractOneRow_0217               	| [$01c1: CALL    SubtractOneRow_0217]
 	subq.w	#1,d1                           	| [$01c4: DEC     C]
 	jne	l_01c1                             	| [$01c5: JP      NZ,$01C1]
 l_01c8:
 	move.b	(a0),d0                         	| [$01c8: LD      A,(HL)]
-	move.b	d0,(a1)                         	| [$01c9: LD      (DE),A]
+	move.w	d3,d7
+	jbsr	osd_w_videoram                         	| [$01c9: LD      (DE),A]
 	jra	l_14e0                             	| [$01ca: JP      $14E0]
-	jne	l_01c0                             	| [$01cd: JP      NZ,$01C0]
+	                            	| [$01cd: JP      NZ,$01C0]
 
 l_01d0:
 	move.b	(a0)+,d3                         	| [$01d0: LD      D,(HL)] Get ...
@@ -487,32 +502,28 @@ AddOneToMem_0200:
 * Two-byte addition. BC is added to (HL-1) : (HL).
 *
 AddBCtoMem_0206:
-	move.b	(a0),d0                         	| [$0206: LD      A,(HL)] Get the lower byte
-	add.b	d2,d0                            	| [$0207: ADD     A,C] Add C to the lower
-	move.b	d0,(a0)                         	| [$0208: LD      (HL),A] Store the new lower
-	subq.w	#1,a0                           	| [$0209: DEC     L] Back up to upper byte
-            *^^^^ TODO check dec register d6 or a0
-	move.b	(a0),d0                         	| [$020a: LD      A,(HL)] Add B and carry ...
+	                         	| [$0206: LD      A,(HL)] Get the lower byte
+	                          	| [$0207: ADD     A,C] Add C to the lower
+	add.b	d2,(a0)                         	| [$0208: LD      (HL),A] Store the new lower
+	                           	| [$0209: DEC     L] Back up to upper byte
+	move.b	-(a0),d0                         	| [$020a: LD      A,(HL)] Add B and carry ...
 	addx.b	d1,d0                           	| [$020b: ADC     A,B] ... to upper byte
-      ^^^^^^ TODO: review cpu X flag
-	move.b	d0,(a0)                         	| [$020c: LD      (HL),A] Store the new upper byte
-	addq.w	#1,a0                           	| [$020d: INC     L] Restore pointer to LSB
-            ^^^^ TODO check inc register d6 or a0
+	move.b	d0,(a0)+                         	| [$020c: LD      (HL),A] Store the new upper byte
+	                           	| [$020d: INC     L] Restore pointer to LSB
 	rts                                    	| [$020e: RET] Done
 
 
 * Add 32 (one row) to DE (two bytes)
 *
 AddOneRow_0210:
-	move.b	d4,d0                           	| [$0210: LD      A,E] Add ...
-	add.b	#0x20,d0                         	| [$0211: ADD     $20] ... 32 to ...
-	move.b	d0,d4                           	| [$0213: LD      E,A] ... E
-	bcs.b	0f                               	| [...]
-      ^^^^^^ TODO: review cpu flags (move.b,bcs.b)
+	                           	| [$0210: LD      A,E] Add ...
+	add.w	#0x20,d3                         	| [$0211: ADD     $20] ... 32 to ...
+	                           	| [$0213: LD      E,A] ... E
+	                               	| [...]
 	rts                                    	| [$0214: RET     NC] No carry ... we are done [...]
-0:
-	addq.b	#1,d3                           	| [$0215: INC     D] Carry into D
-	rts                                    	| [$0216: RET] Done
+
+                       	| [$0215: INC     D] Carry into D
+                      	| [$0216: RET] Done
 
 * Subtract 32 (one rom) from DE (two bytes)
 SubtractOneRow_0217:
@@ -531,67 +542,29 @@ SubtractOneRow_0217:
 * The games keeps the lowest digit of the scores to 0.
 *
 AddToScore_0220:
+	CLEAR_XC_FLAGS
 	clr.b	d0                               	| [$0220: XOR     A] !! Pointless. We are about to change A and the flags
 	move.b	(a0),d0                         	| [$0221: LD      A,(HL)] Lowest 2 digits
-	add.b	d2,d0                            	| [$0222: ADD     A,C] Add C to score
-DAA                         ; Adjust for binary coded decimal
+	abcd	d2,d0                            	| [$0222: ADD     A,C] Add C to score
+												| Adjust for binary coded decimal
 	move.b	d0,(a0)                         	| [$0224: LD      (HL),A] Update lowest 2 digits
-	subq.w	#1,a0                           	| [$0225: DEC     L] Point to middle 2 digits
-	move.b	(a0),d0                         	| [$0226: LD      A,(HL)] Add B to ...
-	addx.b	d1,d0                           	| [$0227: ADC     A,B] ... score
-      ^^^^^^ TODO: review cpu X flag
-DAA                         ; Adjust for BCD
+	                           	| [$0225: DEC     L] Point to middle 2 digits
+	move.b	-(a0),d0                         	| [$0226: LD      A,(HL)] Add B to ...
+	abcd	d1,d0                           	| [$0227: ADC     A,B] ... score
+                         ; Adjust for BCD
 	move.b	d0,(a0)                         	| [$0229: LD      (HL),A] Store the middle 2 digits
-	subq.w	#1,a0                           	| [$022a: DEC     L] Point to the upper 2 digits
-            *^^^^ TODO check dec register d6 or a0
-	move.b	(a0),d0                         	| [$022b: LD      A,(HL)] Add in ...
+	                           	| [$022a: DEC     L] Point to the upper 2 digits
+	move.b	-(a0),d0                         	| [$022b: LD      A,(HL)] Add in ...
 	move.b	#0x00,d7                        	| [$022c: ADC     $00] ... any carry
-	addx.b	d7,d0                           	| [$022c: ADC     $00] ... any carry
-      ^^^^^^ TODO: review cpu X flag
-DAA                         ; Adjust for binary coded decimal
+	abcd	d7,d0                           	| [$022c: ADC     $00] ... any carry
+
+                         ; Adjust for binary coded decimal
 	move.b	d0,(a0)                         	| [$022f: LD      (HL),A] Store the upper 2 digits
 	addq.w	#2,a0                           	| [$0230: INC     L] Restore ...
-            ^^^^ TODO check inc register d6 or a0 * 2
 	rts                                    	| [$0232: RET] Done
 
 
-
-* 3-byte (6 digit) BCD subtraction. This is never called.
-*
-* !! We have score ADDER above. I like the symmetry of a score SUBTRACTER, but
-* !! this is never called. Scores never decrease
-*
-	SET_XC_FLAGS                           	| [$0236: SCF] Take ...
-	move.b	#0x99,d0                        	| [$0237: LD      A,$99] ... the BCD ...
-	move.b	#0x00,d7                        	| [$0239: ADC     $00] ... add-complement ...
-	addx.b	d7,d0                           	| [$0239: ADC     $00] ... add-complement ...
-      ^^^^^^ TODO: review cpu X flag
-	sub.b	d2,d0                            	| [$023b: SUB     C] ... of C
-	add.b	(a0),d0                          	| [$023c: ADD     A,(HL)] Lower two digits
-DAA                         ; Adjust for BCD
-	move.b	d0,(a0)                         	| [$023e: LD      (HL),A] Update lower two digits
-	subq.w	#1,a0                           	| [$023f: DEC     L] Point to middle digits
-            *^^^^ TODO check dec register d6 or a0
-	move.b	#0x99,d0                        	| [$0240: LD      A,$99] Take the BCD ...
-	move.b	#0x00,d7                        	| [$0242: ADC     $00] ... add-complement ...
-	addx.b	d7,d0                           	| [$0242: ADC     $00] ... add-complement ...
-      ^^^^^^ TODO: review cpu X flag
-	sub.b	d1,d0                            	| [$0244: SUB     B] ... of C
-	add.b	(a0),d0                          	| [$0245: ADD     A,(HL)] Middle two digits
-DAA                         ; Adjust for BCD
-	move.b	d0,(a0)                         	| [$0247: LD      (HL),A] Update middle two digits
-	subq.w	#1,a0                           	| [$0248: DEC     L] Point to upper digits
-            *^^^^ TODO check dec register d6 or a0
-	move.b	#0x99,d0                        	| [$0249: LD      A,$99] Take the BCD add-complement ...
-	move.b	#0x00,d7                        	| [$024b: ADC     $00] ... of any carry
-	addx.b	d7,d0                           	| [$024b: ADC     $00] ... of any carry
-      ^^^^^^ TODO: review cpu X flag
-	add.b	(a0),d0                          	| [$024d: ADD     A,(HL)] Upper two digits
-DAA                         ; Adjust for BCD
-	move.b	d0,(a0)                         	| [$024f: LD      (HL),A] Update upper two digits
-	addq.w	#2,a0                           	| [$0250: INC     L] Restore ...
-            ^^^^ TODO check inc register d6 or a0 * 2
-	rts                                    	| [$0252: RET] Done
+                                 	| [$0252: RET] Done
 
 
 * Two byte compare of BC to memory at (HL-1):(HL)
@@ -791,11 +764,10 @@ l_0350:
 	move.b	d1,(a0)                         	| [$0366: LD      (HL),B] nb lives player 2
 l_0367:
 	lea	unknown_4390,a0                        	| [$0367: LD      L,$90]
-	move.b	(a0),d0                         	| [$0369: LD      A,(HL)]
+	move.b	(a0)+,d0                         	| [$0369: LD      A,(HL)]
 	or.b	#0x20,d0                          	| [$036a: OR      $20]
 	move.b	d0,unknown_42A2                 	| [$036c: LD      (unknown_42A2),A]
-	addq.w	#1,a0                           	| [$036f: INC     L]
-            ^^^^ TODO check inc register d6 or a0
+	                           	| [$036f: INC     L]
 	move.b	(a0),d0                         	| [$0370: LD      A,(HL)]
 	or.b	#0x20,d0                          	| [$0371: OR      $20]
 	move.b	d0,unknown_4062                 	| [$0373: LD      (unknown_4062),A]
@@ -803,9 +775,8 @@ l_0367:
 
 l_0377:
 	lea	unknown_438C,a0                	| [$0377: LD      HL,unknown_438C]
-	move.b	d0,(a0)                         	| [$037a: LD      (HL),A]
-	addq.w	#1,a0                           	| [$037b: INC     L]
-            ^^^^ TODO check inc register d6 or a0
+	move.b	d0,(a0)+                         	| [$037a: LD      (HL),A]
+	                           	| [$037b: INC     L]
 	move.b	d0,(a0)                         	| [$037c: LD      (HL),A]
 	rts                                    	| [$037d: RET]
 
@@ -932,17 +903,15 @@ set_proper_stage_palette_041E:
 	move.b	current_stage_43B8,d0           	| [$0424: LD      A,(current_stage_43B8)]
 	and.b	#0x02,d0                         	| [$0427: AND     $02]
 	or.b	d1,d0                             	| [$0429: OR      B]
-	move.b	d0,0x5000                       	| [$042a: LD      ($5000),A] set memory bank & palette
-          ^^^^^^ TODO: review absolute 16-bit address write
+	jbsr	osd_write_5000                       	| [$042a: LD      ($5000),A] set memory bank & palette
 	rts                                    	| [$042d: RET]
 05
 
 * initialize new play or demo
 init_new_play_0430:
 	lea	game_state_43A4,a0             	| [$0430: LD      HL,game_state_43A4] Next function to run ...
-	move.b	#0x01,(a0)                      	| [$0433: LD      (HL),$01] ... is 1 ??
-	addq.w	#1,a0                           	| [$0435: INC     L]
-            ^^^^ TODO check inc register d6 or a0
+	move.b	#0x01,(a0)+                      	| [$0433: LD      (HL),$01] ... is 1 ??
+	                           	| [$0435: INC     L]
 	move.b	#0x80,(a0)                      	| [$0436: LD      (HL),$80]
 	lea	unknown_43A3,a0                        	| [$0438: LD      L,$A3]
 	move.b	(a0),d0                         	| [$043a: LD      A,(HL)]
@@ -952,15 +921,13 @@ init_new_play_0430:
 	rts                                    	| [$043f: RET     Z] [...]
 0:
 	move.b	d0,(a0)                         	| [$0440: LD      (HL),A]
-	subq.w	#1,a0                           	| [$0441: DEC     L]
-            *^^^^ TODO check dec register d6 or a0
-	move.b	(a0),d0                         	| [$0442: LD      A,(HL)]
+	                           	| [$0441: DEC     L]
+	move.b	-(a0),d0                         	| [$0442: LD      A,(HL)]
 	cmp.b	#0x01,d0                         	| [$0443: CP      $01]
 	bne.b	0f                               	| [...]
 	rts                                    	| [$0445: RET     Z] [...]
 0:
 	addq.w	#1,a0                           	| [$0446: INC     L]
-            ^^^^ TODO check inc register d6 or a0
 	move.b	(a0),d0                         	| [$0447: LD      A,(HL)]
 	                               	| [$0448: AND     A]
 	jeq	l_04a0                             	| [$0449: JP      Z,$04A0]
@@ -994,7 +961,7 @@ copy_bank_0460:
 *	move.b	d2,(a0)                         	| [$0468: LD      (HL),C]
 *	move.b	d0,(a1)                         	| [$0469: LD      (DE),A]
 *	addq.w	#1,a1                           	| [$046a: INC     E]
-*            ^^^^ TODO check inc register d4 or a1
+*            ^^^^ check inc register d4 or a1
 *	move.b	d4,d0                           	| [$046b: LD      A,E]
 *	and.b	#0x03,d0                         	| [$046c: AND     $03]
 *	jne	l_0466                             	| [$046e: JP      NZ,$0466]
@@ -1050,9 +1017,8 @@ init_new_play_clear_screen_04AC:
 	lea	timer_43A5,a0                  	| [$04ac: LD      HL,timer_43A5]
 	subq.b	#1,(a0)                         	| [$04af: DEC     (HL)]
 	move.b	(a0),d0                         	| [$04b0: LD      A,(HL)]
-	subq.w	#1,a0                           	| [$04b1: DEC     L]
-            *^^^^ TODO check dec register d6 or a0
-	move.b	#0x02,(a0)                      	| [$04b2: LD      (HL),$02]
+	                          	| [$04b1: DEC     L]
+	move.b	#0x02,-(a0)                      	| [$04b2: LD      (HL),$02]
 	tst.b	d0                               	| [$04b4: AND     A]
 	bne.b	0f                               	| [...]
 	rts                                    	| [$04b5: RET     Z] [...]
@@ -1062,9 +1028,8 @@ init_new_play_clear_screen_04AC:
 	jeq	l_07f0                             	| [$04ba: JP      Z,$07F0]
 	lea	unknown_439A,a0                        	| [$04bd: LD      L,$9A]
 	clr.b	(a0)                             	| [$04bf: LD      (HL),$00]
-	addq.w	#1,a0                           	| [$04c1: INC     L]
-            ^^^^ TODO check inc register d6 or a0
-	clr.b	(a0)                             	| [$04c2: LD      (HL),$00]
+	                           	| [$04c1: INC     L]
+ 	clr.b	-(a0)                             	| [$04c2: LD      (HL),$00]
 	and.b	#0x08,d0                         	| [$04c4: AND     $08]
 	jne	l_04e6                             	| [$04c6: JP      NZ,$04E6]
 	jbsr	l_06e8                            	| [$04c9: CALL    $06E8]
@@ -1086,17 +1051,16 @@ l_04e6:
 	lea	unknown_43A3,a0                	| [$04e6: LD      HL,unknown_43A3]
 	move.b	(a0),d0                         	| [$04e9: LD      A,(HL)]
 	                               	| [$04ea: AND     A]
-	lea	unknown_4261,a1                	| [$04eb: LD      DE,unknown_4261]
+	move.w	#0x4261,d7                	| [$04eb: LD      DE,unknown_4261]
 	jeq	l_04f4                             	| [$04ee: JP      Z,$04F4]
-	lea	unknown_4021,a1                	| [$04f1: LD      DE,unknown_4021]
+	move.w	#0x4021,d7                	| [$04f1: LD      DE,unknown_4021]
 l_04f4:
 	move.b	#0x06,d1                        	| [$04f4: LD      B,$06]
 	jbsr	l_04fb                            	| [$04f6: CALL    $04FB]
 	rts                                    	| [$04f9: RET]
-	jbsr	rst_38                            	| [$04fa: RST     0X38]
 l_04fb:
 	clr.b	d0                               	| [$04fb: LD      A,$00]
-	move.b	d0,(a1)                         	| [$04fd: LD      (DE),A]
+	jbsr	osd_w_videoram                         	| [$04fd: LD      (DE),A]
 	jbsr	AddOneRow_0210                    	| [$04fe: CALL    AddOneRow_0210]
 	subq.b	#1,d1                           	| [$0501: DEC     B]
 	jne	l_04fb                             	| [$0502: JP      NZ,$04FB]
@@ -1144,135 +1108,21 @@ l_0547:
 	jbsr	clear_area_05D8                   	| [$0557: CALL    clear_area_05D8]
 	rts                                    	| [$055a: RET]
 
-
-
-	addq.w	#1,a4                           	| [$0560: INC     C]
-            ^^^^ TODO check inc register d2 or a4
-	subq.b	#1,d1                           	| [...]
-	jne	l_05c7                             	| [$0561: DJNZ    $5C7]
-	bcc.b	0f                               	| [...]
-	rts                                    	| [$0563: RET     C] [...]
-0:
-	nop                                    	| [$0564: NOP]
-	move.b	d1,d3                           	| [$0565: LD      D,B]
-	nop                                    	| [$0566: NOP]
-	bcs.b	0f                               	| [...]
-	rts                                    	| [$0567: RET     NC] [...]
-0:
-	nop                                    	| [$0568: NOP]
-	move.b	d1,d3                           	| [$0569: LD      D,B]
-	nop                                    	| [$056a: NOP]
-	bcs.b	0f                               	| [...]
-	rts                                    	| [$056b: RET     NC] [...]
-0:
-	nop                                    	| [$056c: NOP]
-	move.b	d1,d4                           	| [$056d: LD      E,B]
-	nop                                    	| [$056e: NOP]
-	jne	l_0571                             	| [$056f: JR      NZ,$571]
-l_0571:
-	move.b	d1,d4                           	| [$0571: LD      E,B]
-	nop                                    	| [$0572: NOP]
-	jne	l_0575                             	| [$0573: JR      NZ,$575]
-l_0575:
-	move.b	d1,d4                           	| [$0575: LD      E,B]
-	nop                                    	| [$0576: NOP]
-	jne	l_0579                             	| [$0577: JR      NZ,$579]
-l_0579:
-	move.b	d1,d4                           	| [$0579: LD      E,B]
-	nop                                    	| [$057a: NOP]
-	jne	l_057d                             	| [$057b: JR      NZ,$57D]
-l_057d:
-	move.b	d1,d4                           	| [$057d: LD      E,B]
-	nop                                    	| [$057e: NOP]
-	jne	l_05a2                             	| [$057f: JR      NZ,$5A2]
-	subx.b	d1,d0                           	| [$0581: SBC     B]
-      ^^^^^^ TODO: review cpu X flag
+l_0580:
+	lea		game_rom+0x598,a0
 	subq.b	#1,d1                           	| [$0582: DEC     B]
 	move.b	current_stage_43B8,d0           	| [$0583: LD      A,(current_stage_43B8)]
-	and.b	#0x0F,d0                         	| [$0586: AND     $0F]
-	add.b	d6,d0                            	| [$0588: ADD     A,L]
-	move.b	d0,d6                           	| [$0589: LD      L,A]
+	and.w	#0x0F,d0                         	| [$0586: AND     $0F]
+	add.w	d0,a0                            	| [$0588: ADD     A,L]
+	                           	| [$0589: LD      L,A]
 	move.b	(a0),d6                         	| [$058a: LD      L,(HL)]
 	move.b	#0x05,d5                        	| [$058b: LD      H,$05]
+	jbsr	load_rom_in_a0_from_d5d6
 	lea	unknown_43AB,a1                	| [$058d: LD      DE,unknown_43AB]
 	move.b	#0x0C,d1                        	| [$0590: LD      B,$0C]
 	jbsr	l_05e0                            	| [$0592: CALL    $05E0]
 	rts                                    	| [$0595: RET]
 
-	jbsr	rst_38                            	| [$0596: RST     0X38]
-	jbsr	rst_38                            	| [$0597: RST     0X38]
-
-	eor.b	d1,d0                            	| [$0598: XOR     B]
-	eor.b	d1,d0                            	| [$0599: XOR     B]
-	beq.b	0f                               	| [...]
-	rts                                    	| [$059a: RET     NZ] [...]
-0:
-	beq.b	0f                               	| [...]
-	rts                                    	| [$059b: RET     NZ] [...]
-0:
-	eor.b	d1,d0                            	| [$059c: XOR     B]
-	eor.b	d1,d0                            	| [$059d: XOR     B]
-	eor.b	d1,d0                            	| [$059e: XOR     B]
-	eor.b	d1,d0                            	| [$059f: XOR     B]
-	or.b	d5,d0                             	| [$05a0: OR      H]
-	bne.b	0f                               	| [...]
-	jbsr	l_b4b4                            	| [$05a1: CALL    Z,$B4B4]
-0:
-	eor.b	d1,d0                            	| [$05a4: XOR     B]
-	eor.b	d1,d0                            	| [$05a5: XOR     B]
-	eor.b	d1,d0                            	| [$05a6: XOR     B]
-	eor.b	d1,d0                            	| [$05a7: XOR     B]
-	add.b	d1,d0                            	| [$05a8: ADD     A,B]
-	move.b	d0,d0                           	| [$05a9: LD      A,A]
-	nop                                    	| [$05aa: NOP]
-	nop                                    	| [$05ab: NOP]
-	move.b	d1,d1                           	| [$05ac: LD      B,B]
-	INVERT_XC_FLAGS                        	| [$05ad: CCF]
-	nop                                    	| [$05ae: NOP]
-	addq.w	#1,a1                           	| [$05af: INC     E]
-            ^^^^ TODO check inc register d4 or a1
-	nop                                    	| [$05b0: NOP]
-	jbsr	rst_38                            	| [$05b1: RST     0X38]
-	jbsr	rst_38                            	| [$05b2: RST     0X38]
-	jbsr	rst_38                            	| [$05b3: RST     0X38]
-	move.b	d1,d5                           	| [$05b4: LD      H,B]
-	move.b	d0,d4                           	| [$05b5: LD      E,A]
-	lea	game_rom+0x3002,a4                      	| [$05b6: LD      BC,$3002]
-	not.b	d0                               	| [$05b9: CPL]
-	nop                                    	| [$05ba: NOP]
-	addq.w	#1,a1                           	| [$05bb: INC     E]
-            ^^^^ TODO check inc register d4 or a1
-	nop                                    	| [$05bc: NOP]
-	beq.b	0f                               	| [...]
-	rts                                    	| [$05bd: RET     NZ] [...]
-0:
-	jbsr	rst_38                            	| [$05be: RST     0X38]
-	jbsr	rst_38                            	| [$05bf: RST     0X38]
-	add.b	d1,d0                            	| [$05c0: ADD     A,B]
-	move.b	d0,d0                           	| [$05c1: LD      A,A]
-	addq.w	#1,a4                           	| [$05c2: INC     BC]
-	addq.b	#1,d1                           	| [$05c3: INC     B]
-	move.b	d1,d1                           	| [$05c4: LD      B,B]
-	INVERT_XC_FLAGS                        	| [$05c5: CCF]
-	nop                                    	| [$05c6: NOP]
-l_05c7:
-	roxr.b	#1,d0                           	| [$05c7: RRA]
-      ^^^^^^ TODO: review cpu X flag
-	nop                                    	| [$05c8: NOP]
-	and.b	d1,d0                            	| [$05c9: AND     B]
-	jbsr	rst_38                            	| [$05ca: RST     0X38]
-	jbsr	rst_38                            	| [$05cb: RST     0X38]
-	move.b	d1,d5                           	| [$05cc: LD      H,B]
-	move.b	d1,d5                           	| [$05cd: LD      H,B]
-	subq.b	#1,d1                           	| [$05ce: DEC     B]
-	move.b	#0x50,d1                        	| [$05cf: LD      B,$50]
-	jcc	l_05d3                             	| [$05d1: JR      NC,$5D3]
-      ^^^^^^ TODO: review cpu flags (move.b,jcc)
-l_05d3:
-	subq.w	#1,a1                           	| [$05d3: DEC     E]
-            ^^^^ TODO check dec register d4 or a1
-	nop                                    	| [$05d4: NOP]
-	move.b	d1,d2                           	| [$05d5: LD      C,B]
 
 
 
@@ -1288,25 +1138,23 @@ l_05d9:
 
 	rts                                    	| [$05df: RET]
 l_05e0:
-	move.b	(a0),d0                         	| [$05e0: LD      A,(HL)]
-	move.b	d0,(a1)                         	| [$05e1: LD      (DE),A]
-	addq.w	#1,a0                           	| [$05e2: INC     HL]
-	addq.w	#1,a1                           	| [$05e3: INC     DE]
+	move.b	(a0)+,d0                         	| [$05e0: LD      A,(HL)]
+	move.b	d0,(a1)+                         	| [$05e1: LD      (DE),A]
+	                           	| [$05e2: INC     HL]
+	                           	| [$05e3: INC     DE]
 	subq.b	#1,d1                           	| [$05e4: DEC     B]
 	jne	l_05e0                             	| [$05e5: JP      NZ,$05E0]
 	rts                                    	| [$05e8: RET]
-	jbsr	rst_38                            	| [$05e9: RST     0X38]
-	jbsr	rst_38                            	| [$05ea: RST     0X38]
-	jbsr	rst_38                            	| [$05eb: RST     0X38]
+
 l_05ec:
 	lea	game_rom+0x1500,a0                      	| [$05ec: LD      HL,$1500]
 	move.b	current_stage_43B8,d0           	| [$05ef: LD      A,(current_stage_43B8)]
-	and.b	#0x0F,d0                         	| [$05f2: AND     $0F]
+	and.w	#0x0F,d0                         	| [$05f2: AND     $0F]
 	rol.b	#1,d0                            	| [$05f4: RLCA]
-	add.b	d6,d0                            	| [$05f5: ADD     A,L]
-	move.b	d0,d6                           	| [$05f6: LD      L,A]
-	move.b	(a0),d3                         	| [$05f7: LD      D,(HL)]
-	addq.w	#1,a0                           	| [$05f8: INC     HL]
+	add.w	d0,a0                            	| [$05f5: ADD     A,L]
+	                           	| [$05f6: LD      L,A]
+	move.b	(a0)+,d3                         	| [$05f7: LD      D,(HL)]
+	                           	| [$05f8: INC     HL]
 	move.b	(a0),d4                         	| [$05f9: LD      E,(HL)]
 l_05fa:
 	lea	unknown_4B70,a0                	| [$05fa: LD      HL,unknown_4B70]
@@ -1317,106 +1165,69 @@ l_05fa:
 	rts                                    	| [$0602: RET     Z] [...]
 0:
 l_0603:
-	move.b	d3,(a0)                         	| [$0603: LD      (HL),D]
-	addq.w	#1,a0                           	| [$0604: INC     L]
-            ^^^^ TODO check inc register d6 or a0
+	move.b	d3,(a0)+                         	| [$0603: LD      (HL),D]
+	                           	| [$0604: INC     L]
 	move.b	d4,(a0)                         	| [$0605: LD      (HL),E]
 	addq.w	#3,a0                           	| [$0606: INC     L]
-            ^^^^ TODO check inc register d6 or a0 * 3
 	subq.b	#1,d1                           	| [$0609: DEC     B]
 	jne	l_0603                             	| [$060a: JP      NZ,$0603]
 	rts                                    	| [$060d: RET]
-	jbsr	rst_38                            	| [$060e: RST     0X38]
-	jbsr	rst_38                            	| [$060f: RST     0X38]
+
 l_0610:
 	lea	game_rom+0x063A,a0                      	| [$0610: LD      HL,$063A]
 	move.b	current_stage_43B8,d0           	| [$0613: LD      A,(current_stage_43B8)]
 	ror.b	#1,d0                            	| [$0616: RRCA]
-	and.b	#0x0F,d0                         	| [$0617: AND     $0F]
-	add.b	d6,d0                            	| [$0619: ADD     A,L]
-	move.b	d0,d6                           	| [$061a: LD      L,A]
-	nop                                    	| [$061b: NOP]
-	nop                                    	| [$061c: NOP]
-	nop                                    	| [$061d: NOP]
+	and.w	#0x0F,d0                         	| [$0617: AND     $0F]
+	add.b	d0,a0                            	| [$0619: ADD     A,L]
+	                           	| [$061a: LD      L,A]
+	                                    	| [$061b: NOP]
+	                                    	| [$061c: NOP]
+	                                    	| [$061d: NOP]
 	move.b	(a0),d6                         	| [$061e: LD      L,(HL)]
 	move.b	#0x15,d5                        	| [$061f: LD      H,$15]
+	bsr		load_rom_in_a0_from_d5d6
 	lea	unknown_4B72,a1                	| [$0621: LD      DE,unknown_4B72]
 	move.b	nb_to_kill_before_stage_completed_43BA,d0	| [$0624: LD      A,(nb_to_kill_before_stage_completed_43BA)]
 	move.b	d0,d1                           	| [$0627: LD      B,A]
-	tst.b	d0                               	| [$0628: AND     A]
+												| [$0628: AND     A]
 	bne.b	0f                               	| [...]
 	rts                                    	| [$0629: RET     Z] [...]
 0:
 l_062a:
-	move.b	(a0),d0                         	| [$062a: LD      A,(HL)]
-	move.b	d0,(a1)                         	| [$062b: LD      (DE),A]
-	addq.w	#1,a0                           	| [$062c: INC     HL]
-	addq.w	#1,a1                           	| [$062d: INC     DE]
-	move.b	(a0),d0                         	| [$062e: LD      A,(HL)]
+	move.b	(a0)+,d0                         	| [$062a: LD      A,(HL)]
+	move.b	d0,(a1)+                         	| [$062b: LD      (DE),A]
+	                           	| [$062c: INC     HL]
+	                           	| [$062d: INC     DE]
+	move.b	(a0)+,d0                         	| [$062e: LD      A,(HL)]
 	move.b	d0,(a1)                         	| [$062f: LD      (DE),A]
-	addq.w	#1,a0                           	| [$0630: INC     HL]
+	                           	| [$0630: INC     HL]
 	addq.w	#3,a1                           	| [$0631: INC     DE] * 3
 	subq.b	#1,d1                           	| [$0634: DEC     B]
 	jne	l_062a                             	| [$0635: JP      NZ,$062A]
 	rts                                    	| [$0638: RET]
-	jbsr	rst_38                            	| [$0639: RST     0X38]
-	move.b	d1,d5                           	| [$063a: LD      H,B]
-	move.b	d1,d1                           	| [$063b: LD      B,B]
-	bvc.b	0f                               	| [...]
-      ^^^^^^ TODO: review cpu flags (move.b,bvc.b)
-	rts                                    	| [$063c: RET     PO] [...]
-0:
-	bvc.b	0f                               	| [...]
-	rts                                    	| [$063d: RET     PO] [...]
-0:
-	bvc.b	0f                               	| [...]
-	rts                                    	| [$063e: RET     PO] [...]
-0:
-	bvc.b	0f                               	| [...]
-	rts                                    	| [$063f: RET     PO] [...]
-0:
-	jbsr	rst_38                            	| [$0640: RST     0X38]
-	jbsr	rst_38                            	| [$0641: RST     0X38]
-	beq.b	0f                               	| [...]
-	rts                                    	| [$0642: RET     NZ] [...]
-0:
-	and.b	d1,d0                            	| [$0643: AND     B]
-	add.b	d1,d0                            	| [$0644: ADD     A,B]
-	add.b	d1,d0                            	| [$0645: ADD     A,B]
-	add.b	d1,d0                            	| [$0646: ADD     A,B]
-	add.b	d1,d0                            	| [$0647: ADD     A,B]
-	jbsr	rst_38                            	| [$0648: RST     0X38]
-	jbsr	rst_38                            	| [$0649: RST     0X38]
-	jbsr	rst_38                            	| [$064a: RST     0X38]
-	jbsr	rst_38                            	| [$064b: RST     0X38]
-	jbsr	rst_38                            	| [$064c: RST     0X38]
-	jbsr	rst_38                            	| [$064d: RST     0X38]
-	jbsr	rst_38                            	| [$064e: RST     0X38]
-	jbsr	rst_38                            	| [$064f: RST     0X38]
+
 l_0650:
 	lea	game_rom+0x1520,a0                      	| [$0650: LD      HL,$1520]
 	move.b	current_stage_43B8,d0           	| [$0653: LD      A,(current_stage_43B8)]
-	and.b	#0x0F,d0                         	| [$0656: AND     $0F]
+	and.w	#0x0F,d0                         	| [$0656: AND     $0F]
 	rol.b	#1,d0                            	| [$0658: RLCA]
-	add.b	d6,d0                            	| [$0659: ADD     A,L]
-	move.b	d0,d6                           	| [$065a: LD      L,A]
-	move.b	(a0),d3                         	| [$065b: LD      D,(HL)]
-	addq.w	#1,a0                           	| [$065c: INC     HL]
+	add.w	d0,a0                            	| [$0659: ADD     A,L]
+	                           	| [$065a: LD      L,A]
+	move.b	(a0)+,d3                         	| [$065b: LD      D,(HL)]
+											| [$065c: INC     HL]
 	move.b	(a0),d4                         	| [$065d: LD      E,(HL)]
 	lea	unknown_4B50,a0                	| [$065e: LD      HL,unknown_4B50]
 	move.b	nb_to_kill_before_stage_completed_43BA,d0	| [$0661: LD      A,(nb_to_kill_before_stage_completed_43BA)]
 	move.b	d0,d1                           	| [$0664: LD      B,A]
-	tst.b	d0                               	| [$0665: AND     A]
+												| [$0665: AND     A]
 	bne.b	0f                               	| [...]
 	rts                                    	| [$0666: RET     Z] [...]
 0:
 l_0667:
-	move.b	d3,(a0)                         	| [$0667: LD      (HL),D]
-	addq.w	#1,a0                           	| [$0668: INC     L]
-            ^^^^ TODO check inc register d6 or a0
-	move.b	d4,(a0)                         	| [$0669: LD      (HL),E]
-	addq.w	#1,a0                           	| [$066a: INC     L]
-            ^^^^ TODO check inc register d6 or a0
+	move.b	d3,(a0)+                         	| [$0667: LD      (HL),D]
+	                           	| [$0668: INC     L]
+	move.b	d4,(a0)+                         	| [$0669: LD      (HL),E]
+	                           	| [$066a: INC     L]
 	subq.b	#1,d1                           	| [$066b: DEC     B]
 	jne	l_0667                             	| [$066c: JP      NZ,$0667]
 	rts                                    	| [$066f: RET]
@@ -1435,47 +1246,42 @@ update_scrolling_067A:
 	move.b	(a0),d0                         	| [$067d: LD      A,(HL)]
 	subq.b	#1,(a0)                         	| [$067e: DEC     (HL)] decrease scroll value
 	jbsr	osd_set_scroll_value                       	| [$067f: LD      ($5800),A] 58xx scroll register, change scroll value
-          ^^^^^^ TODO: review absolute 16-bit address write
 	and.b	#0x07,d0                         	| [$0682: AND     $07]
 	beq.b	0f                               	| [...]
 	rts                                    	| [$0684: RET     NZ] [...]
 0:
 * if 8 pixels were scrolled, then feed scroll
 * by updating a character row
-	lea	game_rom+0x2047,a4                      	| [$0685: LD      BC,$2047]
-	lea	unknown_4B21,a1                	| [$0688: LD      DE,unknown_4B21]
+	move.w	#0x20,d1
+	move.b	#0x47,d2                      	| [$0685: LD      BC,$2047] 0x20 in B for next char, 0x47 in C for 0x4700 limit
+	move.w	#0x4B21,d7                	| [$0688: LD      DE,unknown_4B21] screen address (background tiles)
 	move.b	(a0),d0                         	| [$068b: LD      A,(HL)] scroll value
 	ror.b	#3,d0                            	| [$068c: RRCA] * 3
 	and.b	#0x1F,d0                         	| [$068f: AND     $1F] masked (useless as 256/8 = 32...)
 	add.b	d4,d0                            	| [$0691: ADD     A,E]
 	move.b	d0,d4                           	| [$0692: LD      E,A]
 	lea	unknown_43B2,a0                        	| [$0693: LD      L,$B2]
-	move.b	(a0),d0                         	| [$0695: LD      A,(HL)]
-	addq.w	#1,a0                           	| [$0696: INC     L]
-            ^^^^ TODO check inc register d6 or a0
+	move.b	(a0)+,d0                         	| [$0695: LD      A,(HL)]
+                           	| [$0696: INC     L]
 	move.b	(a0),d6                         	| [$0697: LD      L,(HL)]
 	move.b	d0,d5                           	| [$0698: LD      H,A]
 l_0699:
-	move.b	(a0),d0                         	| [$0699: LD      A,(HL)]
-	move.b	d0,(a1)                         	| [$069a: LD      (DE),A]
-	addq.w	#1,a0                           	| [$069b: INC     L]
-            ^^^^ TODO check inc register d6 or a0
-	move.b	d4,d0                           	| [$069c: LD      A,E]
-	sub.b	d1,d0                            	| [$069d: SUB     B]
-	move.b	d0,d4                           	| [$069e: LD      E,A]
+	move.b	(a0)+,d0                         	| [$0699: LD      A,(HL)]
+	jbsr	osd_w_videoram                         	| [$069a: LD      (DE),A]
+	                           	| [$069b: INC     L]
+	                           	| [$069c: LD      A,E]
+	sub.b	d1,d7                            	| [$069d: SUB     B]
+	                           	| [$069e: LD      E,A]
 	jcc	l_0699                             	| [$069f: JP      NC,$0699]
-      ^^^^^^ TODO: review cpu flags (move.b,jcc)
-	subq.b	#1,d3                           	| [$06a2: DEC     D]
-	move.b	d3,d0                           	| [$06a3: LD      A,D]
+	sub.w	#0x100,d7                           	| [$06a2: DEC     D]
+	move.w	d7,d0                           	| [$06a3: LD      A,D]
+	lsr.w	#8,d0
 	cmp.b	d2,d0                            	| [$06a4: CP      C]
 	jne	l_0699                             	| [$06a5: JP      NZ,$0699]
 	move.b	d6,d0                           	| [$06a8: LD      A,L]
 	move.b	d0,unknown_43B3                 	| [$06a9: LD      (unknown_43B3),A]
 	rts                                    	| [$06ac: RET]
 
-	jbsr	rst_38                            	| [$06ad: RST     0X38]
-	jbsr	rst_38                            	| [$06ae: RST     0X38]
-	jbsr	rst_38                            	| [$06af: RST     0X38]
 
 l_06b0:
 	lea	unknown_43AB,a0                	| [$06b0: LD      HL,unknown_43AB]
@@ -1485,28 +1291,24 @@ l_06b0:
 	beq.b	0f                               	| [...]
 	rts                                    	| [$06b8: RET     NZ] [...]
 0:
-	move.b	(a0),d0                         	| [$06b9: LD      A,(HL)]
-	addq.w	#1,a0                           	| [$06ba: INC     L]
-            ^^^^ TODO check inc register d6 or a0
+	move.b	(a0)+,d0                         	| [$06b9: LD      A,(HL)]
+	                           	| [$06ba: INC     L]
 	add.b	(a0),d0                          	| [$06bb: ADD     A,(HL)]
-	subq.w	#1,a0                           	| [$06bc: DEC     L]
-            *^^^^ TODO check dec register d6 or a0
-	move.b	d0,(a0)                         	| [$06bd: LD      (HL),A]
+	                           	| [$06bc: DEC     L]
+	move.b	d0,-(a0)                         	| [$06bd: LD      (HL),A]
 	addq.w	#2,a0                           	| [$06be: INC     L]
-            ^^^^ TODO check inc register d6 or a0 * 2
-	addq.b	#1,(a0)                         	| [$06c0: INC     (HL)]
-	move.b	(a0),d1                         	| [$06c1: LD      B,(HL)]
-	addq.w	#1,a0                           	| [$06c2: INC     L]
-            ^^^^ TODO check inc register d6 or a0
-	addq.b	#1,(a0)                         	| [$06c3: INC     (HL)]
+ 	addq.b	#1,(a0)                         	| [$06c0: INC     (HL)]
+	move.b	(a0)+,d1                         	| [$06c1: LD      B,(HL)]
+	                           	| [$06c2: INC     L]
+ 	addq.b	#1,(a0)                         	| [$06c3: INC     (HL)]
 	move.b	(a0),d0                         	| [$06c4: LD      A,(HL)]
 	lea	game_rom+0x1E20,a0                      	| [$06c5: LD      HL,$1E20]
-	and.b	#0x1F,d0                         	| [$06c8: AND     $1F]
-	add.b	d6,d0                            	| [$06ca: ADD     A,L]
-	move.b	d0,d6                           	| [$06cb: LD      L,A]
+	and.w	#0x1F,d0                         	| [$06c8: AND     $1F]
+	add.w	d0,a0                            	| [$06ca: ADD     A,L]
+											| [$06cb: LD      L,A]
 	move.b	(a0),d3                         	| [$06cc: LD      D,(HL)]
-	add.b	#0x20,d0                         	| [$06cd: ADD     $20]
-	move.b	d0,d6                           	| [$06cf: LD      L,A]
+	add.w	#0x20,a0                         	| [$06cd: ADD     $20]
+	                           	| [$06cf: LD      L,A]
 	move.b	(a0),d4                         	| [$06d0: LD      E,(HL)]
 	move.b	d2,d0                           	| [$06d1: LD      A,C]
 	ror.b	#3,d0                            	| [$06d2: RRCA] * 3
@@ -1517,9 +1319,12 @@ l_06b0:
 	lea	game_rom+0x1E60,a0                      	| [$06db: LD      HL,$1E60]
 	move.b	d1,d0                           	| [$06de: LD      A,B]
 	and.b	#0x1F,d0                         	| [$06df: AND     $1F]
-	add.b	d6,d0                            	| [$06e1: ADD     A,L]
-	move.b	d0,d6                           	| [$06e2: LD      L,A]
+	add.w	d0,a0                            	| [$06e1: ADD     A,L]
+	                           	| [$06e2: LD      L,A]
+	moveq	#0,d6
 	move.b	(a0),d6                         	| [$06e3: LD      L,(HL)]
+	lea	game_rom+0x1E00,a0
+	add.w	d6,a0
 	jbsr	l_07dc                            	| [$06e4: CALL    $07DC]
 	rts                                    	| [$06e7: RET]
 l_06e8:
@@ -1532,13 +1337,6 @@ l_06f0:
 	jbsr	l_2040                            	| [$06f3: CALL    $2040]
 	jra	l_06b0                             	| [$06f6: JP      $06B0]
 
-	jbsr	rst_38                            	| [$06f9: RST     0X38]
-	jbsr	rst_38                            	| [$06fa: RST     0X38]
-	jbsr	rst_38                            	| [$06fb: RST     0X38]
-	jbsr	rst_38                            	| [$06fc: RST     0X38]
-	jbsr	rst_38                            	| [$06fd: RST     0X38]
-	jbsr	rst_38                            	| [$06fe: RST     0X38]
-	jbsr	rst_38                            	| [$06ff: RST     0X38]
 
 l_0700:
 	lea	unknown_43C0,a4                	| [$0700: LD      BC,unknown_43C0]
@@ -1582,20 +1380,26 @@ l_0720:
 	add.w	d0,d0
 	add.w	d0,d0
 	lea		table_0738(pc),a0
-	move.l	(a0,d0.w),a0
+	move.l	(a0,d0.w),d0
+	.ifndef		RELEASE
+	bpl.b	0f
+	ILLEGAL
+0:
+	.endif
+	move.l	d0,a0
 * jump from jump table to $07xx
 	jra	(a0)                               	| [$0734: JP      (HL)]
 
 
 table_0738:
-	.long	l_0763       ; $763
-	.long	l_0779       ; $779
-	.long	0xFF       ;
-	.long	l_079E       ; $79E
-	.long	l_07BE       ; $7BE
-	.long	0xFF       ;
-	.long	0xFF       ;
-	.long	0xFF       ;
+	.long	l_0763       | $763
+	.long	l_0779       | $779
+	.long	-1          |
+	.long	l_079E       | $79E
+	.long	l_07BE       | $7BE
+	.long	-1       
+	.long	-1       
+	.long	-1       
 
 * looks like random? not sure
 l_0740:
@@ -1628,14 +1432,14 @@ l_0740:
 	jra	(a0)                               	| [$0758: JP      (HL)]
 
 table_075B:
-	.long	l_076D      ; $76D
-	.long	l_0788      ; $788
-	.long	0xFF      ;
-	.long	l_07AA      ; $7AA
-	.long	l_07D2      ; $7D2
-	.long	0XFF      ;
-	.long	0XFF      ;
-	.long	0XFF      ;
+	.long	l_076D      | $76D
+	.long	l_0788      | $788
+	.long	0xFF        |
+	.long	l_07AA      | $7AA
+	.long	l_07D2      | $7D2
+	.long	0XFF      
+	.long	0XFF      
+	.long	0XFF      
 
 l_0763:
 	exg	d3,a0                              	| [$0763: EX      DE,HL]
@@ -2053,7 +1857,7 @@ l_096e:
 
 l_09a0:
 	lea	player_ship_x_43C2,a4          	| [$09a0: LD      BC,player_ship_x_43C2]
-	lea	unknown_43E2,a1                	| [$09a3: LD      DE,unknown_43E2]
+	lea	screen_address_43E2,a1                	| [$09a3: LD      DE,screen_address_43E2]
 l_09a6:
 	jbsr	l_09ba                            	| [$09a6: CALL    $09BA]
 	addq.w	#3,a4                           	| [$09a9: INC     BC] * 3
@@ -2142,15 +1946,16 @@ l_0a8a:
 	rts                                    	| [$0a99: RET]
 
 l_0aa0:
-	lea		unknown_43E2,a0                        	| [$0aa0: LD      L,$E2]
+	lea		screen_address_43E2,a0                        	| [$0aa0: LD      L,$E2]
 	move.b	(a0)+,d3                         	| [$0aa2: LD      D,(HL)]
 	                           	| [$0aa3: INC     HL]
 	move.b	(a0),d4                         	| [$0aa4: LD      E,(HL)]
 	LOAD_D3D4_FROM_D3_16
 	jbsr	AddOneRow_0210                    	| [$0aa5: CALL    AddOneRow_0210]
 	subq.w	#1,d3                           	| [$0aa8: DEC     DE]
-	lea	game_rom+0x0404,a4                      	| [$0aa9: LD      BC,$0404]
-	lea		unknown_43A6,d6                        	| [$0aac: LD      L,$A6]
+	move.b	#0x04,d1
+	move.b	#0x04,d2                      	| [$0aa9: LD      BC,$0404]
+	lea		unknown_43A6,a0                        	| [$0aac: LD      L,$A6]
 	subq.b	#1,(a0)                         	| [$0aae: DEC     (HL)]
 	move.b	(a0),d0                         	| [$0aaf: LD      A,(HL)]
 	lea	game_rom+0x17F0,a0                      	| [$0ab0: LD      HL,$17F0]
@@ -2162,8 +1967,12 @@ l_0aa0:
 	add.w	d0,a0                            	| [$0abf: ADD     A,L]
 												| [$0ac0: LD      L,A]
 										| [$0ac1: JP      $0AD6]
+* < A0: block data (from ROM)
+* < d1: number of columns
+* < d2: number of rows
+* < D3: start address
 
-l_0ad6:
+copy_block_to_screen_0ad6:
 	movem.w	d3/d4,-(sp)                    	| [$0ad6: PUSH    DE]
 	movem.w	d1/d2,-(sp)                    	| [$0ad7: PUSH    BC]
 l_0ad8:
@@ -2178,7 +1987,7 @@ l_0ad8:
 	movem.w	(sp)+,d3/d4                    	| [$0ae1: POP     DE]
 	jbsr	SubtractOneRow_0217               	| [$0ae2: CALL    SubtractOneRow_0217]
 	subq.w	#1,d2                           	| [$0ae5: DEC     C]
- 	jne	l_0ad6                             	| [$0ae6: JP      NZ,$0AD6]
+ 	jne	copy_block_to_screen_0ad6                             	| [$0ae6: JP      NZ,$0AD6]
 	rts                                    	| [$0ae9: RET]
 
 * called all the time player is exploding
@@ -2188,7 +1997,7 @@ player_hit_0AEA:
 	and.b	#0xF8,d0                         	| [$0aee: AND     $F8]
 	move.b	d0,(a0)                         	| [$0af0: LD      (HL),A]
 	jbsr	osd_set_scroll_value                       	| [$0af1: LD      ($5800),A] 58xx scroll register
-	lea		unknown_43E2,a0                        	| [$0af4: LD      L,$E2]
+	lea		screen_address_43E2,a0                        	| [$0af4: LD      L,$E2]
 	move.b	(a0),d3                         	| [$0af6: LD      D,(HL)]
 	addq.w	#1,a0                           	| [$0af7: INC     L]
 	move.b	(a0),d4                         	| [$0af8: LD      E,(HL)]
@@ -2233,7 +2042,7 @@ l_0b15:
 
 
 l_0b48:
-	jbsr	l_0ad6                            	| [$0b48: CALL    $0AD6]
+	jbsr	copy_block_to_screen_0ad6                            	| [$0b48: CALL    $0AD6]
 	lea	unknown_43C0,a0                	| [$0b4b: LD      HL,unknown_43C0]
 	move.b	#0x0C,(a0)+                      	| [$0b4e: LD      (HL),$0C]
                            	| [$0b50: INC     L]
@@ -2333,27 +2142,36 @@ l_0bca:
 	rts                                    	| [$0bf1: RET]
 
 moving_bird_shot_0C00:
-
+	* here A0 points on ram at 0x4Bxx
 	move.l	a0,-(sp)                        	| [$0c00: PUSH    HL]
-	move.b	d6,d0                           	| [$0c01: LD      A,L]
-	sub.b	#0x72,d0                         	| [$0c02: SUB     $72]
-	ror.b	#1,d0                            	| [$0c04: RRCA]
-	add.b	#0x50,d0                         	| [$0c05: ADD     $50]
-	move.b	d0,d6                           	| [$0c07: LD      L,A]
+	* compute A0 lsb
+	move.l	a0,d6
+	sub.l	#unknown_4B00,d6
+	                           	| [$0c01: LD      A,L]
+	sub.b	#0x72,d6                         	| [$0c02: SUB     $72]
+	ror.b	#1,d6                            	| [$0c04: RRCA]
+	add.b	#0x50,d6                         	| [$0c05: ADD     $50]
+	                           	| [$0c07: LD      L,A]  recompute a0
+	lea		unknown_4B00,a0
+	add.w	d6,a0
 	move.b	(a0)+,d0                         	| [$0c08: LD      A,(HL)]
-	addq.w	#1,a0                           	| [$0c09: INC     L]
-            *^^^^ TODO debug this mess
-	illegal
+												| [$0c09: INC     L]
+
+
 	move.b	(a0),d6                         	| [$0c0a: LD      L,(HL)]
 	move.b	d0,d5                           	| [$0c0b: LD      H,A]
-	lea	game_rom+0x0C04,a1                      	| [$0c0c: LD      DE,$0C04]
+	bsr		load_rom_in_a0_from_d5d6
+	
+	move.b	#0x0C,d3
+	move.b	#0x04,d4                      	| [$0c0c: LD      DE,$0C04]
 	move.b	(a0),d0                         	| [$0c0f: LD      A,(HL)]
 	move.l	(sp)+,a0                        	| [$0c10: POP     HL]
 	cmp.b	#0x07,d0                         	| [$0c11: CP      $07]
 	jcs	bird_shot_0EA4                     	| [$0c13: JP      C,bird_shot_0EA4]
 	cmp.b	#0x09,d0                         	| [$0c16: CP      $09]
 	jcc	bird_shot_0EA4                     	| [$0c18: JP      NC,bird_shot_0EA4]
-	lea	game_rom+0x1020,a1                      	| [$0c1b: LD      DE,$1020]
+	move.b	#0x10,d3
+	move.b	#0x20,d4                      	| [$0c1b: LD      DE,$1020]
 	st.b	d0                                	| [$0c1e: LD      A,$FF]
 	move.b	d0,unknown_4369                 	| [$0c20: LD      (unknown_4369),A]
 	jra	bird_shot_0EA4                     	| [$0c23: JP      bird_shot_0EA4]
@@ -2370,14 +2188,13 @@ l_0c40:
 l_0c56:
 	lea	player_shot_3_structure_43CC,a0	| [$0c56: LD      HL,player_shot_3_structure_43CC]
 l_0c59:
-
 	move.l	a0,-(sp)                        	| [$0c59: PUSH    HL]
 	jbsr	l_0c84                            	| [$0c5a: CALL    $0C84]
 	move.l	(sp)+,a0                        	| [$0c5d: POP     HL]
-	move.b	d6,d0                           	| [$0c5e: LD      A,L]
-	addq.b	#0x04,d0                        	| [$0c5f: ADD     $04]
-	move.b	d0,d6                           	| [$0c61: LD      L,A]
-	cmp.b	#0xE0,d0                         	| [$0c62: CP      $E0]
+	                           	| [$0c5e: LD      A,L]
+	addq.w	#0x04,a0                        	| [$0c5f: ADD     $04]
+	                           	| [$0c61: LD      L,A]
+	cmp.l	#unknown_43E0,a0                         	| [$0c62: CP      $E0]
 	jne	l_0c59                             	| [$0c64: JP      NZ,$0C59]
 	rts                                    	| [$0c67: RET]
 
@@ -2522,9 +2339,11 @@ l_0d30:
 	exg	a1,a0                              	| [$0d39: EX      DE,HL]
 	move.b	(a0),d0                         	| [$0d3a: LD      A,(HL)]
 	rol.b	#1,d0                            	| [$0d3b: RLCA]
-	addq.b	#0x00,d0                        	| [$0d3c: ADD     $00]
-	move.b	d0,d6                           	| [$0d3e: LD      L,A]
-	move.b	#0x17,d5                        	| [$0d3f: LD      H,$17]
+	                        	| [$0d3c: ADD     $00]
+	and.w	#0xFF,d0
+	lea		game_rom+0x1700,a0
+	add.w	d0,a0                           	| [$0d3e: LD      L,A]
+												| [$0d3f: LD      H,$17]
 	clr.b	d0                               	| [$0d41: XOR     A]
 	cmp.b	(a0),d0                          	| [$0d42: CP      (HL)]
 	jeq	l_0d4f                             	| [$0d43: JP      Z,$0D4F]
@@ -2577,21 +2396,23 @@ l_0d76:
 	rts                                    	| [$0d83: RET]
 
 l_0d86:
-	move.b	(a0),d3                         	| [$0d86: LD      D,(HL)]
-	addq.w	#1,a0                           	| [$0d87: INC     HL]
-	move.b	(a0),d4                         	| [$0d88: LD      E,(HL)]
-	addq.w	#1,a0                           	| [$0d89: INC     HL]
+	move.b	(a0)+,d3                         	| [$0d86: LD      D,(HL)]
+	                           	| [$0d87: INC     HL]
+	move.b	(a0)+,d4                         	| [$0d88: LD      E,(HL)]
+	                           	| [$0d89: INC     HL]
 	move.b	(a4),d0                         	| [$0d8a: LD      A,(BC)]
 	and.b	#0x08,d0                         	| [$0d8b: AND     $08]
 	bne.b	0f                               	| [...]
 	rts                                    	| [$0d8d: RET     Z] [...]
 0:
-	exg	a1,a0                              	| [$0d8e: EX      DE,HL]
+	illegal 		| TODO check DE value
+	exg	d3,a0                              	| [$0d8e: EX      DE,HL]
 	move.b	(a0),d0                         	| [$0d8f: LD      A,(HL)]
 	                               	| [$0d90: AND     A]
 	bne.b	0f                               	| [...]
 	jbsr	l_0dde                            	| [$0d91: CALL    Z,$0DDE]
 0:
+	ILLEGAL  | d6!!!
 	move.b	d0,d6                           	| [$0d94: LD      L,A]
 	rol.b	#1,d0                            	| [$0d95: RLCA]
 	add.b	d6,d0                            	| [$0d96: ADD     A,L]
@@ -2766,8 +2587,6 @@ moving_bird_close_to_shot_0E58:
 0:
 	jra	moving_bird_shot_0C00              	| [$0e6b: JP      moving_bird_shot_0C00]
 
-	jbsr	rst_38                            	| [$0e6e: RST     0X38]
-	jbsr	rst_38                            	| [$0e6f: RST     0X38]
 
 l_0e70:
 	addq.w	#1,a0                           	| [$0e70: INC     HL]
@@ -2878,7 +2697,7 @@ l_0f00:
 	move.b	(a0),d0                         	| [$0f03: LD      A,(HL)]
 	cmp.b	#0xC0,d0                         	| [$0f04: CP      $C0]
 	jcc	l_0f74                             	| [$0f06: JP      NC,$0F74]
-	lea	unknown_43E2,a0                        	| [$0f09: LD      L,$E2]
+	lea	screen_address_43E2,a0                        	| [$0f09: LD      L,$E2]
 	move.b	(a0)+,d3                         	| [$0f0b: LD      D,(HL)]
                            	| [$0f0c: INC     L]
 	move.b	(a0),d4                         	| [$0f0d: LD      E,(HL)]
@@ -2939,18 +2758,17 @@ l_0f38:
 l_0f56:
 	movem.w	d1/d2,-(sp)                    	| [$0f56: PUSH    BC]
 	movem.w	d3/d4,-(sp)                    	| [$0f57: PUSH    DE]
-	move.l	a1,-(sp)                        	| [$0f57: PUSH    DE]
 l_0f58:
-	move.b	(a1),d0                         	| [$0f58: LD      A,(DE)]
+	move.w	d3,d7                         	| [$0f58: LD      A,(DE)]
+	jbsr	osd_r_videoram
 	cmp.b	#0x60,d0                         	| [$0f59: CP      $60]
 	jcs	l_0f63                             	| [$0f5b: JP      C,$0F63]
 	cmp.b	#0xC0,d0                         	| [$0f5e: CP      $C0]
 	jcs	l_0cf4                             	| [$0f60: JP      C,$0CF4]
 l_0f63:
-	addq.w	#1,a1                           	| [$0f63: INC     DE]
+	addq.w	#1,d3                           	| [$0f63: INC     DE]
 	subq.b	#1,d1                           	| [$0f64: DEC     B]
 	jne	l_0f58                             	| [$0f65: JP      NZ,$0F58]
-	move.l	(sp)+,a1                        	| [$0f68: POP     DE]
 	movem.w	(sp)+,d3/d4                    	| [$0f68: POP     DE]
 	movem.w	(sp)+,d1/d2                    	| [$0f69: POP     BC]
 	jbsr	SubtractOneRow_0217               	| [$0f6a: CALL    SubtractOneRow_0217]
@@ -2958,13 +2776,15 @@ l_0f63:
 	jne	l_0f56                             	| [$0f6e: JP      NZ,$0F56]
 	rts                                    	| [$0f71: RET]
 l_0f74:
-	lea	unknown_43E2,a0                        	| [$0f74: LD      L,$E2]
-	move.b	(a0),d3                         	| [$0f76: LD      D,(HL)]
-	addq.w	#1,a0                           	| [$0f77: INC     L]
+	lea	screen_address_43E2,a0                        	| [$0f74: LD      L,$E2]
+	move.b	(a0)+,d3                         	| [$0f76: LD      D,(HL)]
+												| [$0f77: INC     L]
 	move.b	(a0),d4                         	| [$0f78: LD      E,(HL)]
+	LOAD_D3_16_FROM_D3D4
 	jbsr	SubtractOneRow_0217               	| [$0f79: CALL    SubtractOneRow_0217]
-	subq.w	#1,a1                           	| [$0f7c: DEC     DE]
-	lea	game_rom+0x0404,a4                      	| [$0f7d: LD      BC,$0404]
+	subq.w	#1,d3                           	| [$0f7c: DEC     DE]
+	move.b	#0x04,d1
+	move.b	#0x04,d2                      	| [$0f7d: LD      BC,$0404]
 	jbsr	l_0f56                            	| [$0f80: CALL    $0F56]
 	bne.b	0f                               	| [...]
 	rts                                    	| [$0f83: RET     Z] [...]
@@ -3057,11 +2877,6 @@ l_0fd8:
 	
 	jra	l_3540                             	| [$0ff4: JP      $3540]
 
-	move.b	d1,d6                           	| [$0ff7: LD      L,B]
-	move.b	#0x05,d0                        	| [$0ff8: LD      A,$05]
-	move.b	d0,unknown_4396                 	| [$0ffa: LD      (unknown_4396),A]
-	jra	bird_shot_0EA4                     	| [$0ffd: JP      bird_shot_0EA4]
-
 l_14e0:
 	move.b	d0,d1                           	| [$14e0: LD      B,A]
 	jbsr	osd_read_dipswitches                       	| [$14e1: LD      A,($7800)] 78xx DSW0
@@ -3119,17 +2934,18 @@ l_1df0:
 	illegal
 
 l_1ee0:
-	lea	unknown_433D,a1                	| [$1ee0: LD      DE,unknown_433D]
+	move.w	#0x433D,d3                	| [$1ee0: LD      DE,unknown_433D]
 	move.w	#0x001A,d1                      	| [$1ee3: LD      BC,$001A] 26
 l_1ee6:
-	move.b	(a1),d0                         	| [$1ee6: LD      A,(DE)]
+	move.w	d3,d7
+	jbsr	osd_r_videoram                         	| [$1ee6: LD      A,(DE)]
 	add.b	d1,d0                            	| [$1ee7: ADD     A,B]
 	move.b	d0,d1                           	| [$1ee8: LD      B,A]
 	jbsr	SubtractOneRow_0217               	| [$1ee9: CALL    SubtractOneRow_0217]
-	subq.w	#1,a4                           	| [$1eec: DEC     C]
-            ^^^^ TODO check dec register d2 or a4
+	subq.w	#1,d2                           	| [$1eec: DEC     C]
 	jne	l_1ee6                             	| [$1eed: JP      NZ,$1EE6]
-	move.b	(a1),d0                         	| [$1ef0: LD      A,(DE)]
+	move.w	d3,d7
+	jbsr	osd_r_videoram                         	| [$1ef0: LD      A,(DE)]
 	add.b	d1,d0                            	| [$1ef1: ADD     A,B]
 	add.b	#0x27,d0                         	| [$1ef2: ADD     $27]
 	lea	unknown_4389,a0                	| [$1ef4: LD      HL,unknown_4389]
@@ -3163,11 +2979,9 @@ l_2025:
 	jeq	l_2130                             	| [$2027: JP      Z,$2130]
 	jra	l_2146                             	| [$202a: JP      $2146]
 
-	jbsr	rst_38                            	| [$202d: RST     0X38]
-	jbsr	rst_38                            	| [$202e: RST     0X38]
-	jbsr	rst_38                            	| [$202f: RST     0X38]
 
 l_2030:
+	move.b	d1,d0                           	| [$23a1: LD      A,B]
 	and.b	#0x03,d0                         	| [$2030: AND     $03]
 	cmp.b	#0x01,d0                         	| [$2032: CP      $01]
 	lea	game_rom+0x1B50,a1                      	| [$2034: LD      DE,$1B50]
@@ -3296,12 +3110,15 @@ l_20e1:
 	movem.w	(sp)+,d1/d2                    	| [$20e1: POP     BC]
 	rts                                    	| [$20e2: RET]
 
+l_20e8_2:
+	move.b	d1,d0                           	| [$2411: LD      A,B]
+
 l_20e8:
 	move.b	d0,d1                           	| [$20e8: LD      B,A]
 	move.b	d3,d0                           	| [$20e9: LD      A,D]
 	add.b	#0x08,d0                         	| [$20ea: ADD     $08]
 	move.b	d0,d3                           	| [$20ec: LD      D,A]
-	jbsr	l_211c                            	| [$20ed: CALL    $211C]
+	jbsr	wrap_scroll_value_211C                            	| [$20ed: CALL    $211C]
 	ror.b	#3,d0                            	| [$20f0: RRCA] * 3
 	add.b	d4,d0                            	| [$20f3: ADD     A,E]
 	and.b	#0x1F,d0                         	| [$20f4: AND     $1F]
@@ -3318,13 +3135,15 @@ l_20e8:
 	move.b	#0x1B,d5                        	| [$2104: LD      H,$1B]
 	move.b	(a0)+,d0                         	| [$2106: LD      A,(HL)]
 	                           	| [$2107: INC     L]
-	illegal   | d6 shit
  	move.b	(a0),d6                         	| [$2108: LD      L,(HL)]
 	move.b	d0,d5                           	| [$2109: LD      H,A]
-	lea	game_rom+0x0404,a4                      	| [$210a: LD      BC,$0404]
-	jra	l_0ad6                             	| [$210d: JP      $0AD6]
+	LOAD_D3_16_FROM_D3D4
+	bsr		load_rom_in_a0_from_d5d6
+	move.w	#0x04,d1
+	move.w	#0x04,d2                      	| [$210a: LD      BC,$0404]
+	jra	copy_block_to_screen_0ad6                             	| [$210d: JP      $0AD6]
 
-l_211c:
+wrap_scroll_value_211C:
 	lea	current_scroll_value_43B9,a0   	| [$211c: LD      HL,current_scroll_value_43B9]
 	move.b	(a0),d0                         	| [$211f: LD      A,(HL)]
 	cmp.b	#0x10,d0                         	| [$2120: CP      $10]
@@ -3477,9 +3296,7 @@ transition_to_vultures_and_last_level_2230:
 	and.b	#0x3F,d0                         	| [$2237: AND     $3F]
 	cmp.b	#0x0D,d0                         	| [$2239: CP      $0D]
 	jeq	l_2292                             	| [$223b: JP      Z,$2292]
-	move.b	#0x1F,d1                        	| [$223e: LD      B,$1F]
-	jcs	l_2260                             	| [$2240: JP      C,$2260]
-      ^^^^^^ TODO: review cpu flags (move.b,jcs)
+	jcs	l_2260_1                             	| [$2240: JP      C,$2260]
 	clr.b	d1                               	| [$2243: LD      B,$00]
 	sub.b	#0x0E,d0                         	| [$2245: SUB     $0E]
 	cmp.b	#0x0D,d0                         	| [$2247: CP      $0D]
@@ -3495,6 +3312,9 @@ l_224c:
 	lea	unknown_43A4,a0                        	| [$2256: LD      L,$A4]
 	move.b	#0x02,(a0)                      	| [$2258: LD      (HL),$02]
 	rts                                    	| [$225a: RET]
+
+l_2260_1:
+	move.b	#0x1F,d1                        	| [$223e: LD      B,$1F]
 
 l_2260:
 	move.b	d0,d2                           	| [$2260: LD      C,A]
@@ -3616,12 +3436,11 @@ l_2303:
 	or.b	d3,d0                             	| [$230f: OR      D]
 	or.b	#0x60,d0                          	| [$2310: OR      $60]
 	move.b	d0,(a0)                         	| [$2312: LD      (HL),A]
-	move.b	d6,d0                           	| [$2313: LD      A,L]
-	sub.b	#0x20,d0                         	| [$2314: SUB     $20]
-	move.b	d0,d6                           	| [$2316: LD      L,A]
-	jcc	l_231b                             	| [$2317: JP      NC,$231B]
-      ^^^^^^ TODO: review cpu flags (move.b,jcc)
-	subq.b	#1,d5                           	| [$231a: DEC     H]
+	                           	| [$2313: LD      A,L]
+	sub.w	#0x20,a0                         	| [$2314: SUB     $20]
+	                           	| [$2316: LD      L,A]
+										| [$2317: JP      NC,$231B]
+										| [$231a: DEC     H]
 l_231b:
 	subq.b	#1,d1                           	| [$231b: DEC     B]
 	jne	l_2303                             	| [$231c: JP      NZ,$2303]
@@ -3636,12 +3455,14 @@ l_2322:
 	add.b	#0xC0,d0                         	| [$232c: ADD     $C0]
 	move.b	d0,d6                           	| [$232e: LD      L,A]
 	move.b	#0x1B,d5                        	| [$232f: LD      H,$1B]
-	lea	unknown_49A6,a1                	| [$2331: LD      DE,unknown_49A6]
-	lea	game_rom+0x0402,a4                      	| [$2334: LD      BC,$0402]
-	jra	l_0ad6                             	| [$2337: JP      $0AD6]
-	lea	game_rom+0x0302,a4                      	| [$233a: LD      BC,$0302]
-	addq.b	#1,d1                           	| [$233d: INC     B]
-	subq.b	#1,d1                           	| [$233e: DEC     B]
+	bsr		load_rom_in_a0_from_d5d6
+	move.w	#0x49A6,d3                	| [$2331: LD      DE,unknown_49A6]
+	move.w	#0x04,d1
+	move.w	#0x02,d2                      	| [$2334: LD      BC,$0402]
+	jra	copy_block_to_screen_0ad6                             	| [$2337: JP      $0AD6]
+	                      	| [$233a: LD      BC,$0302]
+	                           	| [$233d: INC     B]
+	                           	| [$233e: DEC     B]
 	move.b	#0x07,d1                        	| [$233f: LD      B,$07]
 	move.b	(a4),d0                         	| [$2341: LD      A,(BC)]
 	rol.b	#1,d0                            	| [$2342: RLCA]
@@ -3718,9 +3539,8 @@ l_2398:
 	addq.w	#2,a1                           	| [$239c: INC     E]
 	move.b	(a1),d0                         	| [$239e: LD      A,(DE)]
 	and.b	#0x04,d0                         	| [$239f: AND     $04]
-	move.b	d1,d0                           	| [$23a1: LD      A,B]
 	jne	l_2030                             	| [$23a2: JP      NZ,$2030]
-      ^^^^^^ TODO: review cpu flags (move.b,jne)
+	move.b	d1,d0                           	| [$23a1: LD      A,B]
 	and.b	#0x0C,d0                         	| [$23a5: AND     $0C]
 	cmp.b	#0x04,d0                         	| [$23a7: CP      $04]
 	lea	game_rom+0x1B40,a1                      	| [$23a9: LD      DE,$1B40]
@@ -3781,10 +3601,8 @@ boss_stage_completed_2400:
 	jeq	l_2520                             	| [$240b: JP      Z,$2520]
 	move.b	d0,d1                           	| [$240e: LD      B,A]
 	ror.b	#1,d0                            	| [$240f: RRCA]
-	nop                                    	| [$2410: NOP]
-	move.b	d1,d0                           	| [$2411: LD      A,B]
-	jcc	l_20e8                             	| [$2412: JP      NC,$20E8]
-      ^^^^^^ TODO: review cpu flags (move.b,jcc)
+	                                    	| [$2410: NOP]
+	jcc	l_20e8_2                             	| [$2412: JP      NC,$20E8]
 	move.b	d4,d0                           	| [$2415: LD      A,E]
 	subq.b	#0x05,d0                        	| [$2416: SUB     $05]
 	add.b	#0xC0,d0                         	| [$2418: ADD     $C0]
@@ -3843,10 +3661,11 @@ end_of_level_transition_244C:
 	jra	l_0380                             	| [$2466: JP      $0380]
 
 l_246a:
-	lea	game_rom+0x0914,a4                      	| [$246a: LD      BC,$0914]
-	lea	unknown_4AC6,a1                	| [$246d: LD      DE,unknown_4AC6]
+	move.w	#0x09,d1
+	move.w	#0x14,d2                      	| [$246a: LD      BC,$0914]
+	move.w	#0x4AC6,d3                	| [$246d: LD      DE,unknown_4AC6]
 	lea	game_rom+0x1C00,a0                      	| [$2470: LD      HL,$1C00]
-	jra	l_0ad6                             	| [$2473: JP      $0AD6]
+	jra	copy_block_to_screen_0ad6                             	| [$2473: JP      $0AD6]
 l_2476:
 	move.b	d1,d0                           	| [$2476: LD      A,B]
 	add.b	d2,d0                            	| [$2477: ADD     A,C]
@@ -3895,7 +3714,7 @@ l_24a0:
 	lea	player_shot_1_structure_43C4,a1	| [$24a8: LD      DE,player_shot_1_structure_43C4]
 	lea	ram_pointer_on_flying_enemies_table_43E6,a0	| [$24ab: LD      HL,ram_pointer_on_flying_enemies_table_43E6]
 	jbsr	l_2351                            	| [$24ae: CALL    $2351]
-	move.b	Counter+1,d0                    	| [$24b1: LD      A,(Counter+1)]
+	move.b	counter_439A+1,d0                    	| [$24b1: LD      A,(counter_439A+1)]
 	and.b	#0x03,d0                         	| [$24b4: AND     $03]
 	cmp.b	#0x03,d0                         	| [$24b6: CP      $03]
 	beq.b	0f                               	| [...]
@@ -3977,13 +3796,12 @@ l_2520:
 	move.b	current_scroll_value_43B9,d0    	| [$2525: LD      A,(current_scroll_value_43B9)]
 	add.b	#0x60,d0                         	| [$2528: ADD     $60]
 	ror.b	#1,d0                            	| [$252a: RRCA]
-	move.b	d0,d1                           	| [$252b: LD      B,A]
+	move.b	d0,d7                           	| [$252b: LD      B,A]
 	move.b	current_stage_43B8,d0           	| [$252c: LD      A,(current_stage_43B8)]
 	and.b	#0xF0,d0                         	| [$252f: AND     $F0]
-	add.b	d1,d0                            	| [$2531: ADD     A,B]
 	move.b	#0x90,d1                        	| [$2532: LD      B,$90]
+	add.b	d7,d0                            	| [$2531: ADD     A,B]
 	jcs	l_253d                             	| [$2534: JP      C,$253D]
-      ^^^^^^ TODO: review cpu flags (move.b,jcs)
 	cmp.b	#0x90,d0                         	| [$2537: CP      $90]
 	jcc	l_253d                             	| [$2539: JP      NC,$253D]
 	move.b	d0,d1                           	| [$253c: LD      B,A]
@@ -4139,7 +3957,7 @@ l_25e0:
 	move.b	d0,d3                           	| [$261d: LD      D,A]
 	and.b	#0x03,d0                         	| [$261e: AND     $03]
 	move.b	d0,d4                           	| [$2620: LD      E,A]
-	move.b	Counter+1,d0                    	| [$2621: LD      A,(Counter+1)]
+	move.b	counter_439A+1,d0                    	| [$2621: LD      A,(counter_439A+1)]
 	rol.b	#2,d0                            	| [$2624: RLCA] * 2
 	and.b	#0x0C,d0                         	| [$2626: AND     $0C]
 	add.b	d4,d0                            	| [$2628: ADD     A,E]
@@ -4156,7 +3974,7 @@ l_25e0:
 l_2639:
 	move.b	d0,current_scroll_value_43B9    	| [$2639: LD      (current_scroll_value_43B9),A]
 	jbsr	osd_set_scroll_value                       	| [$263c: LD      ($5800),A] 58xx scroll register
-	move.b	Counter+1,d0                    	| [$263f: LD      A,(Counter+1)]
+	move.b	counter_439A+1,d0                    	| [$263f: LD      A,(counter_439A+1)]
 	ror.b	#1,d0                            	| [$2642: RRCA]
 	jcc	l_26d0                             	| [$2643: JP      NC,$26D0]
 	jbsr	l_2668                            	| [$2646: CALL    $2668]
@@ -4179,7 +3997,7 @@ l_2668:
 	move.b	unknown_436E,d0                 	| [$2668: LD      A,(unknown_436E)]
 	nop                                    	| [$266b: NOP]
 	move.b	d0,d1                           	| [$266c: LD      B,A]
-	move.b	Counter,d0                      	| [$266d: LD      A,(Counter)]
+	move.b	counter_439A,d0                      	| [$266d: LD      A,(counter_439A)]
 	cmp.b	#0x18,d0                         	| [$2670: CP      $18]
 	jcs	l_2676                             	| [$2672: JP      C,$2676]
 	addq.b	#1,d1                           	| [$2675: INC     B]
@@ -4254,7 +4072,8 @@ l_26ae:
 l_26d0:
 	lea	unknown_4BA8,a0                	| [$26d0: LD      HL,unknown_4BA8]
 	lea	game_rom+0x0800,a4                      	| [$26d3: LD      BC,$0800]
-	lea	l_8000,a1                      	| [$26d6: LD      DE,$8000]
+	move.b	#0x80,d3
+	move.b	#0,d4                      	| [$26d6: LD      DE,$8000]
 l_26d9:
 	move.b	(a0),d0                         	| [$26d9: LD      A,(HL)]
 	                               	| [$26da: AND     A]
@@ -4266,12 +4085,11 @@ l_26d9:
 l_26e4:
 	move.b	d2,d4                           	| [$26e4: LD      E,C]
 l_26e5:
-	addq.w	#1,a4                           	| [$26e5: INC     C]
-            ^^^^ TODO check inc register d2 or a4
-	move.b	d6,d0                           	| [$26e6: LD      A,L]
-	sub.b	d1,d0                            	| [$26e7: SUB     B]
-	move.b	d0,d6                           	| [$26e8: LD      L,A]
-	cmp.b	#0x68,d0                         	| [$26e9: CP      $68]
+	addq.w	#1,d2                           	| [$26e5: INC     C]
+ 	                           	| [$26e6: LD      A,L]
+	sub.w	d1,a0                            	| [$26e7: SUB     B]
+	                           	| [$26e8: LD      L,A]
+	cmp.b	#unknown_4B68,a0                         	| [$26e9: CP      $68]
 	jne	l_26d9                             	| [$26eb: JP      NZ,$26D9]
 	move.b	unknown_4BD2,d0                 	| [$26ee: LD      A,(unknown_4BD2)]
 	add.b	d3,d0                            	| [$26f1: ADD     A,D]
@@ -4301,9 +4119,8 @@ l_2700:
 	lea	unknown_4370,a1                	| [$2714: LD      DE,unknown_4370]
 l_2717:
 	jbsr	l_2748                            	| [$2717: CALL    $2748]
-	addq.w	#3,a1                           	| [$271a: INC     E]
-            ^^^^ TODO check inc register d4 or a1 * 3
-	move.b	d4,d0                           	| [$271d: LD      A,E]
+	addq.w	#3,d4                           	| [$271a: INC     E]
+ 	move.b	d4,d0                           	| [$271d: LD      A,E]
 	cmp.b	#0x80,d0                         	| [$271e: CP      $80]
 	jne	l_2717                             	| [$2720: JP      NZ,$2717]
 	move.b	#0x9D,d4                        	| [$2723: LD      E,$9D]
@@ -4435,10 +4252,10 @@ l_27d8:
 	and.b	#0xBF,d0                         	| [$27dd: AND     $BF]
 	move.b	d0,(a0)                         	| [$27df: LD      (HL),A]
 	rts                                    	| [$27e0: RET]
+	
+	
 	move.b	#0xFE,(a0)                      	| [$27e1: LD      (HL),$FE]
-	move.b	d1,d1                           	| [$27e3: LD      B,B]
 	jcs	l_27e9                             	| [$27e4: JP      C,$27E9]
-      ^^^^^^ TODO: review cpu flags (move.b,jcs)
 	move.b	#0x40,(a0)                      	| [$27e7: LD      (HL),$40]
 l_27e9:
 	subq.b	#1,(a0)                         	| [$27e9: DEC     (HL)]
@@ -4996,13 +4813,13 @@ vultures_level_3400:
 	jbsr	l_3560                            	| [$3421: CALL    $3560]
 	jbsr	l_3498                            	| [$3424: CALL    $3498]
 	jbsr	l_34aa                            	| [$3427: CALL    $34AA]
-	move.b	Counter+1,d0                    	| [$342a: LD      A,(Counter+1)]
+	move.b	counter_439A+1,d0                    	| [$342a: LD      A,(counter_439A+1)]
 	ror.b	#1,d0                            	| [$342d: RRCA]
 	jcs	l_0fc0                             	| [$342e: JP      C,$0FC0]
 	jbsr	l_3930                            	| [$3431: CALL    $3930]
 	jra	l_0c40                             	| [$3434: JP      $0C40]
 l_3438:
-	move.b	Counter+1,d0                    	| [$3438: LD      A,(Counter+1)]
+	move.b	counter_439A+1,d0                    	| [$3438: LD      A,(counter_439A+1)]
 	ror.b	#1,d0                            	| [$343b: RRCA]
 	jcs	l_3452                             	| [$343c: JP      C,$3452]
 	jbsr	l_3474                            	| [$343f: CALL    $3474]
@@ -5018,7 +4835,7 @@ l_3452:
 	jra	l_0fc0                             	| [$345b: JP      $0FC0]
 
 l_3462:
-	move.b	Counter+1,d0                    	| [$3462: LD      A,(Counter+1)]
+	move.b	counter_439A+1,d0                    	| [$3462: LD      A,(counter_439A+1)]
 	ror.b	#1,d0                            	| [$3465: RRCA]
 	bcc.b	0f                               	| [...]
 	rts                                    	| [$3466: RET     C] [...]
@@ -5117,21 +4934,18 @@ l_34de:
 	jcs	l_350c                             	| [$34e7: JP      C,$350C]
 	move.b	#0x08,d1                        	| [$34ea: LD      B,$08]
 	addq.w	#2,a0                           	| [$34ec: INC     L]
-            ^^^^ TODO check inc register d6 or a0 * 2
 	sub.b	#0x20,d0                         	| [$34ee: SUB     $20]
 	move.b	d0,d4                           	| [$34f0: LD      E,A]
 	cmp.b	#0x50,d0                         	| [$34f1: CP      $50]
 	jcs	l_3509                             	| [$34f3: JP      C,$3509]
 	move.b	#0x10,d1                        	| [$34f6: LD      B,$10]
 	addq.w	#2,a0                           	| [$34f8: INC     L]
-            ^^^^ TODO check inc register d6 or a0 * 2
 	sub.b	#0x20,d0                         	| [$34fa: SUB     $20]
 	move.b	d0,d4                           	| [$34fc: LD      E,A]
 	cmp.b	#0x50,d0                         	| [$34fd: CP      $50]
 	jcs	l_3509                             	| [$34ff: JP      C,$3509]
 	move.b	#0x18,d1                        	| [$3502: LD      B,$18]
 	addq.w	#2,a0                           	| [$3504: INC     L]
-            ^^^^ TODO check inc register d6 or a0 * 2
 	sub.b	#0x20,d0                         	| [$3506: SUB     $20]
 	move.b	d0,d4                           	| [$3508: LD      E,A]
 l_3509:
@@ -5142,84 +4956,77 @@ l_350c:
 	move.b	#0x35,d1                        	| [$350c: LD      B,$35]
 	movem.w	d1/d2,-(sp)                    	| [$350e: PUSH    BC]
 	move.l	a4,-(sp)                        	| [$350e: PUSH    BC]
-	lea	l_FFDF,a4                      	| [$350f: LD      BC,$FFDF]
+	move.w	#0xFFDF,d1                      	| [$350f: LD      BC,$FFDF]
 	exg	a1,a0                              	| [$3512: EX      DE,HL]
-	clr.b	(a0)                             	| [$3513: LD      (HL),$00]
-	addq.w	#1,a0                           	| [$3515: INC     HL]
+	clr.b	(a0)+                             	| [$3513: LD      (HL),$00]
+										| [$3515: INC     HL]
 	clr.b	(a0)                             	| [$3516: LD      (HL),$00]
 	add.w	d1,a0                            	| [$3518: ADD     HL,BC]
-  ^^^^ TODO: review d1 computation above
 	rts                                    	| [$3519: RET]
 
-	move.b	(a1),d0                         	| [$3520: LD      A,(DE)]
-	move.b	d0,(a0)                         	| [$3521: LD      (HL),A]
-	addq.w	#1,a1                           	| [$3522: INC     DE]
-	addq.w	#1,a0                           	| [$3523: INC     HL]
-	move.b	(a1),d0                         	| [$3524: LD      A,(DE)]
-	move.b	d0,(a0)                         	| [$3525: LD      (HL),A]
-	addq.w	#1,a1                           	| [$3526: INC     DE]
-	add.w	d1,a0                            	| [$3527: ADD     HL,BC]
-  ^^^^ TODO: review d1 computation above
+	bsr		copy_a0_a1_d1
+	
 l_3528:
-	move.b	(a1),d0                         	| [$3528: LD      A,(DE)]
-	move.b	d0,(a0)                         	| [$3529: LD      (HL),A]
-	addq.w	#1,a1                           	| [$352a: INC     DE]
-	addq.w	#1,a0                           	| [$352b: INC     HL]
-	move.b	(a1),d0                         	| [$352c: LD      A,(DE)]
-	move.b	d0,(a0)                         	| [$352d: LD      (HL),A]
-	addq.w	#1,a1                           	| [$352e: INC     DE]
-	add.w	d1,a0                            	| [$352f: ADD     HL,BC]
-  ^^^^ TODO: review d1 computation above
-	move.b	(a1),d0                         	| [$3530: LD      A,(DE)]
-	move.b	d0,(a0)                         	| [$3531: LD      (HL),A]
-	addq.w	#1,a1                           	| [$3532: INC     DE]
-	addq.w	#1,a0                           	| [$3533: INC     HL]
-	move.b	(a1),d0                         	| [$3534: LD      A,(DE)]
-	move.b	d0,(a0)                         	| [$3535: LD      (HL),A]
-	addq.w	#1,a1                           	| [$3536: INC     DE]
-	add.w	d1,a0                            	| [$3537: ADD     HL,BC]
-  ^^^^ TODO: review d1 computation above
+	bsr		copy_a0_a1_d1
+
+	                       	| [$3528: LD      A,(DE)]
+	                       	| [$3529: LD      (HL),A]
+	         	| [$352a: INC     DE]
+	         	| [$352b: INC     HL]
+	                       	| [$352c: LD      A,(DE)]
+	                      	| [$352d: LD      (HL),A]
+	         	| [$352e: INC     DE]
+	                       	| [$352f: ADD     HL,BC]
+	bsr		copy_a0_a1_d1
+	                       	| [$3530: LD      A,(DE)]
+	                       	| [$3531: LD      (HL),A]
+	        	| [$3532: INC     DE]
+	        	| [$3533: INC     HL]
+	                       	| [$3534: LD      A,(DE)]
+	                      	| [$3535: LD      (HL),A]
+	        	| [$3536: INC     DE]
+	                       	| [$3537: ADD     HL,BC]
 l_3538:
-	move.b	(a1),d0                         	| [$3538: LD      A,(DE)]
-	move.b	d0,(a0)                         	| [$3539: LD      (HL),A]
-	addq.w	#1,a1                           	| [$353a: INC     DE]
-	addq.w	#1,a0                           	| [$353b: INC     HL]
-	move.b	(a1),d0                         	| [$353c: LD      A,(DE)]
-	move.b	d0,(a0)                         	| [$353d: LD      (HL),A]
-	addq.w	#1,a1                           	| [$353e: INC     DE]
-	add.w	d1,a0                            	| [$353f: ADD     HL,BC]
-  ^^^^ TODO: review d1 computation above
+	bsr		copy_a0_a1_d1                        	| [$3538: LD      A,(DE)]
+	                        	| [$3539: LD      (HL),A]
+	          	| [$353a: INC     DE]
+	          	| [$353b: INC     HL]
+	                        	| [$353c: LD      A,(DE)]
+	                       	| [$353d: LD      (HL),A]
+	          	| [$353e: INC     DE]
+	                        	| [$353f: ADD     HL,BC]
 l_3540:
-	move.b	(a1),d0                         	| [$3540: LD      A,(DE)]
-	move.b	d0,(a0)                         	| [$3541: LD      (HL),A]
-	addq.w	#1,a1                           	| [$3542: INC     DE]
-	addq.w	#1,a0                           	| [$3543: INC     HL]
-	move.b	(a1),d0                         	| [$3544: LD      A,(DE)]
-	move.b	d0,(a0)                         	| [$3545: LD      (HL),A]
-	addq.w	#1,a1                           	| [$3546: INC     DE]
-	add.w	d1,a0                            	| [$3547: ADD     HL,BC]
-  ^^^^ TODO: review d1 computation above
+	bsr		copy_a0_a1_d1
+    	| [$3540: LD      A,(DE)]
+    	| [$3541: LD      (HL),A]
+    	| [$3542: INC     DE]
+    	| [$3543: INC     HL]
+    	| [$3544: LD      A,(DE)]
+    	| [$3545: LD      (HL),A]
+    	| [$3546: INC     DE]
+     	| [$3547: ADD     HL,BC]
+  
 l_3548:
-	move.b	(a1),d0                         	| [$3548: LD      A,(DE)]
-	move.b	d0,(a0)                         	| [$3549: LD      (HL),A]
-	addq.w	#1,a1                           	| [$354a: INC     DE]
-	addq.w	#1,a0                           	| [$354b: INC     HL]
-	move.b	(a1),d0                         	| [$354c: LD      A,(DE)]
-	move.b	d0,(a0)                         	| [$354d: LD      (HL),A]
-	addq.w	#1,a1                           	| [$354e: INC     DE]
-	add.w	d1,a0                            	| [$354f: ADD     HL,BC]
-  ^^^^ TODO: review d1 computation above
-	move.b	(a1),d0                         	| [$3550: LD      A,(DE)]
-	move.b	d0,(a0)                         	| [$3551: LD      (HL),A]
-	addq.w	#1,a1                           	| [$3552: INC     DE]
-	addq.w	#1,a0                           	| [$3553: INC     HL]
-	move.b	(a1),d0                         	| [$3554: LD      A,(DE)]
-	move.b	d0,(a0)                         	| [$3555: LD      (HL),A]
-	addq.w	#1,a1                           	| [$3556: INC     DE]
-	add.w	d1,a0                            	| [$3557: ADD     HL,BC]
-  ^^^^ TODO: review d1 computation above
-	clr.b	(a0)                             	| [$3558: LD      (HL),$00]
-	addq.w	#1,a0                           	| [$355a: INC     HL]
+	bsr		copy_a0_a1_d1
+	  	| [$3548: LD      A,(DE)]
+	  	| [$3549: LD      (HL),A]
+	  	| [$354a: INC     DE]
+	  	| [$354b: INC     HL]
+	  	| [$354c: LD      A,(DE)]
+	  	| [$354d: LD      (HL),A]
+	  	| [$354e: INC     DE]
+	   	| [$354f: ADD     HL,BC]
+	bsr		copy_a0_a1_d1
+	  	| [$3550: LD      A,(DE)]
+	  	| [$3551: LD      (HL),A]
+	  	| [$3552: INC     DE]
+	  	| [$3553: INC     HL]
+	  	| [$3554: LD      A,(DE)]
+	  	| [$3555: LD      (HL),A]
+	  	| [$3556: INC     DE]
+	   	| [$3557: ADD     HL,BC]
+ 	clr.b	(a0)+                             	| [$3558: LD      (HL),$00]
+	                           	| [$355a: INC     HL]
 	clr.b	(a0)                             	| [$355b: LD      (HL),$00]
 	rts                                    	| [$355d: RET]
 
@@ -5248,18 +5055,17 @@ l_3586:
 	rol.b	#1,d0                            	| [$3586: RLCA]
 	or.b	d1,d0                             	| [$3587: OR      B]
 	move.b	d0,d1                           	| [$3588: LD      B,A]
-	move.b	Counter,d0                      	| [$3589: LD      A,(Counter)]
+	move.b	counter_439A,d0                      	| [$3589: LD      A,(counter_439A)]
 	rol.b	#2,d0                            	| [$358c: RLCA] * 2
 	and.b	#0x20,d0                         	| [$358e: AND     $20]
 	or.b	d1,d0                             	| [$3590: OR      B]
 	add.b	#0x80,d0                         	| [$3591: ADD     $80]
 	move.b	d0,d6                           	| [$3593: LD      L,A]
 	move.b	#0x3E,d5                        	| [$3594: LD      H,$3E]
-	move.b	(a0),d0                         	| [$3596: LD      A,(HL)]
+	move.b	(a0)+,d0                         	| [$3596: LD      A,(HL)]
 	move.b	d0,unknown_436E                 	| [$3597: LD      (unknown_436E),A]
-	addq.w	#1,a0                           	| [$359a: INC     L]
-            ^^^^ TODO check inc register d6 or a0
-	move.b	(a0),d0                         	| [$359b: LD      A,(HL)]
+	                           	| [$359a: INC     L]
+ 	move.b	(a0),d0                         	| [$359b: LD      A,(HL)]
 	add.b	d2,d0                            	| [$359c: ADD     A,C]
 	and.b	#0xF8,d0                         	| [$359d: AND     $F8]
 	move.b	d0,unknown_436D                 	| [$359f: LD      (unknown_436D),A]
@@ -5273,57 +5079,55 @@ l_35b0:
 0:
 	move.b	d0,d1                           	| [$35b3: LD      B,A]
 	addq.w	#4,a0                           	| [$35b4: INC     L]
-            ^^^^ TODO check inc register d6 or a0 * 4
-	move.b	(a0),d0                         	| [$35b8: LD      A,(HL)]
+ 	move.b	(a0),d0                         	| [$35b8: LD      A,(HL)]
 	                               	| [$35b9: AND     A]
 	jeq	l_35be                             	| [$35ba: JP      Z,$35BE]
 	subq.b	#1,(a0)                         	| [$35bd: DEC     (HL)]
 l_35be:
+	* hidden jump table
 	exg	a1,a0                              	| [$35be: EX      DE,HL]
-	movem.w	d3/d4,-(sp)                    	| [$35bf: PUSH    DE]
+	
 	move.l	a1,-(sp)                        	| [$35bf: PUSH    DE]
+	moveq	#0,d0
 	move.b	d1,d0                           	| [$35c0: LD      A,B]
-	rol.b	#3,d0                            	| [$35c1: RLCA] * 3
-	move.b	d0,d6                           	| [$35c4: LD      L,A]
-	move.b	#0x3F,d5                        	| [$35c5: LD      H,$3F]
-	move.b	(a0),d1                         	| [$35c7: LD      B,(HL)]
-	addq.w	#1,a0                           	| [$35c8: INC     HL]
-	move.b	(a0),d2                         	| [$35c9: LD      C,(HL)]
-	movem.w	d1/d2,-(sp)                    	| [$35ca: PUSH    BC]
+	rol.b	#4,d0                            	| [$35c1: RLCA] * 3, *2 32 bit table
+	lea		jump_table_chain_3F00(pc),a0
+	add.w	d0,a0                           	| [$35c4: LD      L,A]
+	move.l	(a0)+,a4                        	| [$35c5: LD      H,$3F]
+	                      	| [$35c7: LD      B,(HL)]
+	                      	| [$35c8: INC     HL]
+	                      	| [$35c9: LD      C,(HL)]
 	move.l	a4,-(sp)                        	| [$35ca: PUSH    BC]
-	addq.w	#1,a0                           	| [$35cb: INC     HL]
-	move.b	(a0),d1                         	| [$35cc: LD      B,(HL)]
-	addq.w	#1,a0                           	| [$35cd: INC     HL]
-	move.b	(a0),d2                         	| [$35ce: LD      C,(HL)]
-	movem.w	d1/d2,-(sp)                    	| [$35cf: PUSH    BC]
+	                           	| [$35cb: INC     HL]
+	move.l	(a0)+,a4                         	| [$35cc: LD      B,(HL)]
+	                    	| [$35cd: INC     HL]
+	                    	| [$35ce: LD      C,(HL)]
 	move.l	a4,-(sp)                        	| [$35cf: PUSH    BC]
-	addq.w	#1,a0                           	| [$35d0: INC     HL]
-	move.b	(a0),d1                         	| [$35d1: LD      B,(HL)]
-	addq.w	#1,a0                           	| [$35d2: INC     HL]
-	move.b	(a0),d2                         	| [$35d3: LD      C,(HL)]
-	movem.w	d1/d2,-(sp)                    	| [$35d4: PUSH    BC]
+	                           	| [$35d0: INC     HL]
+	move.l	(a0)+,a4                         	| [$35d1: LD      B,(HL)]
+	                       	| [$35d2: INC     HL]
+	                       	| [$35d3: LD      C,(HL)]
 	move.l	a4,-(sp)                        	| [$35d4: PUSH    BC]
-	addq.w	#1,a0                           	| [$35d5: INC     HL]
-	move.b	(a0),d1                         	| [$35d6: LD      B,(HL)]
-	addq.w	#1,a0                           	| [$35d7: INC     HL]
-	move.b	(a0),d2                         	| [$35d8: LD      C,(HL)]
-	movem.w	d1/d2,-(sp)                    	| [$35d9: PUSH    BC]
+	                           	| [$35d5: INC     HL]
+	move.l	(a0)+,a4                         	| [$35d6: LD      B,(HL)]
+											| [$35d7: INC     HL]
+                        	| [$35d8: LD      C,(HL)]
 	move.l	a4,-(sp)                        	| [$35d9: PUSH    BC]
 	exg	a1,a0                              	| [$35da: EX      DE,HL]
+	* start the call chain
 	rts                                    	| [$35db: RET]
 
+* this command doesn't have any parameters
+command_35e0:	
 	addq.w	#2,a0                           	| [$35e0: INC     L]
-            ^^^^ TODO check inc register d6 or a0 * 2
 	move.b	(a0),d0                         	| [$35e2: LD      A,(HL)]
 	cmp.b	#0x10,d0                         	| [$35e3: CP      $10]
 	jcc	l_3628                             	| [$35e5: JP      NC,$3628]
 	move.b	d0,d1                           	| [$35e8: LD      B,A]
-	subq.w	#1,a0                           	| [$35e9: DEC     L]
-            *^^^^ TODO check dec register d6 or a0
-	add.b	(a0),d0                          	| [$35ea: ADD     A,(HL)]
+	                           	| [$35e9: DEC     L]
+	add.b	-(a0),d0                          	| [$35ea: ADD     A,(HL)]
 	move.b	d0,(a0)                         	| [$35eb: LD      (HL),A]
 	subq.w	#2,a0                           	| [$35ec: DEC     L]
-            *^^^^ TODO check dec register d6 or a0 * 2
 	move.b	d1,d0                           	| [$35ee: LD      A,B]
 	add.b	(a0),d0                          	| [$35ef: ADD     A,(HL)]
 	move.b	d0,(a0)                         	| [$35f0: LD      (HL),A]
@@ -5331,40 +5135,31 @@ l_35be:
 	jcs	l_366a                             	| [$35f3: JP      C,$366A]
 	and.b	#0x07,d0                         	| [$35f6: AND     $07]
 	move.b	d0,(a0)                         	| [$35f8: LD      (HL),A]
-	subq.w	#1,a0                           	| [$35f9: DEC     L]
-            *^^^^ TODO check dec register d6 or a0
-	move.b	(a0),d0                         	| [$35fa: LD      A,(HL)]
-	sub.b	#0x20,d0                         	| [$35fb: SUB     $20]
-	move.b	d0,(a0)                         	| [$35fd: LD      (HL),A]
+	                           	| [$35f9: DEC     L]
+ 	                         	| [$35fa: LD      A,(HL)]
+	sub.b	#0x20,-(a0)                         	| [$35fb: SUB     $20]
+	                         	| [$35fd: LD      (HL),A]
 	jcc	l_3604                             	| [$35fe: JP      NC,$3604]
-      ^^^^^^ TODO: review cpu flags (move.b,jcc)
-	subq.w	#1,a0                           	| [$3601: DEC     L]
-            *^^^^ TODO check dec register d6 or a0
-	subq.b	#1,(a0)                         	| [$3602: DEC     (HL)]
-	addq.w	#1,a0                           	| [$3603: INC     L]
-            ^^^^ TODO check inc register d6 or a0
+	                           	| [$3601: DEC     L]
+	subq.b	#1,(-1,a0)                         	| [$3602: DEC     (HL)]
+	                           	| [$3603: INC     L]
 l_3604:
-	addq.w	#1,a0                           	| [$3604: INC     L]
-            ^^^^ TODO check inc register d6 or a0
-	addq.w	#2,a0                           	| [$3605: INC     L]
-            ^^^^ TODO check inc register d6 or a0 * 2
+	addq.w	#3,a0                           	| [$3604: INC     L]
+	                           	| [$3605: INC     L]
 	move.b	(a0),d2                         	| [$3607: LD      C,(HL)]
 	addq.w	#2,a0                           	| [$3608: INC     L]
-            ^^^^ TODO check inc register d6 or a0 * 2
 	move.b	(a0),d0                         	| [$360a: LD      A,(HL)]
-	subq.w	#1,a0                           	| [$360b: DEC     L]
-            *^^^^ TODO check dec register d6 or a0
-	move.b	#0x10,(a0)                      	| [$360c: LD      (HL),$10]
+											| [$360b: DEC     L]
+ 	move.b	#0x10,-(a0)                      	| [$360c: LD      (HL),$10]
 	sub.b	d2,d0                            	| [$360e: SUB     C]
 	jeq	l_3672                             	| [$360f: JP      Z,$3672]
 	subq.b	#1,d0                           	| [$3612: DEC     A]
 	ror.b	#3,d0                            	| [$3613: RRCA] * 3
 	and.b	#0x1F,d0                         	| [$3616: AND     $1F]
 	cmp.b	d1,d0                            	| [$3618: CP      B]
-	addq.b	#1,d0                           	| [$3619: INC     A]
-	move.b	d0,(a0)                         	| [$361a: LD      (HL),A]
+	addq.b	#1,(a0)                           	| [$3619: INC     A]
+										| [$361a: LD      (HL),A]
 	bcc.b	0f                               	| [...]
-      ^^^^^^ TODO: review cpu flags (move.b,bcc.b)
 	rts                                    	| [$361b: RET     C] [...]
 0:
 	move.b	unknown_436E,d0                 	| [$361c: LD      A,(unknown_436E)]
@@ -5381,48 +5176,39 @@ l_3628:
 	and.b	#0x0F,d0                         	| [$3628: AND     $0F]
 	jeq	l_3744                             	| [$362a: JP      Z,$3744]
 	move.b	d0,d1                           	| [$362d: LD      B,A]
-	subq.w	#1,a0                           	| [$362e: DEC     L]
-            *^^^^ TODO check dec register d6 or a0
-	move.b	(a0),d0                         	| [$362f: LD      A,(HL)]
+	                           	| [$362e: DEC     L]
+	move.b	-(a0),d0                         	| [$362f: LD      A,(HL)]
 	sub.b	d1,d0                            	| [$3630: SUB     B]
 	move.b	d0,(a0)                         	| [$3631: LD      (HL),A]
 	subq.w	#2,a0                           	| [$3632: DEC     L]
-            *^^^^ TODO check dec register d6 or a0 * 2
 	move.b	(a0),d0                         	| [$3634: LD      A,(HL)]
 	sub.b	d1,d0                            	| [$3635: SUB     B]
-	move.b	d0,(a0)                         	| [$3636: LD      (HL),A]
 	jcc	l_3695                             	| [$3637: JP      NC,$3695]
-      ^^^^^^ TODO: review cpu flags (move.b,jcc)
+	move.b	d0,(a0)                         	| [$3636: LD      (HL),A]
 	and.b	#0x07,d0                         	| [$363a: AND     $07]
 	move.b	d0,(a0)                         	| [$363c: LD      (HL),A]
 	subq.w	#1,a0                           	| [$363d: DEC     L]
-            *^^^^ TODO check dec register d6 or a0
-	move.b	(a0),d0                         	| [$363e: LD      A,(HL)]
-	add.b	#0x20,d0                         	| [$363f: ADD     $20]
-	move.b	d0,(a0)                         	| [$3641: LD      (HL),A]
+	                         	| [$363e: LD      A,(HL)]
+	add.b	#0x20,(a0)                         	| [$363f: ADD     $20]
+	                         	| [$3641: LD      (HL),A]
 	jcc	l_3648                             	| [$3642: JP      NC,$3648]
-      ^^^^^^ TODO: review cpu flags (move.b,jcc)
-	subq.w	#1,a0                           	| [$3645: DEC     L]
-            *^^^^ TODO check dec register d6 or a0
-	addq.b	#1,(a0)                         	| [$3646: INC     (HL)]
-	addq.w	#1,a0                           	| [$3647: INC     L]
-            ^^^^ TODO check inc register d6 or a0
+	                           	| [$3645: DEC     L]
+	addq.b	#1,(-1,a0)                         	| [$3646: INC     (HL)]
+	                           	| [$3647: INC     L]
 l_3648:
-	addq.w	#1,a0                           	| [$3648: INC     L]
-            ^^^^ TODO check inc register d6 or a0
-	addq.w	#2,a0                           	| [$3649: INC     L]
-            ^^^^ TODO check inc register d6 or a0 * 2
+	addq.w	#3,a0                           	| [$3648: INC     L]
+	                           	| [$3649: INC     L] * 2
 	move.b	(a0),d0                         	| [$364b: LD      A,(HL)]
 	addq.w	#2,a0                           	| [$364c: INC     L]
-            ^^^^ TODO check inc register d6 or a0 * 2
 	sub.b	(a0),d0                          	| [$364e: SUB     (HL)]
 	ror.b	#3,d0                            	| [$364f: RRCA] * 3
 	and.b	#0x1F,d0                         	| [$3652: AND     $1F]
-	cmp.b	d1,d0                            	| [$3654: CP      B]
-	addq.b	#1,d0                           	| [$3655: INC     A]
 	subq.w	#1,a0                           	| [$3656: DEC     L]
-            *^^^^ TODO check dec register d6 or a0
+	move.b	d0,d7
+	addq.b	#1,d0                           	| [$3655: INC     A]
+	cmp.b	d1,d7                            	| [$3654: CP      B]
 	jcs	l_3663                             	| [$3657: JP      C,$3663]
+	
 	move.b	unknown_436E,d0                 	| [$365a: LD      A,(unknown_436E)]
 	cmp.b	d1,d0                            	| [$365d: CP      B]
 	jeq	l_3663                             	| [$365e: JP      Z,$3663]
@@ -5442,15 +5228,12 @@ l_366a:
 	rts                                    	| [$366c: RET     NZ] [...]
 0:
 	addq.w	#3,a0                           	| [$366d: INC     L]
-            ^^^^ TODO check inc register d6 or a0 * 3
 	addq.b	#1,(a0)                         	| [$3670: INC     (HL)]
 	rts                                    	| [$3671: RET]
 l_3672:
-	subq.w	#1,a0                           	| [$3672: DEC     L]
-            *^^^^ TODO check dec register d6 or a0
-	move.b	(a0),d1                         	| [$3673: LD      B,(HL)]
+	                           	| [$3672: DEC     L]
+	move.b	-(a0),d1                         	| [$3673: LD      B,(HL)]
 	addq.w	#2,a0                           	| [$3674: INC     L]
-            ^^^^ TODO check inc register d6 or a0 * 2
 	move.b	player_ship_x_43C2,d0           	| [$3676: LD      A,(player_ship_x_43C2)]
 	and.b	#0xF8,d0                         	| [$3679: AND     $F8]
 	cmp.b	d1,d0                            	| [$367b: CP      B]
@@ -5462,10 +5245,9 @@ l_3680:
 	add.b	#0x08,d0                         	| [$3684: ADD     $08]
 	move.b	d0,unknown_436D                 	| [$3686: LD      (unknown_436D),A]
 	move.b	d1,d0                           	| [$3689: LD      A,B]
-	sub.b	d2,d0                            	| [$368a: SUB     C]
 	move.b	#0x08,(a0)                      	| [$368b: LD      (HL),$08]
+	sub.b	d2,d0                            	| [$368a: SUB     C]
 	bcc.b	0f                               	| [...]
-      ^^^^^^ TODO: review cpu flags (move.b,bcc.b)
 	rts                                    	| [$368d: RET     C] [...]
 0:
 	cmp.b	#0x08,d0                         	| [$368e: CP      $08]
@@ -5474,25 +5256,21 @@ l_3680:
 0:
 	move.b	d0,(a0)                         	| [$3691: LD      (HL),A]
 	rts                                    	| [$3692: RET]
-	bcc.b	0f                               	| [...]
-	rts                                    	| [$3693: RET     C] [...]
+
 0:
-	cmp.b	#0x2C,d0                         	| [$3694: CP      $2C]
-	addq.w	#1,a0                           	| [$3696: INC     L]
-            ^^^^ TODO check inc register d6 or a0
+l_3695:
+	move.b	d0,(a0)
+	addq.w	#2,a0                           	| [$3696: INC     L] * 2
 	move.b	(a0),d1                         	| [$3697: LD      B,(HL)]
 	addq.w	#2,a0                           	| [$3698: INC     L]
-            ^^^^ TODO check inc register d6 or a0 * 2
 	move.b	(a0),d0                         	| [$369a: LD      A,(HL)]
 	cmp.b	d1,d0                            	| [$369b: CP      B]
 	beq.b	0f                               	| [...]
 	rts                                    	| [$369c: RET     NZ] [...]
 0:
-	subq.w	#1,a0                           	| [$369d: DEC     L]
-            *^^^^ TODO check dec register d6 or a0
-	clr.b	(a0)                             	| [$369e: LD      (HL),$00]
-	addq.w	#1,a0                           	| [$36a0: INC     L]
-            ^^^^ TODO check inc register d6 or a0
+	                           	| [$369d: DEC     L]
+	clr.b	(-1,a0)                             	| [$369e: LD      (HL),$00]
+	                           	| [$36a0: INC     L]
 	move.b	player_ship_x_43C2,d0           	| [$36a1: LD      A,(player_ship_x_43C2)]
 	and.b	#0xF8,d0                         	| [$36a4: AND     $F8]
 	cmp.b	d1,d0                            	| [$36a6: CP      B]
@@ -5502,10 +5280,9 @@ l_36ab:
 	move.b	unknown_436D,d0                 	| [$36ab: LD      A,(unknown_436D)]
 	add.b	#0x08,d0                         	| [$36ae: ADD     $08]
 	move.b	d0,unknown_436D                 	| [$36b0: LD      (unknown_436D),A]
-	add.b	d1,d0                            	| [$36b3: ADD     A,B]
 	move.b	#0xC8,(a0)                      	| [$36b4: LD      (HL),$C8]
+	add.b	d1,d0                            	| [$36b3: ADD     A,B]
 	bcc.b	0f                               	| [...]
-      ^^^^^^ TODO: review cpu flags (move.b,bcc.b)
 	rts                                    	| [$36b6: RET     C] [...]
 0:
 	cmp.b	#0xC8,d0                         	| [$36b7: CP      $C8]
@@ -5517,95 +5294,91 @@ l_36ab:
 	move.b	d0,(a0)                         	| [$36bc: LD      (HL),A]
 	rts                                    	| [$36bd: RET]
 
+command_36c0:
 	move.b	(a0),d0                         	| [$36c0: LD      A,(HL)]
 	ror.b	#1,d0                            	| [$36c1: RRCA]
 	bcc.b	0f                               	| [...]
 	rts                                    	| [$36c2: RET     C] [...]
 0:
-	subq.w	#1,a0                           	| [$36c3: DEC     L]
-            *^^^^ TODO check dec register d6 or a0
-	move.b	(a0),d0                         	| [$36c4: LD      A,(HL)]
+												| [$36c3: DEC     L]
+	move.b	-(a0),d0                         	| [$36c4: LD      A,(HL)]
 	addq.b	#1,d0                           	| [$36c5: INC     A]
 	and.b	#0x07,d0                         	| [$36c6: AND     $07]
 	move.b	d0,(a0)                         	| [$36c8: LD      (HL),A]
 	rts                                    	| [$36c9: RET]
 
-	move.l	(sp)+,a1                        	| [$36cc: POP     DE]
-	movem.w	(sp)+,d3/d4                    	| [$36cc: POP     DE]
-	move.l	(sp)+,a4                        	| [$36cd: POP     BC]
-	movem.w	(sp)+,d1/d2                    	| [$36cd: POP     BC]
+end_chained_calls_36cc:
+	* drop 2 remaining parameters (0xFFFF)
+	addq.w	#8,sp                        	| [$36cc: POP     DE]
+	                        	| [$36cd: POP     BC]
 	move.l	(sp)+,a0                        	| [$36ce: POP     HL]
 	rts                                    	| [$36cf: RET]
-
-	move.l	(sp)+,a1                        	| [$36d2: POP     DE]
-	movem.w	(sp)+,d3/d4                    	| [$36d2: POP     DE]
-	move.l	(sp)+,a4                        	| [$36d3: POP     BC]
-	movem.w	(sp)+,d1/d2                    	| [$36d3: POP     BC]
+	
+command_36d2:
+	move.l	(sp)+,d3                        	| [$36d2: POP     DE] pops params
+	move.l	(sp)+,d1                        	| [$36d3: POP     BC]
 	move.l	(sp)+,a0                        	| [$36d4: POP     HL]
 	move.b	(a0),d0                         	| [$36d5: LD      A,(HL)]
 	                               	| [$36d6: AND     A]
 	beq.b	0f                               	| [...]
 	rts                                    	| [$36d7: RET     NZ] [...]
 0:
+	LOAD_D1D2_FROM_D1_16
+	LOAD_D3D4_FROM_D3_16
 	move.b	d1,(a0)                         	| [$36d8: LD      (HL),B]
 	subq.w	#4,a0                           	| [$36d9: DEC     L]
-            *^^^^ TODO check dec register d6 or a0 * 4
 	move.b	d3,(a0)                         	| [$36dd: LD      (HL),D]
 	move.b	unknown_4368,d0                 	| [$36de: LD      A,(unknown_4368)]
 	or.b	#0x01,d0                          	| [$36e1: OR      $01]
 	move.b	d0,unknown_4368                 	| [$36e3: LD      (unknown_4368),A]
 	rts                                    	| [$36e6: RET]
 
-	move.l	(sp)+,a1                        	| [$36ea: POP     DE]
-	movem.w	(sp)+,d3/d4                    	| [$36ea: POP     DE]
-	move.l	(sp)+,a4                        	| [$36eb: POP     BC]
-	movem.w	(sp)+,d1/d2                    	| [$36eb: POP     BC]
+command_36ea:
+	movem.l	(sp)+,d3                    	| [$36ea: POP     DE] pops params
+	movem.l	(sp)+,d1                    	| [$36eb: POP     BC]
 	move.l	(sp)+,a0                        	| [$36ec: POP     HL]
 	move.b	(a0),d0                         	| [$36ed: LD      A,(HL)]
 	                               	| [$36ee: AND     A]
 	beq.b	0f                               	| [...]
 	rts                                    	| [$36ef: RET     NZ] [...]
 0:
+	LOAD_D1D2_FROM_D1_16
+	LOAD_D3D4_FROM_D3_16
 	addq.w	#2,a0                           	| [$36f0: INC     L]
-            ^^^^ TODO check inc register d6 or a0 * 2
 	move.b	(a0),d0                         	| [$36f2: LD      A,(HL)]
 	and.b	#0x0F,d0                         	| [$36f3: AND     $0F]
 	beq.b	0f                               	| [...]
 	rts                                    	| [$36f5: RET     NZ] [...]
 0:
 	subq.w	#2,a0                           	| [$36f6: DEC     L]
-            *^^^^ TODO check dec register d6 or a0 * 2
 	move.b	d1,(a0)                         	| [$36f8: LD      (HL),B]
 	subq.w	#4,a0                           	| [$36f9: DEC     L]
-            *^^^^ TODO check dec register d6 or a0 * 4
 	move.b	d3,(a0)                         	| [$36fd: LD      (HL),D]
 	move.b	unknown_4368,d0                 	| [$36fe: LD      A,(unknown_4368)]
 	or.b	#0x02,d0                          	| [$3701: OR      $02]
 	move.b	d0,unknown_4368                 	| [$3703: LD      (unknown_4368),A]
 	rts                                    	| [$3706: RET]
 
-	move.l	(sp)+,a1                        	| [$370a: POP     DE]
-	movem.w	(sp)+,d3/d4                    	| [$370a: POP     DE]
-	move.l	(sp)+,a4                        	| [$370b: POP     BC]
-	movem.w	(sp)+,d1/d2                    	| [$370b: POP     BC]
+command_370a:
+	movem.l	(sp)+,d3                     	| [$370a: POP     DE] pops params
+	movem.l	(sp)+,d1					 	| [$370b: POP     BC]
 	move.l	(sp)+,a0                        	| [$370c: POP     HL]
 	move.b	(a0),d0                         	| [$370d: LD      A,(HL)]
 	                               	| [$370e: AND     A]
 	beq.b	0f                               	| [...]
 	rts                                    	| [$370f: RET     NZ] [...]
 0:
+	LOAD_D1D2_FROM_D1_16
+	LOAD_D3D4_FROM_D3_16
 	addq.w	#2,a0                           	| [$3710: INC     L]
-            ^^^^ TODO check inc register d6 or a0 * 2
 	move.b	(a0),d0                         	| [$3712: LD      A,(HL)]
 	and.b	#0x0F,d0                         	| [$3713: AND     $0F]
 	beq.b	0f                               	| [...]
 	rts                                    	| [$3715: RET     NZ] [...]
 0:
 	subq.w	#2,a0                           	| [$3716: DEC     L]
-            *^^^^ TODO check dec register d6 or a0 * 2
 	move.b	d1,(a0)                         	| [$3718: LD      (HL),B]
 	subq.w	#4,a0                           	| [$3719: DEC     L]
-            *^^^^ TODO check dec register d6 or a0 * 4
 	move.b	d3,(a0)                         	| [$371d: LD      (HL),D]
 	move.b	unknown_4368,d0                 	| [$371e: LD      A,(unknown_4368)]
 	or.b	#0x04,d0                          	| [$3721: OR      $04]
@@ -5620,7 +5393,6 @@ l_36ab:
 	and.b	#0x0F,d0                         	| [$372e: AND     $0F]
 	move.b	d0,(a0)                         	| [$3730: LD      (HL),A]
 	addq.w	#4,a0                           	| [$3731: INC     L]
-            ^^^^ TODO check inc register d6 or a0 * 4
 	move.b	d2,(a0)                         	| [$3735: LD      (HL),C]
 	move.b	unknown_4368,d0                 	| [$3736: LD      A,(unknown_4368)]
 	or.b	#0x08,d0                          	| [$3739: OR      $08]
@@ -5629,24 +5401,19 @@ l_36ab:
 
 l_3744:
 	move.b	#0x11,(a0)                      	| [$3744: LD      (HL),$11]
-	subq.w	#1,a0                           	| [$3746: DEC     L]
-            *^^^^ TODO check dec register d6 or a0
-	subq.b	#1,(a0)                         	| [$3747: DEC     (HL)]
+	                           	| [$3746: DEC     L]
+	subq.b	#1,-(a0)                         	| [$3747: DEC     (HL)]
 	subq.w	#2,a0                           	| [$3748: DEC     L]
-            *^^^^ TODO check dec register d6 or a0 * 2
 	move.b	#0x07,(a0)                      	| [$374a: LD      (HL),$07]
-	subq.w	#1,a0                           	| [$374c: DEC     L]
-            *^^^^ TODO check dec register d6 or a0
-	move.b	(a0),d0                         	| [$374d: LD      A,(HL)]
-	add.b	#0x20,d0                         	| [$374e: ADD     $20]
-	move.b	d0,(a0)                         	| [$3750: LD      (HL),A]
+	                           	| [$374c: DEC     L]
+	move.b	-(a0),d0                         	| [$374d: LD      A,(HL)]
+	add.b	#0x20,(a0)                         	| [$374e: ADD     $20]
+	                         	| [$3750: LD      (HL),A]
 	bcs.b	0f                               	| [...]
-      ^^^^^^ TODO: review cpu flags (move.b,bcs.b)
 	rts                                    	| [$3751: RET     NC] [...]
 0:
-	subq.w	#1,a0                           	| [$3752: DEC     L]
-            *^^^^ TODO check dec register d6 or a0
-	addq.b	#1,(a0)                         	| [$3753: INC     (HL)]
+	                          	| [$3752: DEC     L]
+	addq.b	#1,-(a0)                         	| [$3753: INC     (HL)]
 	rts                                    	| [$3754: RET]
 
 l_3758:
@@ -5665,54 +5432,48 @@ l_3758:
 	and.b	#0x0E,d0                         	| [$3767: AND     $0E]
 	rol.b	#4,d0                            	| [$3769: RLCA] * 4
 	addq.w	#2,a0                           	| [$376d: INC     L]
-            ^^^^ TODO check inc register d6 or a0 * 2
-	move.b	(a0),d3                         	| [$376f: LD      D,(HL)]
-	addq.w	#1,a0                           	| [$3770: INC     L]
-            ^^^^ TODO check inc register d6 or a0
+	move.b	(a0)+,d3                         	| [$376f: LD      D,(HL)]
+	                           	| [$3770: INC     L]
 	move.b	(a0),d4                         	| [$3771: LD      E,(HL)]
-	move.w	AF,-(sp)                        	| [$3772: PUSH    AF]
+	move.w	d0,-(sp)                        	| [$3772: PUSH    AF]
 	movem.w	d3/d4,-(sp)                    	| [$3773: PUSH    DE]
 	move.l	a1,-(sp)                        	| [$3773: PUSH    DE]
-	lea	l_FFDF,a4                      	| [$3774: LD      BC,$FFDF]
+	move.w	#0xFFDf,d1                      	| [$3774: LD      BC,$FFDF]
 	jbsr	l_3796                            	| [$3777: CALL    $3796]
 	move.l	(sp)+,a1                        	| [$377a: POP     DE]
 	movem.w	(sp)+,d3/d4                    	| [$377a: POP     DE]
-	move.w	(sp)+,AF                        	| [$377b: POP     AF]
+	move.w	(sp)+,d0                        	| [$377b: POP     AF]
+	illegal  | fishy D5/D6/A0 stuff
 	not.b	d0                               	| [$377c: CPL]
 	move.b	d0,d6                           	| [$377d: LD      L,A]
 	st.b	d5                                	| [$377e: LD      H,$FF]
 	addq.w	#1,a0                           	| [$3780: INC     HL]
 	add.w	d3,a0                            	| [$3781: ADD     HL,DE]
-  ^^^^ TODO: review d3 computation above
-	exg	a1,a0                              	| [$3782: EX      DE,HL]
-	lea	l_BFA0,a0                      	| [$3783: LD      HL,$BFA0]
+	exg	d3,a0                              	| [$3782: EX      DE,HL]
+	move.w	#0xBFA0,d3                      	| [$3783: LD      HL,$BFA0]
 	add.w	d3,a0                            	| [$3786: ADD     HL,DE]
-  ^^^^ TODO: review d3 computation above
 	bcs.b	0f                               	| [...]
 	rts                                    	| [$3787: RET     NC] [...]
 0:
-	exg	a1,a0                              	| [$3788: EX      DE,HL]
+	exg	d3,a0                              	| [$3788: EX      DE,HL]
 	lea	game_rom+0x17D6,a1                      	| [$3789: LD      DE,$17D6]
-	clr.b	(a0)                             	| [$378c: LD      (HL),$00]
-	addq.w	#1,a0                           	| [$378e: INC     HL]
+	clr.b	(a0)+                             	| [$378c: LD      (HL),$00]
+											| [$378e: INC     HL]
 	clr.b	(a0)                             	| [$378f: LD      (HL),$00]
 	add.w	d1,a0                            	| [$3791: ADD     HL,BC]
-  ^^^^ TODO: review d1 computation above
 	jra	l_3540                             	| [$3792: JP      $3540]
 l_3796:
-	add.b	#0x60,d0                         	| [$3796: ADD     $60]
-	move.b	d0,d6                           	| [$3798: LD      L,A]
+	illegal   | fishfty
 	clr.b	d5                               	| [$3799: LD      H,$00]
+	add.b	#0x60,d6                         	| [$3796: ADD     $60]
+                           	| [$3798: LD      L,A]
 	jcc	l_379f                             	| [$379b: JP      NC,$379F]
-      ^^^^^^ TODO: review cpu flags (clr.b,jcc)
 	addq.b	#1,d5                           	| [$379e: INC     H]
 l_379f:
 	add.w	d3,a0                            	| [$379f: ADD     HL,DE]
-  ^^^^ TODO: review d3 computation above
-	exg	a1,a0                              	| [$37a0: EX      DE,HL]
-	lea	l_BCC0,a0                      	| [$37a1: LD      HL,$BCC0]
+	exg	d3,a0                              	| [$37a0: EX      DE,HL]
+	move.w	#0xBCC0,a0                      	| [$37a1: LD      HL,$BCC0]
 	add.w	d3,a0                            	| [$37a4: ADD     HL,DE]
-  ^^^^ TODO: review d3 computation above
 	bcc.b	0f                               	| [...]
 	rts                                    	| [$37a5: RET     C] [...]
 0:
@@ -5722,46 +5483,40 @@ l_379f:
 
 l_37b0:
 	addq.w	#1,a0                           	| [$37b0: INC     L]
-            ^^^^ TODO check inc register d6 or a0
 	move.b	(a0),d0                         	| [$37b1: LD      A,(HL)]
-DAA
-	move.b	d0,(a0)                         	| [$37b3: LD      (HL),A]
-	addq.w	#1,a0                           	| [$37b4: INC     L]
-            ^^^^ TODO check inc register d6 or a0
-	move.b	(a0),d3                         	| [$37b5: LD      D,(HL)]
-	addq.w	#1,a0                           	| [$37b6: INC     L]
-            ^^^^ TODO check inc register d6 or a0
+**DAA   | WTF DAA without add... something about scores
+	move.b	d0,(a0)+                         	| [$37b3: LD      (HL),A]
+	                           	| [$37b4: INC     L]
+	move.b	(a0)+,d3                         	| [$37b5: LD      D,(HL)]
+	                           	| [$37b6: INC     L]
 	move.b	(a0),d4                         	| [$37b7: LD      E,(HL)]
 	subq.w	#2,a0                           	| [$37b8: DEC     L]
-            *^^^^ TODO check dec register d6 or a0 * 2
-	nop                                    	| [$37ba: NOP]
+	                                    	| [$37ba: NOP]
+	LOAD_D3_16_FROM_D3D4
 	jbsr	SubtractOneRow_0217               	| [$37bb: CALL    SubtractOneRow_0217]
 	move.b	#0x20,d0                        	| [$37be: LD      A,$20]
-	move.b	d0,(a1)                         	| [$37c0: LD      (DE),A]
+	move.w	d3,d7
+	jbsr	osd_w_videoram                         	| [$37c0: LD      (DE),A]
 	jbsr	AddOneRow_0210                    	| [$37c1: CALL    AddOneRow_0210]
 	move.b	#0x02,d1                        	| [$37c4: LD      B,$02]
 	jra	l_00c4                             	| [$37c6: JP      $00C4]
 
 l_37cc:
-	addq.w	#1,a0                           	| [$37cc: INC     L]
-            ^^^^ TODO check inc register d6 or a0
-	addq.w	#2,a0                           	| [$37cd: INC     L]
-            ^^^^ TODO check inc register d6 or a0 * 2
+	addq.w	#3,a0                           	| [$37cc: INC     L]
+	                          	| [$37cd: INC     L]
 	move.b	(a0),d0                         	| [$37cf: LD      A,(HL)]
 	and.b	#0x1F,d0                         	| [$37d0: AND     $1F]
 	add.b	#0x20,d0                         	| [$37d2: ADD     $20]
 	move.b	d0,d6                           	| [$37d4: LD      L,A]
 	move.b	#0x43,d5                        	| [$37d5: LD      H,$43]
-	lea	l_FFDF,a4                      	| [$37d7: LD      BC,$FFDF]
+	move.w	#0xFFDF,d1                      	| [$37d7: LD      BC,$FFDF]
 	move.w	#0x001A,d3                      	| [$37da: LD      DE,$001A] 26
 l_37dd:
-	move.b	d3,(a0)                         	| [$37dd: LD      (HL),D]
-	addq.w	#1,a0                           	| [$37de: INC     HL]
+	move.b	d3,(a0)+                         	| [$37dd: LD      (HL),D]
+	                           	| [$37de: INC     HL]
 	move.b	d3,(a0)                         	| [$37df: LD      (HL),D]
 	add.w	d1,a0                            	| [$37e0: ADD     HL,BC]
-  ^^^^ TODO: review d1 computation above
-	subq.w	#1,a1                           	| [$37e1: DEC     E]
-            ^^^^ TODO check dec register d4 or a1
+ 	subq.w	#1,d3                           	| [$37e1: DEC     E]
 	jne	l_37dd                             	| [$37e2: JP      NZ,$37DD]
 	rts                                    	| [$37e5: RET]
 
@@ -5826,7 +5581,6 @@ l_3844:
 	move.b	(a0),d0                         	| [$3850: LD      A,(HL)]
 	clr.b	(a0)                             	| [$3851: LD      (HL),$00]
 	addq.w	#4,a0                           	| [$3853: INC     L]
-            ^^^^ TODO check inc register d6 or a0 * 4
 	move.b	(a0),d3                         	| [$3857: LD      D,(HL)]
 	move.l	(sp)+,a0                        	| [$3858: POP     HL]
 	lea	unknown_43BB,a0                	| [$3859: LD      HL,unknown_43BB]
@@ -5861,33 +5615,28 @@ l_3844:
 	jra	l_38fb                             	| [$388d: JP      $38FB]
 
 l_3894:
-	lea	game_rom+0x0D05,a4                      	| [$3894: LD      BC,$0D05]
+	move.b	#0x0D,d1                      	| [$3894: LD      BC,$0D05]
+	move.b	#0x05,d2                      	| [$3894: LD      BC,$0D05]
 	st.b	d0                                	| [$3897: LD      A,$FF]
 	move.b	d0,unknown_4364                 	| [$3899: LD      (unknown_4364),A]
 	jra	l_38f8                             	| [$389c: JP      $38F8]
 
 l_38a1:
 	movem.w	d3/d4,-(sp)                    	| [$38a1: PUSH    DE]
-	move.l	a1,-(sp)                        	| [$38a1: PUSH    DE]
 	move.b	#0x20,d2                        	| [$38a2: LD      C,$20]
 	exg	a1,a0                              	| [$38a4: EX      DE,HL]
 	addq.w	#1,a0                           	| [$38a5: INC     HL]
 	move.b	(a0),d3                         	| [$38a6: LD      D,(HL)]
 	addq.w	#1,a0                           	| [$38a7: INC     HL]
 	move.b	(a0),d4                         	| [$38a8: LD      E,(HL)]
-	move.b	0x198C,d0                       	| [$38a9: LD      A,($198C)]
-       ^^^^^^ TODO: review absolute 16-bit address read
-	add.b	#0xa1,d0                         	| [$38ac: ADD     $DE]
+	move.b	game_rom+0x198C,d0                       	| [$38a9: LD      A,($198C)]
+	add.b	#0xde,d0                         	| [$38ac: ADD     $DE]
 	move.b	d0,d6                           	| [$38ae: LD      L,A]
 	move.b	#0x17,d5                        	| [$38af: LD      H,$17]
 	jbsr	l_34de                            	| [$38b1: CALL    $34DE]
-	move.l	(sp)+,a1                        	| [$38b4: POP     DE]
 	movem.w	(sp)+,d3/d4                    	| [$38b4: POP     DE]
 	rts                                    	| [$38b5: RET]
-	subq.b	#1,(a0)                         	| [$38b6: DEC     (HL)]
-	move.l	(sp)+,a1                        	| [$38b7: POP     DE]
-	movem.w	(sp)+,d3/d4                    	| [$38b7: POP     DE]
-	rts                                    	| [$38b8: RET]
+	
 
 l_38bc:
 	add.b	#0xB0,d0                         	| [$38bc: ADD     $B0]
@@ -5904,6 +5653,7 @@ l_38bc:
 	jcs	l_38e9                             	| [$38ca: JP      C,$38E9]
 	cmp.b	#0x03,d0                         	| [$38cd: CP      $03]
 	jcc	l_38e9                             	| [$38cf: JP      NC,$38E9]
+	TODO a0/D6/ shit
 	move.b	d0,d1                           	| [$38d2: LD      B,A]
 	move.b	d3,d5                           	| [$38d3: LD      H,D]
 	move.b	d4,d0                           	| [$38d4: LD      A,E]
@@ -5924,8 +5674,9 @@ l_38bc:
 l_38e9:
 	st.b	d0                                	| [$38e9: LD      A,$FF]
 	move.b	d0,unknown_4366                 	| [$38eb: LD      (unknown_4366),A]
-	lea	game_rom+0x0702,a4                      	| [$38ee: LD      BC,$0702]
-	jra	l_38f8                             	| [$38f1: JP      $38F8]
+	move.b	#0x07,d1
+	move.b	#0x02,d2                      	| [$38ee: LD      BC,$0702]
+	                             	| [$38f1: JP      $38F8]
 
 l_38f8:
 	lea	unknown_4370,a0                	| [$38f8: LD      HL,unknown_4370]
@@ -5934,22 +5685,18 @@ l_38fb:
 	cmp.b	(a0),d0                          	| [$38fc: CP      (HL)]
 	jeq	l_3906                             	| [$38fd: JP      Z,$3906]
 	addq.w	#4,a0                           	| [$3900: INC     L]
-            ^^^^ TODO check inc register d6 or a0 * 4
 	cmp.b	(a0),d0                          	| [$3904: CP      (HL)]
 	beq.b	0f                               	| [...]
 	rts                                    	| [$3905: RET     NZ] [...]
 0:
 l_3906:
-	move.b	d1,(a0)                         	| [$3906: LD      (HL),B]
-	addq.w	#1,a0                           	| [$3907: INC     L]
-            ^^^^ TODO check inc register d6 or a0
-	move.b	d2,(a0)                         	| [$3908: LD      (HL),C]
-	addq.w	#1,a0                           	| [$3909: INC     L]
-            ^^^^ TODO check inc register d6 or a0
+	move.b	d1,(a0)+                         	| [$3906: LD      (HL),B]
+	                           	| [$3907: INC     L]
+	move.b	d2,(a0)+                         	| [$3908: LD      (HL),C]
+	                           	| [$3909: INC     L]
 	move.b	ram_pointer_on_flying_enemies_table_43E6,d0	| [$390a: LD      A,(ram_pointer_on_flying_enemies_table_43E6)]
-	move.b	d0,(a0)                         	| [$390d: LD      (HL),A]
-	addq.w	#1,a0                           	| [$390e: INC     L]
-            ^^^^ TODO check inc register d6 or a0
+	move.b	d0,(a0)+                         	| [$390d: LD      (HL),A]
+	                           	| [$390e: INC     L]
 	move.b	unknown_43E7,d0                 	| [$390f: LD      A,(unknown_43E7)]
 	move.b	d0,(a0)                         	| [$3912: LD      (HL),A]
 	move.b	player_shot_1_structure_43C4,d0 	| [$3913: LD      A,(player_shot_1_structure_43C4)]
@@ -5976,15 +5723,16 @@ l_3923:
 
 l_3930:
 	move.b	unknown_4BD2,d0                 	| [$3930: LD      A,(unknown_4BD2)]
-	and.b	#0x1E,d0                         	| [$3933: AND     $1E]
+	and.w	#0x1E,d0                         	| [$3933: AND     $1E]
 	add.b	#0xC0,d0                         	| [$3935: ADD     $C0]
-	move.b	d0,d6                           	| [$3937: LD      L,A]
-	move.b	#0x3D,d5                        	| [$3938: LD      H,$3D]
-	move.b	(a0),d4                         	| [$393a: LD      E,(HL)]
-	addq.w	#1,a0                           	| [$393b: INC     L]
-            ^^^^ TODO check inc register d6 or a0
-	move.b	(a0),d6                         	| [$393c: LD      L,(HL)]
-	move.b	#0x4B,d5                        	| [$393d: LD      H,$4B]
+	lea		game_rom+0x3D00,a0
+	add.w	d0,a0                           	| [$3937: LD      L,A]
+	                        	| [$3938: LD      H,$3D]
+	move.b	(a0)+,d4                         	| [$393a: LD      E,(HL)]
+	                           	| [$393b: INC     L]
+	move.b	(a0),d0                         	| [$393c: LD      L,(HL)]
+	lea		game_rom+0x4B00,a0                        	| [$393d: LD      H,$4B]
+	add.w	d0,a0
 	jbsr	l_3a00                            	| [$393f: CALL    $3A00]
 	move.b	unknown_439F,d0                 	| [$3942: LD      A,(unknown_439F)]
 	add.b	d3,d0                            	| [$3945: ADD     A,D]
@@ -5997,11 +5745,10 @@ l_394c:
 	move.l	a0,-(sp)                        	| [$394c: PUSH    HL]
 	jbsr	l_395c                            	| [$394d: CALL    $395C]
 	move.l	(sp)+,a0                        	| [$3950: POP     HL]
-	move.b	d6,d0                           	| [$3951: LD      A,L]
-	add.b	#0x08,d0                         	| [$3952: ADD     $08]
-	move.b	d0,d6                           	| [$3954: LD      L,A]
-	subq.w	#1,a1                           	| [$3955: DEC     E]
-            ^^^^ TODO check dec register d4 or a1
+	                           	| [$3951: LD      A,L]
+	add.w	#0x08,a0                         	| [$3952: ADD     $08]
+	                           	| [$3954: LD      L,A]
+	subq.w	#1,d4                           	| [$3955: DEC     E]
 	jne	l_394c                             	| [$3956: JP      NZ,$394C]
 	rts                                    	| [$3959: RET]
 
@@ -6011,9 +5758,9 @@ l_395c:
 	bcc.b	0f                               	| [...]
 	rts                                    	| [$395f: RET     C] [...]
 0:
-	move.b	d6,d0                           	| [$3960: LD      A,L]
-	addq.b	#0x05,d0                        	| [$3961: ADD     $05]
-	move.b	d0,d6                           	| [$3963: LD      L,A]
+												| [$3960: LD      A,L]
+	addq.w	#0x05,a0                        	| [$3961: ADD     $05]
+												| [$3963: LD      L,A]
 	move.b	(a0),d0                         	| [$3964: LD      A,(HL)]
 	cmp.b	d1,d0                            	| [$3965: CP      B]
 	bcc.b	0f                               	| [...]
@@ -6026,7 +5773,6 @@ l_395c:
 	subq.b	#0x04,d0                        	| [$3969: SUB     $04]
 	move.b	d0,d1                           	| [$396b: LD      B,A]
 	subq.w	#3,a0                           	| [$396c: DEC     L]
-            *^^^^ TODO check dec register d6 or a0 * 3
 	move.b	unknown_4BD2,d0                 	| [$396f: LD      A,(unknown_4BD2)]
 	add.b	(a0),d0                          	| [$3972: ADD     A,(HL)]
 	and.b	#0x1F,d0                         	| [$3973: AND     $1F]
@@ -6052,14 +5798,14 @@ l_3980:
 	lea	unknown_43E6,a0                        	| [$3994: LD      L,$E6]
 	move.b	#0x02,d1                        	| [$3996: LD      B,$02]
 	jbsr	l_05e0                            	| [$3998: CALL    $05E0]
-	lea	unknown_43E2,a0                        	| [$399b: LD      L,$E2]
+	lea	screen_address_43E2,a0                        	| [$399b: LD      L,$E2]
 	lea	ram_pointer_on_flying_enemies_table_43E6,a1	| [$399d: LD      DE,ram_pointer_on_flying_enemies_table_43E6]
 	move.b	#0x02,d1                        	| [$39a0: LD      B,$02]
 	jbsr	l_05e0                            	| [$39a2: CALL    $05E0]
 	lea	unknown_43C4,a0                        	| [$39a5: LD      L,$C4]
 	move.b	#0x08,(a0)                      	| [$39a7: LD      (HL),$08]
 	lea	unknown_439E,a1                	| [$39a9: LD      DE,unknown_439E]
-	move.b	Counter+1,d0                    	| [$39ac: LD      A,(Counter+1)]
+	move.b	counter_439A+1,d0                    	| [$39ac: LD      A,(counter_439A+1)]
 	ror.b	#1,d0                            	| [$39af: RRCA]
 	jcs	l_39bf                             	| [$39b0: JP      C,$39BF]
 	addq.w	#1,a1                           	| [$39b3: INC     E]
@@ -6067,11 +5813,9 @@ l_3980:
 	move.b	(a0),d0                         	| [$39b6: LD      A,(HL)]
 	sub.b	#0x20,d0                         	| [$39b7: SUB     $20]
 	move.b	d0,(a0)                         	| [$39b9: LD      (HL),A]
-	subq.w	#1,a0                           	| [$39ba: DEC     L]
-            *^^^^ TODO check dec register d6 or a0
-	move.b	(a0),d0                         	| [$39bb: LD      A,(HL)]
+	                           	| [$39ba: DEC     L]
+	move.b	-(a0),d0                         	| [$39bb: LD      A,(HL)]
 	subx.b	#0x00,d0                        	| [$39bc: SBC     $00]
-      ^^^^^^ TODO: review cpu X flag
 	move.b	d0,(a0)                         	| [$39be: LD      (HL),A]
 l_39bf:
 	move.b	(a1),d0                         	| [$39bf: LD      A,(DE)]
@@ -6112,7 +5856,7 @@ l_3a00:
 	not.b	d0                               	| [$3a05: CPL]
 	addq.b	#1,d0                           	| [$3a06: INC     A]
 	move.b	d0,d3                           	| [$3a07: LD      D,A]
-	move.b	Counter+1,d0                    	| [$3a08: LD      A,(Counter+1)]
+	move.b	counter_439A+1,d0                    	| [$3a08: LD      A,(counter_439A+1)]
 	ror.b	#2,d0                            	| [$3a0b: RRCA] * 2
 	bcc.b	0f                               	| [...]
 	rts                                    	| [$3a0d: RET     C] [...]
@@ -6213,25 +5957,24 @@ l_3a90:
 	                               	| [$3a94: AND     A]
 	jra	l_3923                             	| [$3a95: JP      $3923]
 l_3a98:
-	lea	unknown_4B70,a0                	| [$3a98: LD      HL,unknown_4B70]
-	lea	game_rom+0x0800,a4                      	| [$3a9b: LD      BC,$0800]
-	lea	game_rom+0x03B0,a1                      	| [$3a9e: LD      DE,$03B0]
+	lea		unknown_4B70,a0                	| [$3a98: LD      HL,unknown_4B70]
+	move.b	#0x08,d1
+	move.b	#0x00,d2                      	| [$3a9b: LD      BC,$0800]
+	move.w	#0x03,d3					  	| [$3a9e: LD      DE,$03B0]
 l_3aa1:
-	move.b	(a0),d0                         	| [$3aa1: LD      A,(HL)]
-	addq.w	#1,a0                           	| [$3aa2: INC     L]
-            ^^^^ TODO check inc register d6 or a0
+	move.b	(a0)+,d0                         	| [$3aa1: LD      A,(HL)]
+	                           	| [$3aa2: INC     L]
 	and.b	d1,d0                            	| [$3aa3: AND     B]
 	jeq	l_3aae                             	| [$3aa4: JP      Z,$3AAE]
 	move.b	(a0),d0                         	| [$3aa7: LD      A,(HL)]
 	cmp.b	#0x28,d0                         	| [$3aa8: CP      $28]
 	jcs	l_3aae                             	| [$3aaa: JP      C,$3AAE]
-	addq.w	#1,a4                           	| [$3aad: INC     C]
-            ^^^^ TODO check inc register d2 or a4
+	addq.w	#1,d2                           	| [$3aad: INC     C]
 l_3aae:
-	move.b	d6,d0                           	| [$3aae: LD      A,L]
-	add.b	d3,d0                            	| [$3aaf: ADD     A,D]
-	move.b	d0,d6                           	| [$3ab0: LD      L,A]
-	cmp.b	d4,d0                            	| [$3ab1: CP      E]
+	                           	| [$3aae: LD      A,L]
+	add.w	d3,a0                            	| [$3aaf: ADD     A,D]
+	                           	| [$3ab0: LD      L,A]
+	cmp.l	#unknown_4BB0,a0                            	| [$3ab1: CP      E]
 	jne	l_3aa1                             	| [$3ab2: JP      NZ,$3AA1]
 	move.b	d2,d0                           	| [$3ab5: LD      A,C]
 	                               	| [$3ab6: AND     A]
@@ -6259,10 +6002,9 @@ l_3ad0:
 	and.b	#0x01,d0                         	| [$3ad4: AND     $01]
 	rol.b	#2,d0                            	| [$3ad6: RLCA] * 2
 	or.b	#0x20,d0                          	| [$3ad8: OR      $20]
-	move.b	d0,d1                           	| [$3ada: LD      B,A]
-	subq.w	#1,a0                           	| [$3adb: DEC     L]
-            *^^^^ TODO check dec register d6 or a0
-	move.b	(a0),d0                         	| [$3adc: LD      A,(HL)]
+	move.b	d0,d1     		                      	| [$3ada: LD      B,A]
+	                           	| [$3adb: DEC     L]
+	move.b	-(a0),d0                         	| [$3adc: LD      A,(HL)]
 	and.b	#0xC0,d0                         	| [$3add: AND     $C0]
 	or.b	d1,d0                             	| [$3adf: OR      B]
 	move.b	d0,(a0)                         	| [$3ae0: LD      (HL),A]
@@ -6286,13 +6028,11 @@ l_3ad0:
 l_3af8:
 	lea	unknown_438E,a0                        	| [$3af8: LD      L,$8E]
 	addq.b	#1,(a0)                         	| [$3afa: INC     (HL)]
-	subq.w	#1,a0                           	| [$3afb: DEC     L]
-	move.b	(a0),d0                         	| [$3afc: LD      A,(HL)]
+	                           	| [$3afb: DEC     L]
+	move.b	-(a0),d0                         	| [$3afc: LD      A,(HL)]
 	or.b	#0x10,d0                          	| [$3afd: OR      $10]
 	move.b	d0,(a0)                         	| [$3aff: LD      (HL),A]
 	rts                                    	| [$3b00: RET]
-	addx.b	(a0),d0                         	| [$3b01: ADC     A,(HL)]
-      ^^^^^^ TODO: review cpu X flag
 l_3b02:
 	lea	unknown_439A,a0                	| [$3b02: LD      HL,unknown_439A]
 	move.b	(a0),d0                         	| [$3b05: LD      A,(HL)]
@@ -6301,14 +6041,12 @@ l_3b02:
 	rts                                    	| [$3b08: RET     NC] [...]
 0:
 	addq.w	#1,a0                           	| [$3b09: INC     L]
-            ^^^^ TODO check inc register d6 or a0
 	move.b	(a0),d0                         	| [$3b0a: LD      A,(HL)]
 	move.b	d0,d1                           	| [$3b0b: LD      B,A]
-	and.b	#0x60,d0                         	| [$3b0c: AND     $60]
 	lea	unknown_438D,a0                        	| [$3b0e: LD      L,$8D]
 	move.b	#0x0A,(a0)                      	| [$3b10: LD      (HL),$0A]
+	and.b	#0x60,d0                         	| [$3b0c: AND     $60]
 	beq.b	0f                               	| [...]
-      ^^^^^^ TODO: review cpu flags (move.b,beq.b)
 	rts                                    	| [$3b12: RET     NZ] [...]
 0:
 	move.b	d1,d0                           	| [$3b13: LD      A,B]
@@ -6350,8 +6088,6 @@ l_3b33:
 	lea	unknown_438D,a0                        	| [$3b3e: LD      L,$8D]
 	move.b	d0,(a0)                         	| [$3b40: LD      (HL),A]
 	rts                                    	| [$3b41: RET]
-	addx.b	d6,d0                           	| [$3b42: ADC     A,L]
-      ^^^^^^ TODO: review cpu X flag
 l_3b43:
 	lea	game_state_43A4,a0             	| [$3b43: LD      HL,game_state_43A4]
 	move.b	(a0),d0                         	| [$3b46: LD      A,(HL)]
@@ -6367,3 +6103,83 @@ l_3b43:
 	jra	l_3a90                             	| [$3b5b: JP      $3A90]
 
 
+jump_table_chain_3F00:
+	.long	0xFFFF 		| slot 0, not possible
+	.long	0xFFFF 
+	.long	0xFFFF 
+	.long	0xFFFF
+
+	.long	l_20FF 		| slot 1
+	.long	l_02FF 
+	.long	command_36d2 
+	.long	command_36c0
+
+	.long	0x20FF 		| slot 2
+	.long	0x03FF 
+	.long	command_36d2 
+	.long	command_35e0 
+
+	.long	0x30FF 		| slot 3 
+	.long	0x04FF 
+	.long	command_36d2 
+	.long	command_35e0
+
+	.long	0x10FF  		| slot 4
+	.long	0x05FF 
+	.long	command_36ea
+	.long	command_35e0
+
+	.long	0x10FF 		| slot 5
+	.long	0x06FF
+	.long	command_36ea
+	.long	command_36c0
+
+	.long	0x1060 		| slot 6
+	.long	0x071F 
+	.long	command_370a 
+	.long	command_36c0 
+
+	.long	0xF010 		| slot 7
+	.long	0x0B1A		
+	.long	command_370a
+	.long	command_36c0
+
+	.long	0x40FF 		| slot 8, bogus  
+	.long	0x04FF 
+	.long	command_36ea
+	.long	command_36c0
+
+	.long	0x10FF 		| slot 9
+	.long	0x08FF
+	.long	command_36ea 
+	.long	command_36c0
+
+	.long	0x4010 		| slot 10
+	.long	l_0F17 
+	.long	command_370a
+	.long	command_36c0 
+
+	.long	0x10FF 		| slot 11
+	.long	0x0AFF
+	.long	command_36ea
+	.long	command_35e0 
+
+	.long	0xFFFF 		| slot 12
+	.long	0xFFFF
+	.long	end_chained_calls_36cc
+	.long	command_35e0
+
+	.long	0xFFFF 		| slot 14
+	.long	0xFFFF
+	.long	end_chained_calls_36cc
+	.long	command_35e0
+
+	.long	0x10FF  		| slot 15
+	.long	0x06FF 
+	.long	command_36ea 
+	.long	command_35e0
+
+	.long	0x1010 		| slot 16
+	.long	0x0779
+	.long	command_370a 
+	.long	command_35e0
