@@ -2,12 +2,10 @@
 	.global	bg_videoram
 	.global	fg_videoram
 	.global	stack_top
-	.global	stack_bottom
 	.global invincible_flag
 	.global start_level
 	.global vb_ticks_count
 	.global highscores_need_saving
-	.global invincible_flag
 	.global infinite_lives_flag
 	.global last_played_sound_timer_table
 	.global	sound_timer
@@ -61,7 +59,8 @@ vb_ticks_count:
 	.byte	0
 current_ticks_count:
 	.byte	0
-
+	.skip	4000
+stack_top:
 	.align	2
 regscopy:
 	ds.b	64
