@@ -1,7 +1,7 @@
 *
-*	Amiga-specific portions of bagman
+*	Amiga-specific portions of phoenix
 *
-* (c) JOTD 2023
+* (c) JOTD 2024
 *
 
 .include "../src/phoenix.inc"
@@ -18,6 +18,8 @@ NO68020 = 1
 
 BACK_SCREEN_ADDRESS = 0x4000
 FORE_SCREEN_ADDRESS = 0x4800
+
+TOTAL_NB_COLORS = 8
 
 
 SCORE_FILE_SIZE = 0x50
@@ -39,6 +41,7 @@ ONE_TICK = 1
 	
 
 OPT_ENABLE_DOUBLE_BUFFERING_BG = 0
+OPT_ENABLE_DOUBLE_BUFFERING_FG = 0
 
 _custom = 0xDFF000
 
@@ -119,8 +122,6 @@ start:
 		.global _demo_end
 
 * osd layer		
-		.global osd_disable_vblank_interrupt
-		.global osd_enable_vblank_interrupt
 		.global osd_disable_display
 		.global osd_enable_display
 		.global osd_ack_vblank_interrupt
@@ -128,9 +129,7 @@ start:
 		.global osd_break		| for debug	
 		*.global osd_calibrate_display		| for debug
 		.global osd_w_videoram
-		.global osd_w_colorram
 		.global osd_r_videoram
-		.global osd_update_sprites
 		.global osd_read_dipswitches
 		.global osd_read_inputs
 		.global osd_read_high_scores
@@ -312,7 +311,7 @@ _user:
 	
 	move.l	misc_options,d1
 	btst	#0,d1
-	sne		hard_bags_flag
+
 	btst	#1,d1
 	beq.b	0f
 	bset	#5,d0
@@ -332,7 +331,7 @@ _user:
 	btst	#1,d0
 	sne		infinite_lives_flag
 	btst	#2,d0
-	sne		infinite_time_flag
+
 	
 	jsr	 _detect_controller_types 
 	clr.b	controller_joypad_0
@@ -537,12 +536,9 @@ save_highscores:
     rts
     
 	
-* To get the core to run, you just need to jump to bagman_reset after
+* To get the core to run, you just need to jump to phoenix_reset after
 * you've initialised the platform (Amiga) stuff. That essentially does a
-* Z80 reset. You also need to call bagman_im1_irq from the Amiga vblank
-* routine. They are the only 2 entry points required for the core to run,
-* even if there's no other I/O.
-
+* Z80 reset. 
 
 demo_game:
 		move		#0x4000,_custom+intena						| disable interrupts
@@ -550,7 +546,7 @@ demo_game:
 		bsr			platform_init					| amiga-specific init
 		
 0:	
-		jmp			bagman_reset					| pass control to the bagman core
+		jmp			phoenix_reset					| pass control to the phoenix core
 		
 	
 * just in case some hardware calls nmi
@@ -618,7 +614,8 @@ _vblank:
 
 	sub.w	d1,delay_timer
 	
-	jbsr		bagman_irq
+	* TODO set vb sync flag
+	
 	.ifne  OPT_ENABLE_DOUBLE_BUFFERING_BG
 	bsr		switch_screen_buffers
 	.endif
@@ -734,7 +731,7 @@ osd_sound_start:
 	* music
 4:
 	* don't play if game not in play
-	* could have been handled at generic bagman.68k level
+	* could have been handled at generic phoenix.68k level
 	* but it's way simpler here. I suppose than the real game
 	* just turns music volume off to get away with it
 	*tst.b	game_playing_8817
@@ -756,7 +753,7 @@ osd_sound_start:
 	bsr		osd_sound_stop
     lea _custom,a6
  	movem.l	d0/a0,-(a7)
-    lea	bagman_tunes,a0
+    *lea	phoenix_tunes,a0
 	move.b	d1,music_track_start_number
 	move.w	d1,d0
     sub.l   a1,a1		| samples are in the module
@@ -977,8 +974,10 @@ platform_init:
 	dbf		d1,0b
 	
 	bsr		set_bg_bitplanes
+	bsr		set_fg_bitplanes
 	
-	bsr		load_palette_in_copperlist
+	moveq	#0,d0
+	bsr		osd_set_palette
 	
 	* set copperlist
 	move.l	#copperlist,cop1lc(a5)
@@ -1028,55 +1027,35 @@ platform_init:
 	
     rts
 
-set_black_palette:
-	movem.l	d0-d1/a1,-(a7)
-
-	move.w	#TOTAL_NB_COLORS-1,d0
-	lea		copperlist_colors+2,a1
-1:
-	clr.w	(a1)+
-	addq.w	#2,a1
-	dbf		d0,1b
-		
-	movem.l	(a7)+,d0-d1/a1
-	rts
 	
-load_palette_in_copperlist:
+* < D0: level index
+osd_set_palette:
 	movem.l	d0-d1/a0-a1,-(a7)
-	lea		palette,a0
+	add.w	d0,d0
+	add.w	d0,d0
+	and.w	#0x7,d0
+	
+	lea		back_palettes,a0
 
-	move.w	#TOTAL_NB_COLORS-1,d0
-	lea		copperlist_colors+2,a1
+	move.w	#TOTAL_NB_COLORS-1,d1
+	lea		bg_colors+2,a1
 1:
 	move.w	(a0)+,(a1)+
 	addq.w	#2,a1
-	dbf		d0,1b
+	dbf		d1,1b
+	
+	lea		fore_palettes,a0
+
+	move.w	#TOTAL_NB_COLORS-1,d1
+	lea		fg_colors+2,a1
+1:
+	move.w	(a0)+,(a1)+
+	addq.w	#2,a1
+	dbf		d1,1b
 		
 	movem.l	(a7)+,d0-d1/a0-a1
 	rts
 	
-* enable display (palette)
-osd_enable_display:
-	jbra	load_palette_in_copperlist
-	rts
-	
-osd_disable_display:
-	jbsr	set_black_palette
-	jbsr	wait_tof
-wait_tof:
-	movem.w	d0/d1,-(a7)
-	move.w	#300,d1
-0:
-	* just in case loop locks up as it sometimes
-	* happens...
-	subq.w	#1,d1
-	beq.b	1f
-	MOVE.w	_custom+vhposr,D0
-	ANDI.w	#0xff00,D0
-	BNE.S	0b
-1:
-	movem.w	(a7)+,d0/d1
-    rts
 	
 * < D0: nonzero interrupts enabled
 osd_is_vblank_interrupt_enabled:
@@ -1126,19 +1105,22 @@ decode_sprite_data:
 
 
 	
-* d6=screen address (preserved), d0=tile (preserved)
-* d6 starts at 0x8000 ends at 0x83FF
+* d7=screen address (preserved), d0=tile (preserved)
+* d7 starts at 0x4000-0x43FF or 0x4800-0x4BFF
 * should preserve all registers
 
 osd_w_videoram:
-    .ifeq OPT_DISABLE_BG_LAYER
-	movem.l	d0-d3/d6/a0-a2,-(a7)
+	movem.l	d0-d3/d7/a0-a2,-(a7)
 	
-
-	sub.w	#SCREEN_ADDRESS,d6
+	sub.w	#BACK_SCREEN_ADDRESS,d7
 	bcs.b	0f
-	cmp.w	#0x400,d6
-	bcs.b	1f
+	cmp.w	#0x400,d7
+	bcs.b	write_back_videoram
+
+	sub.w	#0x800,d7
+	bcs.b	0f
+	cmp.w	#0x400,d7
+	bcs.b	write_fore_videoram
 0:
 	* should not happen
 	blitz
@@ -1146,173 +1128,66 @@ osd_w_videoram:
 	move.b	d0,d0
 	nop	
 	bra.b	0f
-	
-1:
-	cmp.w	#0x288,d6
-	bne.b	2f
-	* location of VA logo tile (to detect title)
-	lea		palette+2,a0			| points on second color 
-	lea		copperlist_colors+4,a1	| second color copperlist entry
-	cmp.b	#0xE5,d0
-	bne.b	22f
-	* title: set proper colors for V/A logo in title: note: if palette is
-	* reordered in python convert_graphics.py script
-	* this will fail changing the proper colors!
-	* But palette is fixed now so it's going to work.
-	* Not as clean as it should be but this is a hack anyway...)
-	move.w	#0xF90,(2,a1)
-	move.w	#0x0DF,(6,a1)
-	bra.b	2f
-22:
-	* not title: remove copperlist dynamic color changes
-	move.w	(A0)+,(2,a1)
-	move.w	(a0),(6,a1)
-2:
-	lea		bg_videoram,a1
-	add.w	d6,a1
-	
-	cmp.b	(a1),d0
-	beq.b	0f		| already the proper value
-3:
 
-	move.b	d0,(a1)	| update logical grid
-	lea		bg_colorram,a1
-	move.b	(a1,d6.W),d1
-	
-
-	jbsr		update_bg_tile
-0:
-	movem.l	(a7)+,d0-d3/d6/a0-a2
-    .endif | OPT_DISABLE_BG_LAYER
-	rts
-
-* d6=screen address (preserved), d0=attribute (preserved)
-* d6 starts at 0x8000 ends at 0x83FF
-* should preserve all registers
-
-osd_w_colorram:
+write_back_videoram:
     .ifeq OPT_DISABLE_BG_LAYER
-	movem.l	d0-d3/d6/a0-a2,-(a7)
-	sub.w	#SCREEN_ADDRESS+0x800,d6
-	bcs.b	0f
-	cmp.w	#0x400,d6
-	bcs.b	1f
-0:
-	* should not happen
-	blitz
-	nop
-	move.b	d1,d1
-	nop
-	nop
-	bra.b	0f
-1:
-	lea		bg_colorram,a1
+	lea		bg_videoram,a1
 	add.w	d6,a1
+	
 	cmp.b	(a1),d0
 	beq.b	0f		| already the proper value
-	
 
 	move.b	d0,(a1)	| update logical grid
-	move.b	d0,d1
-	lea		bg_videoram,a1
-	move.b	(a1,d6.W),d0
 	
-	jbsr		update_bg_tile
+	move.l		bg_drawed_screen_ptr,a1
+	lea		back_tile_table,a0
+	jbsr		update_tile
+	.endif
 0:
 	movem.l	(a7)+,d0-d3/d6/a0-a2
-    .endif | OPT_DISABLE_BG_LAYER
+	rts
+write_fore_videoram:
+    .ifeq OPT_DISABLE_FG_LAYER
+	lea		fg_videoram,a1
+	add.w	d6,a1
+	
+	cmp.b	(a1),d0
+	beq.b	0f		| already the proper value
+
+	move.b	d0,(a1)	| update logical grid
+	
+	move.l		fg_drawed_screen_ptr,a1
+	lea			fore_tile_table,a0
+	jbsr		update_tile
+	.endif
+0:
+	movem.l	(a7)+,d0-d3/d6/a0-a2
 	rts
 
 
-* d6: screen offset
+* d7: screen offset
 * d0: tile code
-* d1: attribute
+
 *
 * the layout is strange to say the least
 * first row (last row in memory) is shown "normally" (X is mirrored, but horizontal,
 * Y is at top of the screen)
 * other rows use a X/Y transposed system like Galaxian or Xevious!
 *
-update_bg_tile:
+update_tile:
 	* compute Y
 
 	and.w	#0xFF,d0	| mask up to 255
-	and.w	#0xFF,d1	| mask up to 255
-
-	
-	.ifne	OPT_ENABLE_LOGGING
-	* when logging is enabled, play a while
-	* and break. Get the address in 0x100 then do
-	* S used_cluts <address at $100> $10000
-	* then run the compute_used_cluts.py program again
-	
-	lea		tile_log_table,a0
-	move.l	a0,0x100
-	movem.w	d0-d1,-(a7)
-	and.l	#0xFFFF,d0
-	lsl.l	#8,d0
-	add.w	d1,d0
-	st.b	(a0,d0.l)
-	movem.w	(a7)+,d0-d1
-	.endif
-	
-	* is it bank 2 ?
-	btst	#4,D1
-	beq.b	0f
-	add.w	#0x200,d0
-	
-0:
-	* is it upper part of bank ?
-	btst	#5,D1
-	beq.b	0f
-	add.w	#0x100,d0
-0:
-	* color tile
-	and.w	#0xF,d1
-	
-	* special case parasite brown N when switching screens
-	cmp.w	#0x2E0,d0
-	bne.b	0f
-	cmp.b	#3,d1
-	beq.b	0f
-	* "N" of "PRESENTS", but not purple: skip
-	rts
-0:
-	cmp.w	#0x3C0,d6
-	bcc.b	0f
-	cmp.w	#0x40,d6
-	bcs.b	2f
-	move.w	d6,d3
-	lsr.w	#5,d6		| this is X
-	neg.w	d6
-	add.w	#32,d6
+	move.w	d7,d3
+	lsr.w	#5,d7		| this is X
+	neg.w	d7
+	add.w	#32,d7
 	and.w	#0x1F,d3	| this is Y
 	addq.w	#2,d3
-	bra.b	1f
-	* two first rows are special???
-0:
-	move.w	d6,d3
-	lsr.w	#5,d3		| this is Y
-	
-	sub.w	#30,d3		| minus 2
-	and.w	#0x1F,d6	| this is X
-	neg.w	d6
-	add.w	#32,d6
-	bra.b	0f			| this is not enough to hide 2 first rows
-	bra.b	1f
-	* two last rows as well
-2:
-	move.w	d6,d3
-	lsr.w	#5,d3		| this is Y
-	add.w	#34,d3		| plus 2
-	and.w	#0x1F,d6	| this is X
-	neg.w	d6
-	add.w	#32,d6
-1:
+
 	lea		mulNB_BYTES_PER_ROW_table(pc),a0
 
 	
-	move.l	bg_drawed_screen_ptr(pc),a1
 	* D3 = Y
 
 	add.w	d3,d3
@@ -1325,23 +1200,18 @@ update_bg_tile:
 
 	* optimization when a well-known
 	* empty character is passed (standard charset)
-	cmp.w	#0xE0,d0	| empty character
-	jeq	11f
-	cmp.w	#0x10,d0	| empty character
-	jeq	11f
+*	cmp.w	#0xE0,d0	| empty character
+*	jeq	11f
+*	cmp.w	#0x10,d0	| empty character
+*	jeq	11f
 
-	lea		character_table,a0
+	moveq	#0,D2	| TEMP current level
+	add.w	d2,d2
+	add.w	d2,d2
+	move.l	(a0,d2.w),a0	| tile table
 	add.w	d0,d0
 	add.w	d0,d0
-	move.l	(a0,d0.w),d0
-	jeq	2f
-	move.l	d0,a0		| pointer on clut table
-	* now we use d1 (attribute)
-	add.w	d1,d1
-	add.w	(a0,d1.w),a0
-	cmp.l	d0,a0
-	jeq		12f		| should not happen
-
+	move.l	(a0,d0.w),a0	| tile data
 4:
 	.set	offset,0
 	.rept	8
@@ -1449,6 +1319,22 @@ set_bg_bitplanes:
     dbf d1,1b
     rts
 
+
+set_fg_bitplanes:
+    move.l	fg_displayed_screen_ptr(pc),a0
+    moveq #NB_PLAYFIELD_PLANES-1,d1
+	move.l	a0,d0
+    lea	fg_bitplanes+2,a0
+1:
+    swap d0
+    move.w d0,(a0)
+    swap d0
+    move.w d0,(4,a0)    
+    addq.w  #8,a0
+    add.l #FG_SCREEN_PLANE_SIZE,d0
+    dbf d1,1b
+    rts
+
 	
 
 osd_debug_hook:
@@ -1475,7 +1361,7 @@ seed:
 * d6=screen address
 osd_r_videoram:
 	movem.l	a0/d6,-(a7)
-	sub.w	#SCREEN_ADDRESS,d6
+	*sub.w	#SCREEN_ADDRESS,d6
 	bmi.b	0f
 	cmp.w	#0x400,d6
 	bcs.b	1f
@@ -1571,13 +1457,10 @@ osd_read_inputs:
 0:
 	* test all those flags to see if normal controls
 	* could be used to insert coins/start game
-	tst.b	gameplay_allowed_6054
-	beq.b	1f			| demo mode: enable
-	tst.b	check_scenery_disabled_61ED		| intro: enable
-	bne.b	1f
-	tst.b	game_locked_6053		| start screen: enable
-	beq.b	3f
-1:
+
+	bra.b	3f
+	*** unreach
+	
 	move.l	d2,-(a7)
 	move.l	_previous_joypad_state(pc),d2
 	* save prev state as game loops within vblank
@@ -1705,7 +1588,7 @@ handle_keyboard:
 	bne.b	0f
 	move.w	#0x0FF,_custom+color
 	st.b	cheat_used
-	st.b	next_bag_completes_level_flag
+
 	
 0:
 	cmp.b	#0x51,d0	| F2 key
@@ -1719,26 +1602,23 @@ handle_keyboard:
 	bne.b	0f
 	st.b	cheat_used
 	* add 10000 points
-	add.b	#1,player_1_score_6176+2
+
 0:
 	cmp.b	#0x53,d0	| F4 key
 	bne.b	0f
 	st.b	cheat_used
 	move.w	#0x0FF,_custom+color
-	eor.b	#1,guard_1_inactive
 0:
 	cmp.b	#0x54,d0	| F5 key
 	bne.b	0f
 	st.b	cheat_used
 	move.w	#0x0FF,_custom+color
-	eor.b	#1,guard_2_inactive
 0:
 
 	cmp.b	#0x55,d0	| F6 key
 	bne.b	0f
 	* game over, no lives
-	move.b	#1,player_death_flag_6025
-	clr.b	lives_6056
+	nop
 0:
 10:
 	.ifndef	RELEASE
@@ -1767,12 +1647,7 @@ handle_keyboard:
 	
 toggle_pause:
 	* pause only within game
-	tst.b	gameplay_allowed_6054
-	beq.b	0f
-	tst.b	check_scenery_disabled_61ED
-	bne.b	0f
-	tst.b	game_locked_6053
-	bne.b	0f
+
 	eor.b   #1,pause_flag
 0:
 	rts
@@ -1871,8 +1746,7 @@ flip_flop:
 	.byte	0
 	.align	2
 
-host_sprites:
-	ds.b	8*SPRITE_SIZEOF
+
 keyboard_table:
 	ds.b	0x100
 
@@ -1914,6 +1788,14 @@ bg_displayed_screen_ptr:
 	.long	bg_screen_data_2
 	.else
 	.long	bg_screen_data_1
+	.endif
+fg_drawed_screen_ptr:
+	.long	fg_screen_data_1
+fg_displayed_screen_ptr:
+	.ifne	OPT_ENABLE_DOUBLE_BUFFERING_BG
+	.long	fg_screen_data_2
+	.else
+	.long	fg_screen_data_1
 	.endif
 
 
@@ -1963,7 +1845,7 @@ graphicsname:
 	.ascii	"graphics.library"
 	.byte	0
 normal_hiscorename:
-	.asciz	"bagman.high"
+	.asciz	"phoenix.high"
 floppy_file:
 	.ascii	"floppy"
 	.byte	0
@@ -1972,14 +1854,12 @@ temp_filename_buffer:
 _end_of_ng_code:
 		
 	.align 2
-palette:
-	.include "palette.68k"
-	* sprites "individual" 4-color palettes
 
-	.include "palette_cluts.68k"
+	.include "palette.68k"
+
 	
 	
-	* on amiga, this file is included in bagman.68k file
+	* on amiga, this file is included in phoenix.68k file
 	* so the assembler can optimize by using PC-relative addressing
 	* whenever possible (and it does)
 	.ifndef	RELEASE
@@ -2058,9 +1938,9 @@ bg_bitplanes:
 	DECL_EVEN_BITPLANES	0,3
 fg_bitplanes:
 	DECL_EVEN_BITPLANES	3,3
-copperlist_colors:
+bg_colors:
 	DECL_COLORS	0,8
-sprite_cols:
+fg_colors:
 	DECL_COLORS	8,8
 sprites:
     * #0

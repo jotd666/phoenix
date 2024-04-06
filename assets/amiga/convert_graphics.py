@@ -96,7 +96,16 @@ with open(os.path.join(outdir,"palette.68k"),"w") as fp:
     # generate tiles for each level, back/fore: 10 sheets
     for layer in ["back","fore"]:
         cd = config[layer]
+        fp.write(f"{layer}_palettes:\n")
+        for level in sorted(cd):
+            fp.write(f"\t.long\tpalette_{layer}_{level}\n")
+
+    for layer in ["back","fore"]:
+        cd = config[layer]
+
+
         for level,data in sorted(cd.items()):
+
             linf = level_info[level]
             p = linf["palette"]
             yend = linf.get(f"{layer}_end_y",8)
@@ -113,7 +122,7 @@ with open(os.path.join(outdir,"palette.68k"),"w") as fp:
             palette += [(16,16,16)]*(8-len(palette))
 
             fp.write(f"palette_{layer}_{level}:\n")
-            bitplanelib.palette_dump(palette,fp)
+            bitplanelib.palette_dump(palette,fp,pformat=bitplanelib.PALETTE_FORMAT_ASMGNU)
             # blacken strips if needed, makes lighter tiles
             for y in range(0,ystart):
                 img_out.paste(black_row,(0,y*8))
@@ -168,11 +177,15 @@ with open(os.path.join(outdir,"graphics.68k"),"w") as fp:
                 fp.write(f"\t.long\t{tile_name}\n")
             fp.write("\n")
 
+    already_seen = set()
     for layer in ["back","fore"]:
         for level in range(1,6):
             for raw in tile_dict[layer,level]:
                 # just use first occurrence for name
                 tile_name = "tile_{}_{}_{}".format(*(tile_cache[raw][0]))
+                if tile_name in already_seen:
+                    continue
+                already_seen.add(tile_name)
                 fp.write(f"{tile_name}:")
                 bitplanelib.dump_asm_bytes(raw,fp,mit_format=True)
             fp.write("\n")
