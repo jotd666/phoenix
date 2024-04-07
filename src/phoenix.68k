@@ -117,6 +117,93 @@
 	lsr.w	#8,d3
 	.endm
 	
+ROM_TOP = 0x4000
+RAM_START = ROM_TOP
+RAM_TOP = 0x5000
+
+load_rom_in_a0_from_d5d6:
+	move.w	d5,-(a7)
+	LOAD_D5_16_FROM_D5D6
+	.ifndef	RELEASE
+	cmp.w	#ROM_TOP,d5
+	bcs.b	0f
+	illegal
+	.word	ROM_TOP
+	.ascii	"A0D5"
+0:
+	.endif
+	lea		game_rom,a0
+	add.w	d5,a0
+	move.w	(a7)+,d5
+	rts
+	
+load_rom_in_a0_from_d3w:
+	exg	d3,d6
+	bsr		load_rom_in_a0_from_d6w
+	exg	d6,d3
+	rts
+	
+load_rom_in_a0_from_d6w:
+	.ifndef	RELEASE
+	cmp.w	#ROM_TOP,d6
+	bcs.b	0f
+	illegal
+	.word	ROM_TOP
+	.ascii	"A0D6"
+0:
+	.endif
+	lea		game_rom,a0
+	add.w	d6,a0
+	rts
+
+load_ram_in_a0_from_d6w:
+	move.w	d6,-(a7)
+	sub.w	#RAM_START,d6
+	.ifndef	RELEASE
+	bcc.b	1f
+0:
+	illegal
+	.word	RAM_START
+	.ascii	"A0D6"
+	.endif
+1:
+	.ifndef	RELEASE
+	cmp.w	#RAM_TOP-RAM_START,d6
+	bcc.b	0b
+	.endif
+
+	lea		game_ram,a0
+	add.w	d6,a0
+	rts
+	
+load_rom_in_a1_from_d3w:
+	.ifndef	RELEASE
+	cmp.w	#ROM_TOP,d3
+	bcs.b	0f
+	illegal
+	.word	ROM_TOP
+	.ascii	"A1D3"
+0:
+	.endif
+	lea		game_rom,a1
+	add.w	d3,a1
+	rts
+	
+load_rom_in_a1_from_d3d4:
+	move.w	d3,-(a7)
+	LOAD_D3_16_FROM_D3D4
+	.ifndef	RELEASE
+	cmp.w	#ROM_TOP,d3
+	bcs.b	0f
+	illegal
+	.word	ROM_TOP
+	.ascii	"A1D3"
+0:
+	.endif
+	lea		game_rom,a1
+	add.w	d3,a1
+	move.w	(a7)+,d3
+	rts
 	
 copy_a0_a1_d1:
 	move.b	(a1)+,(a0)+                         	| [$3520: LD      A,(DE)]
@@ -261,12 +348,9 @@ l_0088:
 	addq.b	#1,(a0)                         	| [$00ae: INC     (HL)] ... to coin count (438F)
 	move.b	(a0),d0                         	| [$00af: LD      A,(HL)] Current value ...
 	add.b	#0x20,d0                         	| [$00b0: ADD     $20] ... to number tile
-	move.b	d0,unknown_4142                 	| [$00b2: LD      (unknown_4142),A] Change number of coins on screen
+	move.w	#0x4142,d7
+	jbsr	osd_w_videoram                 	| [$00b2: LD      (unknown_4142),A] Change number of coins on screen
 	rts                                    	| [$00b5: RET] Done
-
-* Never called
-	nop                                    	| [$00b6: NOP]
-	rts                                    	| [$00b7: RET]
 
 
 
@@ -282,25 +366,33 @@ CheckInputBits:
 	and.b	(a0),d0                          	| [$00c2: AND     (HL)] Zero unles new bit is 0 and old is 1
 	rts                                    	| [$00c3: RET] Return state
 
-l_00c4:
+* < A0: data to write (0x.0-0x.9) as BCD
+* < D3: screen address
+* < D1: number of digits to write
+
+write_digits_to_screen_00c4:
 	move.b	(a0),d0                         	| [$00c4: LD      A,(HL)]
 	and.b	#0x0F,d0                         	| [$00c5: AND     $0F]
+	* start of digits row
 	or.b	#0x20,d0                          	| [$00c7: OR      $20]
-	move.b	d0,(a1)                         	| [$00c9: LD      (DE),A]
+	move.w	d3,d7
+	jbsr	osd_w_videoram                         	| [$00c9: LD      (DE),A]
 	jbsr	AddOneRow_0210                    	| [$00ca: CALL    AddOneRow_0210]
 	subq.b	#1,d1                           	| [$00cd: DEC     B]
 	bne.b	0f                               	| [...]
 	rts                                    	| [$00ce: RET     Z] [...]
 0:
+	* second nibble
 	move.b	(a0),d0                         	| [$00cf: LD      A,(HL)]
 	ror.b	#4,d0                            	| [$00d0: RRCA] * 4
 	and.b	#0x0F,d0                         	| [$00d4: AND     $0F]
 	or.b	#0x20,d0                          	| [$00d6: OR      $20]
-	move.b	d0,(a1)                         	| [$00d8: LD      (DE),A]
+	move.w	d3,d7
+	jbsr	osd_w_videoram                         	| [$00d8: LD      (DE),A]
 	jbsr	AddOneRow_0210                    	| [$00d9: CALL    AddOneRow_0210]
 	subq.w	#1,a0                           	| [$00dc: DEC     HL]
 	subq.b	#1,d1                           	| [$00dd: DEC     B]
-	jne	l_00c4                             	| [$00de: JP      NZ,$00C4]
+	jne	write_digits_to_screen_00c4                             	| [$00de: JP      NZ,$00C4]
 	rts                                    	| [$00e1: RET]
 
 l_00e3:
@@ -353,7 +445,7 @@ l_0140:
 	lea	unknown_43B8,a0                        	| [$0154: LD      L,$B8]
 	move.b	#0x08,d1                        	| [$0156: LD      B,$08]
 	jbsr	clear_area_05D8                   	| [$0158: CALL    clear_area_05D8]
-	lea	unknown_43BA,a0                        	| [$015b: LD      L,$BA]
+	lea	nb_to_kill_before_stage_completed_43BA,a0                        	| [$015b: LD      L,$BA]
 	move.b	#0x10,(a0)                      	| [$015d: LD      (HL),$10]
 	lea	unknown_43BE,a0                        	| [$015f: LD      L,$BE]
 	jbsr	osd_read_dipswitches                       	| [$0161: LD      A,($7800)] 78xx DSW0
@@ -676,7 +768,8 @@ l_02e3:
 	sub.b	d2,d0                            	| [$02e6: SUB     C]
 	move.b	d0,(a0)                         	| [$02e7: LD      (HL),A]
 	add.b	#0x20,d0                         	| [$02e8: ADD     $20]
-	move.b	d0,unknown_4142                 	| [$02ea: LD      (unknown_4142),A]
+	move.w	#0x4142,d7                 	| [$02ea: LD      (unknown_4142),A]
+	jbsr	osd_w_videoram
 	rts                                    	| [$02ed: RET]
 
 
@@ -696,7 +789,7 @@ l_02f0:
 	lea	unknown_438B,a0                        	| [$0306: LD      L,$8B]
 	lea	unknown_4141,a1                	| [$0308: LD      DE,unknown_4141]
 	move.b	#0x06,d1                        	| [$030b: LD      B,$06]
-	jbsr	l_00c4                            	| [$030d: CALL    $00C4]
+	jbsr	write_digits_to_screen_00c4                            	| [$030d: CALL    $00C4]
 	rts                                    	| [$0310: RET]
 
 
@@ -740,11 +833,11 @@ l_0331:
 	lea	unknown_4383,a0                        	| [$033a: LD      L,$83]
 	lea	unknown_4261,a1                	| [$033c: LD      DE,unknown_4261]
 	move.b	#0x06,d1                        	| [$033f: LD      B,$06]
-	jbsr	l_00c4                            	| [$0341: CALL    $00C4]
+	jbsr	write_digits_to_screen_00c4                            	| [$0341: CALL    $00C4]
 	lea	unknown_4387,a0                        	| [$0344: LD      L,$87]
 	lea	unknown_4021,a1                	| [$0346: LD      DE,unknown_4021]
 	move.b	#0x06,d1                        	| [$0349: LD      B,$06]
-	jbsr	l_00c4                            	| [$034b: CALL    $00C4]
+	jbsr	write_digits_to_screen_00c4                            	| [$034b: CALL    $00C4]
 	rts                                    	| [$034e: RET]
 
 
@@ -1043,7 +1136,7 @@ init_new_play_clear_screen_04AC:
 	lea	unknown_4021,a1                	| [$04dc: LD      DE,unknown_4021]
 l_04df:
 	move.b	#0x06,d1                        	| [$04df: LD      B,$06]
-	jbsr	l_00c4                            	| [$04e1: CALL    $00C4]
+	jbsr	write_digits_to_screen_00c4                            	| [$04e1: CALL    $00C4]
 	rts                                    	| [$04e4: RET]
 
 l_04e6:
@@ -2686,7 +2779,7 @@ l_0ed5:
  	move.b	d2,(a0)                         	| [$0edb: LD      (HL),C]
 	lea	unknown_4364,a0                        	| [$0edc: LD      L,$64]
 	move.b	#0xFF,(a0)                      	| [$0ede: LD      (HL),$FF] sets 4364 to $FF: triggers "killed" sfx
-	lea	unknown_43BA,a0                        	| [$0ee0: LD      L,$BA]
+	lea	nb_to_kill_before_stage_completed_43BA,a0                        	| [$0ee0: LD      L,$BA]
 	subq.b	#1,(a0)                         	| [$0ee2: DEC     (HL)] one less enemy to kill (43BA)
 * pops stack and jumps
 * occurs when bird enemy is shot
@@ -2916,10 +3009,10 @@ l_17e0:
 	jbsr	osd_read_dipswitches                       	| [$17e0: LD      A,($7800)] 78xx DSW0
 	and.b	#0x10,d0                         	| [$17e3: AND     $10] Coinage
 	bne.b	0f                               	| [...]
-	move.b	CoinCount,d0                    	| [$17e5: LD      A,(CoinCount)]
+	move.b	CoinCount_438F,d0                    	| [$17e5: LD      A,(CoinCount_438F)]
 	rts                                    	| [$17e8: RET     Z] [...]
 0:
-	move.b	CoinCount,d0                    	| [$17e5: LD      A,(CoinCount)]
+	move.b	CoinCount_438F,d0                    	| [$17e5: LD      A,(CoinCount_438F)]
 	ror.b	#1,d0                            	| [$17e9: RRCA]
 	and.b	#0x0F,d0                         	| [$17ea: AND     $0F]
 	rts                                    	| [$17ec: RET]
@@ -3353,12 +3446,13 @@ l_227a:
 	moveq	#0,d7
 l_227b:
 	bsr		load_ram_in_a0_from_d5d6
-	move.b	d1,(a0)                         	| [$227b: LD      (HL),B]
-	addq.w	#1,a0                           	| [$227c: INC     HL]
-	move.b	d1,(a0)                         	| [$227d: LD      (HL),B]
-	addq.w	#1,a0                           	| [$227e: INC     HL]
+	move.b	d1,(a0)+                         	| [$227b: LD      (HL),B]
+	                           	| [$227c: INC     HL]
+	move.b	d1,(a0)+                         	| [$227d: LD      (HL),B]
+	                           	| [$227e: INC     HL]
 	subq.b	#1,d3                           	| [$227f: DEC     D]
 	jne	l_227b                             	| [$2280: JP      NZ,$227B]
+	addq	#2,d6		| follow a0 increases
 	move.b	d6,d0                           	| [$2283: LD      A,L]
 	sub.b	d2,d0                            	| [$2284: SUB     C]
 	sub.b	d2,d0                            	| [$2285: SUB     C]
@@ -3367,7 +3461,7 @@ l_227b:
 	move.b	d5,d0                           	| [$2289: LD      A,H]
 	subx.b	d7,d0                        	| [$228a: SBC     $00]
  	move.b	d0,d5                           	| [$228c: LD      H,A]
-	subq.b	#1,f4                           	| [$228d: DEC     E]
+	subq.b	#1,d4                           	| [$228d: DEC     E]
  	jne	l_227a                             	| [$228e: JP      NZ,$227A]
 	rts                                    	| [$2291: RET]
 l_2292:
@@ -3670,7 +3764,7 @@ end_of_level_transition_244C:
 	and.b	#0xF0,d0                         	| [$245d: AND     $F0]
 	add.b	#0x10,d0                         	| [$245f: ADD     $10]
 	move.b	d0,(a0)                         	| [$2461: LD      (HL),A]
-	lea	unknown_43BA,a0                        	| [$2462: LD      L,$BA]
+	lea	nb_to_kill_before_stage_completed_43BA,a0                        	| [$2462: LD      L,$BA]
 	move.b	#0x10,(a0)                      	| [$2464: LD      (HL),$10]
 	jra	l_0380                             	| [$2466: JP      $0380]
 
@@ -3764,7 +3858,6 @@ l_24e0:
 	rts                                    	| [$24eb: RET     C] [...]
 0:
 	jra	update_scrolling_067A              	| [$24ec: JP      update_scrolling_067A]
-	jmi	l_c322                             	| [$24ef: JP      M,$C322]
 l_24f2:
 	jbsr	l_30aa                            	| [$24f2: CALL    $30AA]
 	add.b	#0x60,d0                         	| [$24f5: ADD     $60]
@@ -3831,7 +3924,7 @@ l_253d:
 	sub.b	#0x5E,d0                         	| [$2548: SUB     $5E]
 	move.b	d0,d4                           	| [$254a: LD      E,A]
 	move.b	#0x04,d1                        	| [$254b: LD      B,$04]
-	jra	l_00c4                             	| [$254d: JP      $00C4]
+	jra	write_digits_to_screen_00c4                             	| [$254d: JP      $00C4]
 
 l_2560:
 	lea	unknown_4393,a0                	| [$2560: LD      HL,unknown_4393]
@@ -4192,7 +4285,7 @@ l_2768:
 	jeq	l_2778                             	| [$2772: JP      Z,$2778]
 	lea	unknown_4021,a1                	| [$2775: LD      DE,unknown_4021]
 l_2778:
-	jbsr	l_00c4                            	| [$2778: CALL    $00C4]
+	jbsr	write_digits_to_screen_00c4                            	| [$2778: CALL    $00C4]
 	move.l	(sp)+,a0                        	| [$277b: POP     HL]
 	lea	unknown_43BD,a1                	| [$277c: LD      DE,unknown_43BD]
 	exg	a1,a0                              	| [$277f: EX      DE,HL]
@@ -5503,7 +5596,7 @@ l_37b0:
 	jbsr	osd_w_videoram                         	| [$37c0: LD      (DE),A]
 	jbsr	AddOneRow_0210                    	| [$37c1: CALL    AddOneRow_0210]
 	move.b	#0x02,d1                        	| [$37c4: LD      B,$02]
-	jra	l_00c4                             	| [$37c6: JP      $00C4]
+	jra	write_digits_to_screen_00c4                             	| [$37c6: JP      $00C4]
 
 l_37cc:
 	addq.w	#3,a0                           	| [$37cc: INC     L]
@@ -5804,7 +5897,7 @@ l_3980:
 	lea	unknown_4BC0,a1                	| [$398c: LD      DE,unknown_4BC0]
 	move.b	#0x04,d1                        	| [$398f: LD      B,$04]
 	jbsr	l_05e0                            	| [$3991: CALL    $05E0]
-	lea	unknown_43E6,a0                        	| [$3994: LD      L,$E6]
+	lea	ram_pointer_on_flying_enemies_table_43E6,a0                        	| [$3994: LD      L,$E6]
 	move.b	#0x02,d1                        	| [$3996: LD      B,$02]
 	jbsr	l_05e0                            	| [$3998: CALL    $05E0]
 	lea	screen_address_43E2,a0                        	| [$399b: LD      L,$E2]
@@ -6119,8 +6212,8 @@ jump_table_chain_3F00:
 	.long	0xFFFF 
 	.long	0xFFFF
 
-	.long	l_20FF 		| slot 1
-	.long	l_02FF 
+	.long	0x20FF 		| slot 1
+	.long	0x02FF 
 	.long	command_36d2 
 	.long	command_36c0
 
@@ -6165,7 +6258,7 @@ jump_table_chain_3F00:
 	.long	command_36c0
 
 	.long	0x4010 		| slot 10
-	.long	l_0F17 
+	.long	0x0F17 
 	.long	command_370a
 	.long	command_36c0 
 

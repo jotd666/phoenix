@@ -10,7 +10,9 @@
 	.global	player_shot_2_structure_43C8
 	.global	player_shot_3_structure_43CC
 	.global	timer_43A5
-
+	.global	bg_videoram
+	.global	fg_videoram
+	
 	.global	unknown_4350
 	.global	unknown_4351
 	.global	unknown_4352
@@ -43,6 +45,7 @@
 	.global	unknown_438B
 	.global	unknown_438C
 	.global	unknown_438E
+	.global	CoinCount_438F
 	.global	unknown_4392
 	.global	unknown_4393
 	.global	unknown_4394
@@ -73,7 +76,7 @@
 	.global	unknown_43C6
 	.global	unknown_43CE
 	.global	unknown_43E0
-	.global	unknown_43E2
+	.global	screen_address_43E2
 	.global	ram_pointer_on_flying_enemies_table_43E6
 	.global	unknown_43E7
 	.global	ram_pointer_on_birds_table_43EA
@@ -99,220 +102,221 @@
 	.global	unknown_4BD6
 	.global	unknown_4BD7
 	.global	unknown_4BF8
-	.global	unknown_4BFF
 
+
+
+fg_videoram:
+fg_videoram_4000:
+					| $4000
+	.skip	0x340
+	* end of used video ram, used for normal RAM
+unknown_4340:
+	.skip	0x10
 unknown_4350:
-	ds.b	1
+	.skip	1
 unknown_4351:
-	ds.b	1
+	.skip	1
 unknown_4352:
-	ds.b	1
+	.skip	1
 unknown_4353:
-	ds.b	1
+	.skip	1
 unknown_4354:
-	ds.b	2
+	.skip	2
 unknown_4356:
-	ds.b	1
+	.skip	1
 unknown_4357:
-	ds.b	1
+	.skip	1
 unknown_4358:
-	ds.b	7
+	.skip	7
 unknown_435F:
-	ds.b	1
+	.skip	1
 unknown_4360:
-	ds.b	1
+	.skip	1
 unknown_4361:
-	ds.b	1
+	.skip	1
 unknown_4362:
-	ds.b	1
+	.skip	1
 unknown_4363:
-	ds.b	1
+	.skip	1
 unknown_4364:
-	ds.b	2
+	.skip	2
 unknown_4366:
-	ds.b	2
+	.skip	2
 unknown_4368:
-	ds.b	1
+	.skip	1
 unknown_4369:
-	ds.b	1
+	.skip	1
 unknown_436A:
-	ds.b	1
+	.skip	1
 unknown_436B:
-	ds.b	2
+	.skip	2
 unknown_436D:
-	ds.b	1
+	.skip	1
 unknown_436E:
-	ds.b	1
+	.skip	1
 unknown_436F:
-	ds.b	1
+	.skip	1
 unknown_4370:
-	ds.b	4
+	.skip	4
 unknown_4374:
-	ds.b	4
+	.skip	4
 unknown_4378:
-	ds.b	4
+	.skip	4
 unknown_437C:
-	ds.b	4
+	.skip	4
 unknown_4380:
-	ds.b	3
+	.skip	3
 unknown_4383:
-	ds.b	6
+	.skip	6
 unknown_4389:
-	ds.b	2
+	.skip	2
 unknown_438B:
-	ds.b	1
+	.skip	1
 unknown_438C:
-	ds.b	2
+	.skip	2
 unknown_438E:
-	ds.b	2
+	.skip	1
+CoinCount_438F:
+	.skip	1
 nb_lives_p1_4390:
-	ds.b	2
+	.skip	2
 unknown_4392:
-	ds.b	1
+	.skip	1
 unknown_4393:
-	ds.b	1
+	.skip	1
 unknown_4394:
-	ds.b	1
+	.skip	1
 unknown_4395:
-	ds.b	1
+	.skip	1
 unknown_4396:
-	ds.b	1
+	.skip	1
 unknown_4397:
-	ds.b	2
+	.skip	2
 unknown_4399:
-	ds.b	1
+	.skip	1
 unknown_439A:
-	ds.b	1
+	.skip	1
 unknown_439B:
-	ds.b	1
+	.skip	1
 unknown_439C:
-	ds.b	1
+	.skip	1
 unknown_439D:
-	ds.b	1
+	.skip	1
 unknown_439E:
-	ds.b	1
+	.skip	1
 unknown_439F:
-	ds.b	1
+	.skip	1
 current_input_value_43A0:
-	ds.b	2
+	.skip	2
 game_in_play_43A2:
-	ds.b	1
+	.skip	1
 unknown_43A3:
-	ds.b	1
+	.skip	1
 game_state_43A4:
-	ds.b	1
+	.skip	1
 timer_43A5:
-	ds.b	1
+	.skip	1
 unknown_43A6:
-	ds.b	1
+	.skip	1
 unknown_43A7:
-	ds.b	3
+	.skip	3
 unknown_43AA:
-	ds.b	1
+	.skip	1
 unknown_43AB:
-	ds.b	4
+	.skip	4
 unknown_43AF:
-	ds.b	2
+	.skip	2
 unknown_43B1:
-	ds.b	2
+	.skip	2
 unknown_43B3:
-	ds.b	1
+	.skip	1
 unknown_43B4:
-	ds.b	2
+	.skip	2
 unknown_43B6:
-	ds.b	2
+	.skip	2
 current_stage_43B8:
-	ds.b	1
+	.skip	1
 current_scroll_value_43B9:
-	ds.b	1
+	.skip	1
 nb_to_kill_before_stage_completed_43BA:
-	ds.b	1
+	.skip	1
 unknown_43BB:
-	ds.b	2
+	.skip	2
 unknown_43BD:
-	ds.b	3
+	.skip	3
 unknown_43C0:
-	ds.b	2
+	.skip	2
 player_ship_x_43C2:
-	ds.b	1
+	.skip	1
 player_ship_y_43C3:
-	ds.b	1
+	.skip	1
 player_shot_1_structure_43C4:
-	ds.b	2
+	.skip	2
 unknown_43C6:
-	ds.b	2
+	.skip	2
 player_shot_2_structure_43C8:
-	ds.b	4
+	.skip	4
 player_shot_3_structure_43CC:
-	ds.b	2
+	.skip	2
 unknown_43CE:
-	ds.b	18
+	.skip	18
 unknown_43E0:
-	ds.b	2
-unknown_43E2:
-	ds.b	4
+	.skip	2
+screen_address_43E2:
+	.skip	4
 ram_pointer_on_flying_enemies_table_43E6:
-	ds.b	1
+	.skip	1
 unknown_43E7:
-	ds.b	3
+	.skip	3
 ram_pointer_on_birds_table_43EA:
-	ds.b	1
+	.skip	1
 unknown_43EB:
-	ds.b	1
+	.skip	1
 unknown_43EC:
-	ds.b	2
+	.skip	2
 unknown_43EE:
-	ds.b	17
+	.skip	17
 unknown_43FF:
-	ds.b	836
-unknown_4743:
-	ds.b	327
-unknown_488A:
-	ds.b	284
-unknown_49A6:
-	ds.b	260
-unknown_4AAA:
-	ds.b	28
-unknown_4AC6:
-	ds.b	18
-unknown_4AD8:
-	ds.b	61
-unknown_4B15:
-	ds.b	12
-unknown_4B21:
-	ds.b	30
-unknown_4B3F:
-	ds.b	17
-unknown_4B50:
-	ds.b	32
-unknown_4B70:
-	ds.b	2
-unknown_4B72:
-	ds.b	1
-unknown_4B73:
-	ds.b	29
-unknown_4B90:
-	ds.b	24
-unknown_4BA8:
-	ds.b	8
-unknown_4BB0:
-	ds.b	3
-unknown_4BB3:
-	ds.b	13
-unknown_4BC0:
-	ds.b	17
-unknown_4BD1:
-	ds.b	1
-unknown_4BD2:
-	ds.b	1
-unknown_4BD3:
-	ds.b	2
-unknown_4BD5:
-	ds.b	1
-unknown_4BD6:
-	ds.b	1
-unknown_4BD7:
-	ds.b	33
-unknown_4BF8:
-	ds.b	7
+	.skip	1
+	
+	.skip	0x400	| $4400 non accessible?
+	
+bg_videoram:
+bg_videoram_4800:
+	.skip	0x340				| $4800
 
+unknown_4B40:
+	.skip	0x10
+unknown_4B50:
+	.skip	32
+unknown_4B70:
+	.skip	2
+unknown_4B72:
+	.skip	1
+unknown_4B73:
+	.skip	29
+unknown_4B90:
+	.skip	24
+unknown_4BA8:
+	.skip	8
+unknown_4BB0:
+	.skip	3
+unknown_4BB3:
+	.skip	13
+unknown_4BC0:
+	.skip	17
+unknown_4BD1:
+	.skip	1
+unknown_4BD2:
+	.skip	1
+unknown_4BD3:
+	.skip	2
+unknown_4BD5:
+	.skip	1
+unknown_4BD6:
+	.skip	1
+unknown_4BD7:
+	.skip	33
+unknown_4BF8:
+	.skip	8
+	

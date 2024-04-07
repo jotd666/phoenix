@@ -23,12 +23,6 @@
 	.align	2
 
 
-bg_videoram:
-					| $4000
-	.skip	0x400
-fg_videoram:
-					| $4800
-	.skip	0x400
 	
 bank_1:
 	.skip	0x1000

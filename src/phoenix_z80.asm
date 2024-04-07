@@ -1654,9 +1654,8 @@ read_controls_to_move_ship_0900:
 0974: 77              LD      (HL),A
 0975: C9              RET
 
-0978: 7E              LD      A,(HL)
-0979: E6 3A           AND     $3A
-097B: C2 43 47        JP      NZ,unknown_4743
+097A: 3A C2 43        LD      A,(unknown_43C2)
+097D: 47              LD      B,A
 097E: E6 07           AND     $07
 0980: 07              RLCA
 0981: 21 38 0B        LD      HL,$0B38
@@ -3203,25 +3202,8 @@ mothership_level_22CA:
 2331: 11 A6 49        LD      DE,unknown_49A6
 2334: 01 02 04        LD      BC,$0402
 2337: C3 D6 0A        JP      $0AD6               ;
-233A: 01 02 03        LD      BC,$0302
-233D: 04              INC     B
-233E: 05              DEC     B
-233F: 06 07           LD      B,$07
-2341: 0A              LD      A,(BC)
-2342: 07              RLCA
-2343: 0A              LD      A,(BC)
-2344: 07              RLCA
-2345: 0A              LD      A,(BC)
-2346: 07              RLCA
-2347: 0A              LD      A,(BC)
-2348: 07              RLCA
-2349: 0A              LD      A,(BC)
-234A: 09              ADD     HL,BC
-234B: 08              EX      AF,AF'
-234C: 04              INC     B
-234D: 03              INC     BC
-234E: 02              LD      (BC),A
-234F: 01 FF 1A        LD      BC,$1AFF
+
+2351: 1A              LD      A,(DE)
 2352: E6 08           AND     $08
 2354: C8              RET     Z
 2355: 7E              LD      A,(HL)
@@ -3512,8 +3494,7 @@ end_of_level_transition_244C:
 254A: 5F              LD      E,A
 254B: 06 04           LD      B,$04
 254D: C3 C4 00        JP      $00C4               ;
-; this code makes no sense, probably unused, never seems to be called
-2550: 32 80 2E        LD      ($2E80),A           ; write to rom?? bogus
+2552: 2E       
 2553: A4              AND     H
 2554: 36 07           LD      (HL),$07
 2556: 2C              INC     L
@@ -4063,7 +4044,9 @@ jump_table_3018:
 30D4: 2E 50           LD      L,$50
 30D6: 36 01           LD      (HL),$01
 30D8: C9              RET
-30D9: FE 2C           CP      $2C
+
+
+30DA: 2C              INC     L
 30DB: 7E              LD      A,(HL)
 30DC: A7              AND     A
 30DD: C8              RET     Z
@@ -4096,7 +4079,8 @@ jump_table_3018:
 310C: 2E 55           LD      L,$55
 310E: 77              LD      (HL),A
 310F: C9              RET
-3110: 21 50 2C        LD      HL,$2C50
+3110: 21 50 
+3112: 2C              INC     L
 3113: 7E              LD      A,(HL)
 3114: A7              AND     A
 3115: C0              RET     NZ
