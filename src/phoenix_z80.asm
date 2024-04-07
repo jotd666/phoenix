@@ -235,7 +235,7 @@ CheckInputBits:
 
 013B: FF FF FF FF FF
 
-; no idea of what it does. If commented out, first level is skipped
+init_new_play_0140:
 0140: CD A0 03        CALL    clear_background_tiles_03a0               ;
 0143: CD 80 00        CALL    WaitVBlankCoin_0080      ;
 0146: CD 80 03        CALL    clear_foreground_tiles_0380               ;
@@ -251,7 +251,7 @@ CheckInputBits:
 0158: CD D8 05        CALL    clear_area_05D8               ;
 015B: 2E BA           LD      L,$BA
 015D: 36 10           LD      (HL),$10
-015F: 2E BE           LD      L,$BE
+015F: 2E BE           LD      L,$BE				; extra_life_at_43BE
 0161: 3A 00 78        LD      A,($7800)           ; 78xx DSW0
 0164: E6 0C           AND     $0C                 ; Bonus lives
 0166: 07              RLCA
@@ -339,7 +339,7 @@ draw_game_status_01d0:
 01DD: C2 D0 01        JP      NZ,draw_game_status_01d0            ; No ... draw all columns
 01E0: C9              RET                         ; Done
 
-01E1: CD 40 01        CALL    $0140               ;
+01E1: CD 40 01        CALL    init_new_play_0140               ;
 01E4: 21 60 19        LD      HL,$1960
 01E7: 0E 03           LD      C,$03
 01E9: C3 D0 01        JP      draw_game_status_01d0               ;
@@ -520,7 +520,7 @@ CompareHLtoBC_0280:
 
 0286: FF FF
 
-0288: CD 40 01        CALL    $0140               ;
+0288: CD 40 01        CALL    init_new_play_0140               ;
 028B: 21 C0 19        LD      HL,$19C0
 028E: 0E 02           LD      C,$02
 0290: CD D0 01        CALL    draw_game_status_01d0               ;
@@ -540,10 +540,10 @@ CompareHLtoBC_0280:
 02B0: CD F0 02        CALL    $02F0               ;
 02B3: CD 2E 03        CALL    $032E               ;
 02B6: CD 50 03        CALL    $0350               ;
-02B9: CD 40 01        CALL    $0140               ;
+02B9: CD 40 01        CALL    init_new_play_0140               ;
 02BC: 26 50           LD      H,$50               ; 50xx video register
 02BE: 36 01           LD      (HL),$01            ; set bank 1
-02C0: CD 40 01        CALL    $0140               ;
+02C0: CD 40 01        CALL    init_new_play_0140               ;
 02C3: 26 50           LD      H,$50               ; 50xx video register
 02C5: 36 00           LD      (HL),$00            ; set bank 0
 02C7: C9              RET
@@ -814,6 +814,8 @@ init_new_play_0430:
 
 ; Copy memory bank to bank, only 3 areas are copied
 ; B=from bank number, C=to bank number
+; used to swap player memory on 2P mode (never called on 1P mode, even
+; if bank switching actually occurs at startup)
 ; Starts at 4320
 copy_bank_0460:
 0460: 21 00 50        LD      HL,$5000            ; 50xx video register

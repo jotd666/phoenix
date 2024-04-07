@@ -338,18 +338,19 @@ l_0046:
 
 * Initialize the sound (off) and screen (clear)
 InitSoundScreen_0050:
-	move.b	#0x68,d5                        	| [$0050: LD      H,$68] 68xx sound B
-	clr.b	(a0)                             	| [$0052: LD      (HL),$00] Sound off
-	move.b	#0x60,d5                        	| [$0054: LD      H,$60] 60xx sound A
-	clr.b	(a0)                             	| [$0056: LD      (HL),$00] Sound off
-	move.b	#0x58,d5                        	| [$0058: LD      H,$58] 58xx scroll register
-	clr.b	(a0)                             	| [$005a: LD      (HL),$00] set scrolling to zero
-	jbsr	ClearScreenPlane_006B             	| [$005c: CALL    ClearScreenPlane_006B] Clear the plane
-	move.b	#0x50,d5                        	| [$005f: LD      H,$50] 50xx video register
-	move.b	#0x01,(a0)                      	| [$0061: LD      (HL),$01] Second memory bank
-	jbsr	ClearScreenPlane_006B             	| [$0063: CALL    ClearScreenPlane_006B] Clear the plane
-	move.b	#0x50,d5                        	| [$0066: LD      H,$50] 50xx video register
-	clr.b	(a0)                             	| [$0068: LD      (HL),$00] Back to first memory bank
+											| [$0050: LD      H,$68] 68xx sound B
+												| [$0052: LD      (HL),$00] Sound off
+											| [$0054: LD      H,$60] 60xx sound A
+												| [$0056: LD      (HL),$00] Sound off
+	moveq	#0,d0                        	| [$0058: LD      H,$58] 58xx scroll register
+	jbsr	osd_set_scroll_value                    	| [$005a: LD      (HL),$00] set scrolling to zero
+	* not necessary, all is zero
+	*jbsr	ClearScreenPlane_006B             	| [$005c: CALL    ClearScreenPlane_006B] Clear the plane
+	*move.b	#0x50,d5                        	| [$005f: LD      H,$50] 50xx video register
+	*move.b	#0x01,(a0)                      	| [$0061: LD      (HL),$01] Second memory bank
+	*jbsr	ClearScreenPlane_006B             	| [$0063: CALL    ClearScreenPlane_006B] Clear the plane
+	*move.b	#0x50,d5                        	| [$0066: LD      H,$50] 50xx video register
+	*clr.b	(a0)                             	| [$0068: LD      (HL),$00] Back to first memory bank
 	rts                                    	| [$006a: RET] Done
 
 * Clear a screen plane (foreground or background)
@@ -375,21 +376,22 @@ l_0078:
 * Wait for the vertical blanking and then handle coin counting
 *
 WaitVBlankCoin_0080:
-	move.b	#0x78,d5                        	| [$0080: LD      H,$78] 78xx DSW0 Check ...
-	move.b	(a0),d0                         	| [$0082: LD      A,(HL)] ... screen blanking flag
-	and.b	#0x80,d0                         	| [$0083: AND     $80] Wait for it ...
-	jeq	WaitVBlankCoin_0080                	| [$0085: JP      Z,WaitVBlankCoin_0080] ... to set
-l_0088:
-	move.b	(a0),d0                         	| [$0088: LD      A,(HL)] Check screen blanking flag
-	and.b	#0x80,d0                         	| [$0089: AND     $80] Wait for it ...
-	jne	l_0088                             	| [$008b: JP      NZ,$0088] ... to clear (0=in blanking)
+	jbsr	osd_wait_for_vblank
+	                	| [$0080: LD      H,$78] 78xx DSW0 Check ...
+				| [$0082: LD      A,(HL)] ... screen blanking flag
+			| [$0083: AND     $80] Wait for it ...
+	              	| [$0085: JP      Z,WaitVBlankCoin_0080] ... to set
+
+	                        	| [$0088: LD      A,(HL)] Check screen blanking flag
+	     	| [$0089: AND     $80] Wait for it ...
+	                   	| [$008b: JP      NZ,$0088] ... to clear (0=in blanking)
 *
-	move.b	#0x70,d5                        	| [$008e: LD      H,$70] 70xx IN0 Current value ...
-	move.b	(a0),d0                         	| [$0090: LD      A,(HL)] ... of IN0 inputs
+	jbsr	osd_read_inputs                        	| [$008e: LD      H,$70] 70xx IN0 Current value ...
+	                         	| [$0090: LD      A,(HL)] ... of IN0 inputs
 	lea	current_input_value_43A0,a0                	| [$0091: LD      HL,current_input_value_43A0] Value from ...
 	move.b	(a0),d1                         	| [$0094: LD      B,(HL)] ... last read
-	move.b	d0,(a0)                         	| [$0095: LD      (HL),A] Store new value
-	addq.w	#1,a0                           	| [$0096: INC     L] To 43A1
+	move.b	d0,(a0)+                         	| [$0095: LD      (HL),A] Store new value
+	                           	| [$0096: INC     L] To 43A1
 	move.b	d1,(a0)                         	| [$0097: LD      (HL),B] Store old value
 	lea	unknown_439B,a0                        	| [$0098: LD      L,$9B] Bump the ...
 	jbsr	AddOneToMem_0200                  	| [$009a: CALL    AddOneToMem_0200] ... ?? counter
@@ -404,7 +406,7 @@ l_0088:
 	bne.b	0f                               	| [...]
 	rts                                    	| [$00a2: RET     Z] Yes ... nothing more to check [...]
 0:
-	jcc	l_0000                             	| [$00a3: JP      NC,$0000] More than 9? OOPS -- soft reset
+	**jcc	l_0000                             	| [$00a3: JP      NC,$0000] More than 9? OOPS -- soft reset
 	move.b	#0x01,d1                        	| [$00a6: LD      B,$01] Coin bit of the input register
 	jbsr	CheckInputBits                    	| [$00a8: CALL    CheckInputBits] Has the coin input gone from 1 to 0?
 	bne.b	0f                               	| [...]
@@ -428,7 +430,7 @@ CheckInputBits:
 	move.b	(a0)+,d0                         	| [$00be: LD      A,(HL)] ... input value
 	not.b	d0                               	| [$00bf: CPL] Flip the current bits
 	and.b	d1,d0                            	| [$00c0: AND     B] Mask off all but the ones we are checking
-	addq.w	#1,a0                           	| [$00c1: INC     L] Point to last input value
+											| [$00c1: INC     L] Point to last input value
 	and.b	(a0),d0                          	| [$00c2: AND     (HL)] Zero unles new bit is 0 and old is 1
 	rts                                    	| [$00c3: RET] Return state
 
@@ -496,8 +498,7 @@ l_00e3:
 
 
 
-* no idea of what it does. If commented out, first level is skipped
-l_0140:
+init_new_play_0140:
 	jbsr	clear_background_tiles_03a0                            	| [$0140: CALL    $03A0]
 	jbsr	WaitVBlankCoin_0080               	| [$0143: CALL    WaitVBlankCoin_0080]
 	jbsr	clear_foreground_tiles_0380                            	| [$0146: CALL    $0380]
@@ -513,14 +514,14 @@ l_0140:
 	jbsr	clear_area_05D8                   	| [$0158: CALL    clear_area_05D8]
 	lea	nb_to_kill_before_stage_completed_43BA,a0                        	| [$015b: LD      L,$BA]
 	move.b	#0x10,(a0)                      	| [$015d: LD      (HL),$10]
-	lea	unknown_43BE,a0                        	| [$015f: LD      L,$BE]
+	lea	extra_life_at_43BE,a0                        	| [$015f: LD      L,$BE]
 	jbsr	osd_read_dipswitches                       	| [$0161: LD      A,($7800)] 78xx DSW0
 	and.b	#0x0C,d0                         	| [$0164: AND     $0C] Bonus lives
 	rol.b	#2,d0                            	| [$0166: RLCA] * 2
 	add.b	#0x30,d0                         	| [$0168: ADD     $30]
 	move.b	d0,(a0)                         	| [$016a: LD      (HL),A]
-	move.b	#0x58,d5                        	| [$016b: LD      H,$58] 58xx scroll register
-	clr.b	(a0)                             	| [$016d: LD      (HL),$00]
+	moveq	#0,d0                        	| [$016b: LD      H,$58] 58xx scroll register
+	jbsr	osd_set_scroll_value                             	| [$016d: LD      (HL),$00]
 	jbsr	WaitVBlankCoin_0080               	| [$016f: CALL    WaitVBlankCoin_0080]
 	rts                                    	| [$0172: RET]
 
@@ -619,13 +620,20 @@ draw_game_status_01d0:
 	addq.w	#0x05,a0                        	| [$01d4: ADD     $05] ... go get ...
 												| [$01d6: LD      L,A] ... data
 	move.b	#0x1A,d1                        	| [$01d7: LD      B,$1A] 26 columns
+	LOAD_D3_16_FROM_D3D4
+
+	cmp.w	#0x5000,d3
+	bcs.b	0f
+	dc.w	0x60FE
+
+0:
 	jbsr	DrawColumn_01ED                   	| [$01d9: CALL    DrawColumn_01ED] Draw next column
 	subq.w	#1,d2                           	| [$01dc: DEC     C] All columns done?
 	jne	draw_game_status_01d0                             	| [$01dd: JP      NZ,$01D0] No ... draw all columns
 	rts                                    	| [$01e0: RET] Done
 
 l_01e1:
-	jbsr	l_0140                            	| [$01e1: CALL    $0140]
+	jbsr	init_new_play_0140                            	| [$01e1: CALL    $0140]
 l_01e4:
 	lea	game_rom+0x1960,a0                      	| [$01e4: LD      HL,$1960]
 	move.b	#0x03,d2                        	| [$01e7: LD      C,$03]
@@ -637,7 +645,8 @@ l_01e4:
 *
 DrawColumn_01ED:
 	move.b	(a0)+,d0                         	| [$01ed: LD      A,(HL)] Copy the data ...
-	move.b	d0,(a1)                         	| [$01ee: LD      (DE),A] .. to the screen
+	move.w	d3,d7
+	jbsr	osd_w_videoram                         	| [$01ee: LD      (DE),A] .. to the screen
 												| [$01ef: INC     HL] Next in data
 	jbsr	SubtractOneRow_0217               	| [$01f0: CALL    SubtractOneRow_0217] Move DE to next row
 	subq.b	#1,d1                           	| [$01f3: DEC     B] All drawn?
@@ -781,7 +790,7 @@ SubtractToMemory_0277:
 
 
 l_0288:
-	jbsr	l_0140                            	| [$0288: CALL    $0140]
+	jbsr	init_new_play_0140                            	| [$0288: CALL    $0140]
 	lea	game_rom+0x19C0,a0                      	| [$028b: LD      HL,$19C0]
 	move.b	#0x02,d2                        	| [$028e: LD      C,$02]
 	jbsr	draw_game_status_01d0                            	| [$0290: CALL    $01D0]
@@ -804,10 +813,10 @@ l_02a7:
 	jbsr	l_02f0                            	| [$02b0: CALL    $02F0]
 	jbsr	l_032e                            	| [$02b3: CALL    $032E]
 	jbsr	l_0350                            	| [$02b6: CALL    $0350]
-	jbsr	l_0140                            	| [$02b9: CALL    $0140]
+	jbsr	init_new_play_0140                            	| [$02b9: CALL    $0140]
 	move.b	#0x50,d5                        	| [$02bc: LD      H,$50] 50xx video register
 	move.b	#0x01,(a0)                      	| [$02be: LD      (HL),$01] set bank 1
-	jbsr	l_0140                            	| [$02c0: CALL    $0140]
+	jbsr	init_new_play_0140                            	| [$02c0: CALL    $0140]
 	move.b	#0x50,d5                        	| [$02c3: LD      H,$50] 50xx video register
 	clr.b	(a0)                             	| [$02c5: LD      (HL),$00] set bank 0
 	rts                                    	| [$02c7: RET]
@@ -1117,13 +1126,17 @@ init_new_play_0430:
 
 * Copy memory bank to bank
 * D1=from bank number, D2=to bank number
+* used to swap player memory on 2P mode (never called on 1P mode)
 * Starts at 4320
 copy_bank_0460:
 	LOAD_D1D2_FROM_D1_16
 	illegal
 	**jbsr	osd_copy_bank
 	rts
-	
+
+* copy 4 bytes from 4320-4323, then 4300-4303 ... until reaching 42E0
+* (video memory)
+
 *	lea	l_5000,a0                      	| [$0460: LD      HL,$5000] 50xx video register
 *	lea	unknown_4320,a1                	| [$0463: LD      DE,unknown_4320]
 *l_0466:
@@ -1147,7 +1160,8 @@ copy_bank_0460:
 *	move.b	d3,d0                           	| [$047b: LD      A,D]
 *	cmp.b	#0x3F,d0                         	| [$047c: CP      $3F]
 *	jne	l_0466                             	| [$047e: JP      NZ,$0466]
-* 4380 => 43B8
+
+* then copies 4380 => 43B8 (player/game state)
 *	lea	unknown_4380,a1                	| [$0481: LD      DE,unknown_4380]
 *l_0484:
 *	move.b	d1,(a0)                         	| [$0484: LD      (HL),B]
@@ -1438,8 +1452,10 @@ update_scrolling_067A:
                            	| [$0696: INC     L]
 	move.b	(a0),d6                         	| [$0697: LD      L,(HL)]
 	move.b	d0,d5                           	| [$0698: LD      H,A]
+	bsr		load_rom_in_a0_from_d5d6
 l_0699:
 	move.b	(a0)+,d0                         	| [$0699: LD      A,(HL)]
+	addq.b	#1,d6								| we need address lsb
 	jbsr	osd_w_videoram                         	| [$069a: LD      (DE),A]
 	                           	| [$069b: INC     L]
 	                           	| [$069c: LD      A,E]
@@ -2939,7 +2955,7 @@ l_0f56:
 	movem.w	d3/d4,-(sp)                    	| [$0f57: PUSH    DE]
 l_0f58:
 	move.w	d3,d7                         	| [$0f58: LD      A,(DE)]
-	jbsr	osd_r_videoram
+	bsr	read_ram
 	cmp.b	#0x60,d0                         	| [$0f59: CP      $60]
 	jcs	l_0f63                             	| [$0f5b: JP      C,$0F63]
 	cmp.b	#0xC0,d0                         	| [$0f5e: CP      $C0]
@@ -4381,7 +4397,7 @@ l_2778:
 	jbsr	display_players_lives_0367                            	| [$2791: CALL    $0367]
 	st.b	d0                                	| [$2794: LD      A,$FF]
 	move.b	d0,unknown_436A                 	| [$2796: LD      (unknown_436A),A]
-	lea	unknown_43BE,a0                        	| [$2799: LD      L,$BE]
+	lea	extra_life_at_43BE,a0                        	| [$2799: LD      L,$BE]
 	move.b	(a0),d0                         	| [$279b: LD      A,(HL)]
 	clr.b	(a0)                             	| [$279c: LD      (HL),$00]
 	ror.b	#4,d0                            	| [$279e: RRCA] * 4
@@ -4905,11 +4921,11 @@ l_3264:
 	sub.b	d1,d0                            	| [$328d: SUB     B]
 	move.b	d0,d1                           	| [$328e: LD      B,A]
 l_328f:
-	jbsr	osd_r_videoram                         	| [$328f: LD      A,(HL)]
+	jbsr	read_ram                         	| [$328f: LD      A,(HL)]
 	addq.w	#1,d7                           	| [$3290: INC     L]
 	cmp.b	d4,d0                            	| [$3291: CP      E]
 	jne	l_32a4                             	| [$3292: JP      NZ,$32A4]
-	jbsr	osd_r_videoram                         	| [$3295: LD      A,(HL)]
+	jbsr	read_ram                         	| [$3295: LD      A,(HL)]
 	cmp.b	d3,d0                            	| [$3296: CP      D]
 	jne	l_32a4                             	| [$3297: JP      NZ,$32A4]
 	subq.w	#1,d7                           	| [$329a: DEC     L]

@@ -80,7 +80,7 @@
 	.global	unknown_43B6
 	.global	unknown_43BB
 	.global	unknown_43BD
-	.global	unknown_43BE
+	.global	extra_life_at_43BE
 	.global	unknown_43C0
 	.global	unknown_43C6
 	.global	unknown_43CE
@@ -275,7 +275,7 @@ unknown_43BB:
 	.skip	2
 unknown_43BD:
 	.skip	1
-unknown_43BE:
+extra_life_at_43BE:
 	.skip	2
 unknown_43C0:
 	.skip	2

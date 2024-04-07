@@ -129,7 +129,6 @@ start:
 		.global osd_break		| for debug	
 		*.global osd_calibrate_display		| for debug
 		.global osd_w_videoram
-		.global osd_r_videoram
 		.global osd_read_dipswitches
 		.global osd_read_inputs
 		.global osd_read_high_scores
@@ -138,7 +137,7 @@ start:
 		.global osd_sound_start
 		.global osd_sound_stop
 		.global	osd_write_5000
-		.global	osd_wait
+		.global	osd_wait_for_vblank
 
 	
 	.include	"ReadJoypad.i"
@@ -542,6 +541,8 @@ demo_game:
 		bsr			platform_init					| amiga-specific init
 		
 0:	
+	jbsr	enable_vblank_interrupt
+	
 		jmp			phoenix_reset					| pass control to the phoenix core
 		
 	
@@ -558,6 +559,8 @@ _vblank:
 	btst	#5,d0
 	beq.b		1f
 
+	st.b	vblank_flag
+	
 	move.l	_joypad_state(pc),d1
 	moveq	#1,d0
 	jsr	_read_joystick
@@ -652,41 +655,6 @@ osd_break:
 1003:
         .align	
 
-	
-
-* < D0: number of 1/60Hz ticks
-* can work with interrupts enabled or disabled
-osd_wait:
-	move.w	d0,delay_timer
-	jbsr	osd_is_vblank_interrupt_enabled
-	tst.w	d0
-	jne		2f
-	* interrupts are disabled: timer isn't going to change
-	* wait using vertical blank interrupt request (we don't need it!)
-	clr.w	one_out_of_five
-0:
-	move.w	#0x20,_custom+intreq
-	move.w	#0x20,_custom+intreq
-1:
-	move.w	_custom+intreqr,d0
-	btst	#5,d0
-	beq.b	1b
-	addq.w	#1,one_out_of_five
-	cmp.w	#5,one_out_of_five
-	bne.b	5f
-	subq.w	#1,delay_timer	
-	clr.w	one_out_of_five
-5:
-	subq.w	#1,delay_timer
-	beq.b	4f
-	bpl.b	0b
-4:
-	rts
-	
-2:
-	tst.w	delay_timer
-	bne.b	2b
-	rts
 	
 
 
@@ -952,8 +920,9 @@ platform_init:
 	.endif
 	
 	* restrict borders: we don't see bobs on the borders!
-    move.w #0x1C99+0x20,diwstrt(a5)
-    move.w #0x2481-8,diwstop(a5)
+	*         VVHH
+    move.w #0x1C99+0x18,diwstrt(a5)
+    move.w #0x2481,diwstop(a5)
     move.w #0x0038,ddfstrt(a5)
     move.w #0x00D0,ddfstop(a5)
     move.w #0x6600,bplcon0(a5) | 6 bitplanes DPF
@@ -1073,15 +1042,17 @@ osd_set_palette:
 	movem.l	(a7)+,d0-d1/a0-a1
 	rts
 	
+osd_wait_for_vblank:
+	clr.b	vblank_flag
+0:
+	tst.b	vblank_flag
+	beq.b	0b
 	
-* < D0: nonzero interrupts enabled
-osd_is_vblank_interrupt_enabled:
-	move.w	_custom+intenar,d0
-	and.w	#0x0030,d0
 	rts
 	
+	
 * 60Hz VBLANK interrupt (also keyboard)
-osd_enable_vblank_interrupt:
+enable_vblank_interrupt:
 	move.w	#0xC038,_custom+intena
 	rts
 
@@ -1392,26 +1363,6 @@ seed:
 	dc.l	0x12345678
 
 	
-* d6=screen address
-osd_r_videoram:
-	movem.l	a0/d6,-(a7)
-	*sub.w	#SCREEN_ADDRESS,d6
-	bmi.b	0f
-	cmp.w	#0x400,d6
-	bcs.b	1f
-0:
-	* should not happen
-	blitz
-	clr.b	d0
-	move.b	D1,d1
-	nop
-	bra.b	2f
-1:
-	lea		bg_videoram,a0
-	move.b	(a0,d6.w),d0
-2:
-	movem.l	(a7)+,a0/d6
-	rts
 
 osd_read_dipswitches:
 	* actual dipswitches
@@ -1867,7 +1818,9 @@ music_muted:
 	.byte	0
 dynamic_color_mode:
 	.byte	0
-
+vblank_flag:
+	.byte	0
+	
 cheat_used:
 	.byte	0
 dosname:
