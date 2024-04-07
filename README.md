@@ -8,6 +8,7 @@ jump table? 0EE5
 check ,d6 shit
 check BC,\$0.0.
 check DE,\$0.0.
+debug copy_bank
 
 converter: ADD     $DE] => add 0xA1 !!!!
 

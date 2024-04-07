@@ -18,6 +18,7 @@
 	.global	unknown_4352
 	.global	unknown_4353
 	.global	unknown_4354
+	.global	unknown_4355
 	.global	unknown_4356
 	.global	unknown_4357
 	.global	unknown_4358
@@ -28,6 +29,7 @@
 	.global	unknown_4363
 	.global	unknown_4364
 	.global	unknown_4366
+	.global	unknown_4367
 	.global	unknown_4368
 	.global	unknown_4369
 	.global	unknown_436A
@@ -41,9 +43,11 @@
 	.global	unknown_437C
 	.global	unknown_4380
 	.global	unknown_4383
+	.global player_score_end_4387
 	.global	unknown_4389
 	.global	unknown_438B
 	.global	unknown_438C
+	.global	unknown_438D
 	.global	unknown_438E
 	.global	CoinCount_438F
 	.global	unknown_4392
@@ -52,17 +56,21 @@
 	.global	unknown_4395
 	.global	unknown_4396
 	.global	unknown_4397
+	.global	unknown_4398
 	.global	unknown_4399
-	.global	unknown_439A
+	.global	counter_439A
 	.global	unknown_439B
 	.global	unknown_439C
 	.global	unknown_439D
 	.global	unknown_439E
 	.global	unknown_439F
 	.global	current_input_value_43A0
-	.global	unknown_43A3
+	.global	current_player_is_p2_43A3
+
+	.global timer_43A5
 	.global	unknown_43A6
 	.global	unknown_43A7
+	.global	unknown_43A8
 	.global	unknown_43AA
 	.global	unknown_43AB
 	.global	unknown_43AF
@@ -72,9 +80,13 @@
 	.global	unknown_43B6
 	.global	unknown_43BB
 	.global	unknown_43BD
+	.global	unknown_43BE
 	.global	unknown_43C0
 	.global	unknown_43C6
 	.global	unknown_43CE
+	.global unknown_43D3
+	.global unknown_43D4
+	.global unknown_43D6
 	.global	unknown_43E0
 	.global	screen_address_43E2
 	.global	ram_pointer_on_flying_enemies_table_43E6
@@ -103,8 +115,9 @@
 	.global	unknown_4BD7
 	.global	unknown_4BF8
 
-
-
+	.global	game_ram
+	
+game_ram:
 fg_videoram:
 fg_videoram_4000:
 					| $4000
@@ -121,7 +134,9 @@ unknown_4352:
 unknown_4353:
 	.skip	1
 unknown_4354:
-	.skip	2
+	.skip	1
+unknown_4355:
+	.skip	1
 unknown_4356:
 	.skip	1
 unknown_4357:
@@ -141,7 +156,9 @@ unknown_4363:
 unknown_4364:
 	.skip	2
 unknown_4366:
-	.skip	2
+	.skip	1
+unknown_4367:
+	.skip	1
 unknown_4368:
 	.skip	1
 unknown_4369:
@@ -164,22 +181,30 @@ unknown_4378:
 	.skip	4
 unknown_437C:
 	.skip	4
+	* player 1 score highest digit: 4381
 unknown_4380:
 	.skip	3
 unknown_4383:
-	.skip	6
+	.skip	4
+player_score_end_4387:
+	.skip	2
 unknown_4389:
 	.skip	2
 unknown_438B:
 	.skip	1
 unknown_438C:
-	.skip	2
+	.skip	1
+unknown_438D:
+	.skip	1
+
 unknown_438E:
 	.skip	1
 CoinCount_438F:
 	.skip	1
 nb_lives_p1_4390:
-	.skip	2
+	.skip	1
+nb_lives_p2_4391:
+	.skip	1
 unknown_4392:
 	.skip	1
 unknown_4393:
@@ -191,10 +216,12 @@ unknown_4395:
 unknown_4396:
 	.skip	1
 unknown_4397:
-	.skip	2
+	.skip	1
+unknown_4398:
+	.skip	1
 unknown_4399:
 	.skip	1
-unknown_439A:
+counter_439A:
 	.skip	1
 unknown_439B:
 	.skip	1
@@ -210,7 +237,7 @@ current_input_value_43A0:
 	.skip	2
 game_in_play_43A2:
 	.skip	1
-unknown_43A3:
+current_player_is_p2_43A3:
 	.skip	1
 game_state_43A4:
 	.skip	1
@@ -219,7 +246,9 @@ timer_43A5:
 unknown_43A6:
 	.skip	1
 unknown_43A7:
-	.skip	3
+	.skip	1
+unknown_43A8:
+	.skip	2
 unknown_43AA:
 	.skip	1
 unknown_43AB:
@@ -227,7 +256,9 @@ unknown_43AB:
 unknown_43AF:
 	.skip	2
 unknown_43B1:
-	.skip	2
+	.skip	1
+unknown_43B2:
+	.skip	1
 unknown_43B3:
 	.skip	1
 unknown_43B4:
@@ -243,7 +274,9 @@ nb_to_kill_before_stage_completed_43BA:
 unknown_43BB:
 	.skip	2
 unknown_43BD:
-	.skip	3
+	.skip	1
+unknown_43BE:
+	.skip	2
 unknown_43C0:
 	.skip	2
 player_ship_x_43C2:
@@ -259,7 +292,13 @@ player_shot_2_structure_43C8:
 player_shot_3_structure_43CC:
 	.skip	2
 unknown_43CE:
-	.skip	18
+	.skip	5
+unknown_43D3:
+	.skip	1
+unknown_43D4:
+	.skip	2
+unknown_43D6:
+	.skip	10
 unknown_43E0:
 	.skip	2
 screen_address_43E2:

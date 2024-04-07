@@ -134,9 +134,10 @@ start:
 		.global osd_read_inputs
 		.global osd_read_high_scores
 		.global osd_write_high_scores
+		.global osd_set_scroll_value
 		.global osd_sound_start
 		.global osd_sound_stop
-		.global	osd_get_random
+		.global	osd_write_5000
 		.global	osd_wait
 
 	
@@ -1035,6 +1036,12 @@ platform_init:
 	
     rts
 
+* < D0: bit 0: palette 0/1, we'll ignore that, and will use level info
+* < D0: bit 1: rom bank: check current/previous bank and swap memory 
+* & video if needed
+osd_write_5000:
+
+	rts
 	
 * < D0: level index
 osd_set_palette:
