@@ -1112,6 +1112,7 @@ decode_sprite_data:
 
 osd_w_videoram:
 	movem.l	d0-d3/d7/a0-a2,-(a7)
+	move.w	d7,d3
 	
 	sub.w	#FORE_SCREEN_ADDRESS,d7
 	bcs.b	0f
@@ -1124,7 +1125,8 @@ osd_w_videoram:
 	bcs.b	write_back_videoram
 0:
 	* should not happen
-	blitz
+	lea		write_videoram_out_of_range,a0
+	jbsr	osd_break
 	nop
 	move.b	d0,d0
 	nop	
@@ -1824,16 +1826,16 @@ vblank_flag:
 cheat_used:
 	.byte	0
 dosname:
-	.ascii	"dos.library"
-	.byte	0
+	.asciz	"dos.library"
+
 graphicsname:
-	.ascii	"graphics.library"
-	.byte	0
+	.asciz	"graphics.library"
 normal_hiscorename:
 	.asciz	"phoenix.high"
 floppy_file:
-	.ascii	"floppy"
-	.byte	0
+	.asciz	"floppy"
+write_videoram_out_of_range:
+	.asciz	"write videoram out of range"
 temp_filename_buffer:
 	ds.b	255
 _end_of_ng_code:

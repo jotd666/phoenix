@@ -305,6 +305,8 @@ l_0000:
 	lea	game_rom+0x1800,a0                      	| [$0012: LD      HL,$1800] Screen draw info
 	move.b	#0x03,d2                        	| [$0015: LD      C,$03] 3 columns (rotated to 3 rows)
 	jbsr	draw_game_status_01d0                            	| [$0017: CALL    $01D0] Draw the first 3 rows of the background (scores and coins);
+
+	
 * init has ended, enter the mainloop, always called no matter what
 mainloop_001A:
 	jbsr	WaitVBlankCoin_0080               	| [$001a: CALL    WaitVBlankCoin_0080] Wait for VBlank and count any coins
@@ -363,7 +365,7 @@ ClearScreenPlane_006B:
 l_0070:
 	clr.b	(a0)                             	| [$0070: LD      (HL),$00] Clear the memory
 	subq.w	#1,a0                           	| [$0072: DEC     HL] Point to next
-	cmp.b	d5,d0                            	| [$0073: CP      H] All done?
+	cmp.l	#fg_videoram_4000,d0                            	| [$0073: CP      H] All done?
 	jne	l_0070                             	| [$0074: JP      NZ,$0070] No ... go back for all
 	rts                                    	| [$0077: RET] Done
 
@@ -622,13 +624,10 @@ draw_game_status_01d0:
 	move.b	#0x1A,d1                        	| [$01d7: LD      B,$1A] 26 columns
 	LOAD_D3_16_FROM_D3D4
 
-	cmp.w	#0x5000,d3
-	bcs.b	0f
-	dc.w	0x60FE
-
-0:
+	
+	
 	jbsr	DrawColumn_01ED                   	| [$01d9: CALL    DrawColumn_01ED] Draw next column
-	subq.w	#1,d2                           	| [$01dc: DEC     C] All columns done?
+	subq.b	#1,d2                           	| [$01dc: DEC     C] All columns done?
 	jne	draw_game_status_01d0                             	| [$01dd: JP      NZ,$01D0] No ... draw all columns
 	rts                                    	| [$01e0: RET] Done
 
@@ -953,7 +952,6 @@ l_0377:
 
 clear_foreground_tiles_0380:
 	move.w	#0x433F,d7                	| [$0380: LD      HL,unknown_433F]  bottom left corner
-	move.b	#0x43,d5
 	move.w	#0x00,d3                      	| [$0383: LD      DE,$001F] 31
 	move.w	#0x1F,d4                      	| [$0383: LD      DE,$001F] 31
 	move.b	#3,d1
@@ -972,7 +970,8 @@ l_0389:
 	clr.b	d0
 	jbsr	osd_w_videoram                         	| [$0393: LD      (HL),D]
 	subq.w	#4,d7                           	| [$0394: DEC     HL] * 4
-	move.b	d5,d0                           	| [$0398: LD      A,H]
+	move.w	d7,d0                           	| [$0398: LD      A,H]
+	ror.w	#8,d0
 	cmp.b	d2,d0                            	| [$0399: CP      C]
 	jne	l_0389                             	| [$039a: JP      NZ,$0389]
 	rts                                    	| [$039d: RET]
@@ -981,7 +980,6 @@ l_0389:
 
 clear_background_tiles_03a0:
 	move.w	#0x4B3F,d7                	| [$03a0: LD      HL,unknown_4B3F]  bottom left corner, background
-	move.b	#0x4B,d5
 	move.w	#0x47,d4                      	| [$03a3: LD      DE,$0047] 71
 l_03a6:
 	clr.b	d0
@@ -989,7 +987,8 @@ l_03a6:
 	subq.w	#1,d7                           	| [$03a7: DEC     HL]
 	jbsr	osd_w_videoram                         	| [$03a8: LD      (HL),D]
 	subq.w	#1,d7                           	| [$03a9: DEC     HL]
-	move.b	d5,d0                           	| [$03aa: LD      A,H]
+	move.w	d7,d0                           	| [$03aa: LD      A,H]
+	ror.w	#8,d0
 	cmp.b	d4,d0                            	| [$03ab: CP      E]
 	jne	l_03a6                             	| [$03ac: JP      NZ,$03A6]
 	rts                                    	| [$03af: RET]
@@ -1516,6 +1515,8 @@ l_06b0:
 	add.w	d6,a0
 	jbsr	l_07dc                            	| [$06e4: CALL    $07DC]
 	rts                                    	| [$06e7: RET]
+	
+	
 l_06e8:
 	lea	game_rom+0x1800,a0                      	| [$06e8: LD      HL,$1800]
 	move.b	#0x01,d2                        	| [$06eb: LD      C,$01]
