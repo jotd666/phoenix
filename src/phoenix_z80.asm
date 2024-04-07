@@ -573,11 +573,11 @@ CompareHLtoBC_0280:
 02F0: 11 83 43        LD      DE,unknown_4383
 02F3: 21 8B 43        LD      HL,unknown_438B
 02F6: CD 14 03        CALL    $0314               ;
-02F9: D4 20 03        CALL    NC,$0320            ;
+02F9: D4 20 03        CALL    NC,copy_3_bytes_a0_a1_0320            ;
 02FC: 1E 87           LD      E,$87
 02FE: 2E 8B           LD      L,$8B
 0300: CD 14 03        CALL    $0314               ;
-0303: D4 20 03        CALL    NC,$0320            ;
+0303: D4 20 03        CALL    NC,copy_3_bytes_a0_a1_0320            ;
 0306: 2E 8B           LD      L,$8B
 0308: 11 41 41        LD      DE,unknown_4141
 030B: 06 06           LD      B,$06
@@ -600,6 +600,8 @@ CompareHLtoBC_0280:
 031D: 9E              SBC     (HL)
 031E: C9              RET
 031F: FF              RST     0X38
+
+copy_3_bytes_a0_a1_0320:
 0320: 1A              LD      A,(DE)
 0321: 77              LD      (HL),A
 0322: 13              INC     DE
@@ -5200,6 +5202,7 @@ player_shots_vs_vultures_collision_3800:
 38CD: FE 03           CP      $03
 38CF: D2 E9 38        JP      NC,$38E9            ;
 38D2: 47              LD      B,A
+; setting HL to DE+5
 38D3: 62              LD      H,D
 38D4: 7B              LD      A,E
 38D5: C6 05           ADD     $05
