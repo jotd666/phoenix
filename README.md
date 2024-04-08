@@ -1,5 +1,8 @@
 # phoenix500
-remake of Phoenix for Amiga
+remake of Phoenix for ECS Amiga
+
+jotd: reverse-engineering, transcode, graphics conversion
+PascalDe73: amiga icons
 
 todo:
 

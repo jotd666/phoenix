@@ -127,9 +127,9 @@ load_rom_in_a0_from_d5d6:
 	.ifndef	RELEASE
 	cmp.w	#ROM_TOP,d5
 	bcs.b	0f
+	lea		load_rom_in_a0_from_d5d6_out_of_range_error(pc),a1
+	jbsr	osd_break
 	illegal
-	.word	ROM_TOP
-	.ascii	"A0D5"
 0:
 	.endif
 	lea		game_rom,a0
@@ -147,9 +147,9 @@ load_rom_in_a0_from_d6w:
 	.ifndef	RELEASE
 	cmp.w	#ROM_TOP,d6
 	bcs.b	0f
+	lea		load_rom_in_a0_from_d6w_out_of_range_error(pc),a1
+	jbsr	osd_break
 	illegal
-	.word	ROM_TOP
-	.ascii	"A0D6"
 0:
 	.endif
 	lea		game_rom,a0
@@ -164,9 +164,10 @@ load_ram_in_a1_from_d3d4:
 	.ifndef	RELEASE
 	bcc.b	1f
 0:
+	add.w	#RAM_START,d3
+	lea		load_ram_in_a1_from_d3d4_out_of_range_error(pc),a1
+	jbsr	osd_break
 	illegal
-	.word	RAM_START
-	.ascii	"A1D3"
 	.endif
 1:
 	.ifndef	RELEASE
@@ -185,9 +186,10 @@ read_ram:
 	.ifndef	RELEASE
 	bcc.b	1f
 0:
+	add.w	#RAM_START,d7
+	lea		read_ram_out_of_range_error(pc),a1
+	jbsr	osd_break
 	illegal
-	.word	RAM_START
-	.ascii	"D7D7"
 	.endif
 1:	
 	.ifndef	RELEASE
@@ -258,6 +260,18 @@ load_rom_in_a1_from_d3d4:
 	move.w	(a7)+,d3
 	rts
 	
+	.ifndef	RELEASE
+load_rom_in_a0_from_d5d6_out_of_range_error:
+	.asciz	"load_rom_in_a0_from_d5d6_out_of_range"
+load_rom_in_a0_from_d6w_out_of_range_error:
+	.asciz	"load_rom_in_a0_from_d6w_out_of_range"
+load_ram_in_a1_from_d3d4_out_of_range_error:
+	.asciz	"load_ram_in_a1_from_d3d4_out_of_range"
+read_ram_out_of_range_error:
+	.asciz	"read_ram_out_of_range"
+	.endif
+	.align	2
+
 copy_a0_a1_d1_mem:
 	move.b	(a1)+,(a0)+                         	| [$3520: LD      A,(DE)]
 	                        	| [$3521: LD      (HL),A]
@@ -365,7 +379,7 @@ ClearScreenPlane_006B:
 l_0070:
 	clr.b	(a0)                             	| [$0070: LD      (HL),$00] Clear the memory
 	subq.w	#1,a0                           	| [$0072: DEC     HL] Point to next
-	cmp.l	#fg_videoram_4000,d0                            	| [$0073: CP      H] All done?
+	cmp.l	#fg_videoram_4000,a0                            	| [$0073: CP      H] All done?
 	jne	l_0070                             	| [$0074: JP      NZ,$0070] No ... go back for all
 	rts                                    	| [$0077: RET] Done
 
@@ -565,6 +579,7 @@ l_0173:
 	move.b	#0x7E,d1                        	| [$0192: LD      B,$7E]
 	rts                                    	| [$0194: RET]
 
+* HL=$4399 on entry
 l_0196:
 	move.b	(a0),d0                         	| [$0196: LD      A,(HL)]
 	and.b	#0x1F,d0                         	| [$0197: AND     $1F]
@@ -578,36 +593,39 @@ l_0196:
 	move.b	d0,d2                           	| [$01a0: LD      C,A]
 	                           	| [$01a1: DEC     L]
 	move.b	-(a0),d1                         	| [$01a2: LD      B,(HL)]
-	ILLEGAL  | check A0 value
 	lea	unknown_43A8,a0                        	| [$01a3: LD      L,$A8]
 	move.b	d1,(a0)+                         	| [$01a5: LD      (HL),B]
 	                           	| [$01a6: INC     L]
 	move.b	d2,(a0)                         	| [$01a7: LD      (HL),C]
-	move.w	#0x1860,d1                      	| [$01a8: LD      BC,$1860]
+	move.b	#0x18,d1                      	| [$01a8: LD      BC,$1860]
+	move.b	#0x60,d2                      	| [$01a8: LD      BC,$1860]
 	jbsr	AddBCtoMem_0206                   	| [$01ab: CALL    AddBCtoMem_0206]
 	move.b	(a0),d0                         	| [$01ae: LD      A,(HL)]
 	                           	| [$01af: DEC     L]
 	move.b	-(a0),d5                         	| [$01b0: LD      H,(HL)]
 	move.b	d0,d6                           	| [$01b1: LD      L,A]
+	bsr		load_rom_in_a0_from_d5d6
+	moveq	#0,d0
 	move.b	d4,d0                           	| [$01b2: LD      A,E]
-	move.b	(a0)+,d3                         	| [$01b3: LD      D,(HL)]
+	* get screen address to display current char
+	move.b	(a0),d3                         	| [$01b3: LD      D,(HL)]
 	                           	| [$01b4: INC     L]
-	move.b	(a0),d4                         	| [$01b5: LD      E,(HL)]
-	subq.w	#1,a0                           	| [$01b6: DEC     L]
-	move.b	d0,d2                           	| [$01b7: LD      C,A]
-	add.b	d6,d0                            	| [$01b8: ADD     A,L]
-	move.b	d0,d6                           	| [$01b9: LD      L,A]
-	move.b	d2,d0                           	| [$01ba: LD      A,C]
-	subq.b	#0x06,d0                        	| [$01bb: SUB     $06]
+	move.b	(1,a0),d4                         	| [$01b5: LD      E,(HL)]
+	                           	| [$01b6: DEC     L]
+	                           	| [$01b7: LD      C,A]
+	add.w	d0,a0                            	| [$01b8: ADD     A,L]
+	                           	| [$01b9: LD      L,A]
+	                           	| [$01ba: LD      A,C]
 	LOAD_D3_16_FROM_D3D4
-	move.b	d0,d2                           	| [$01bd: LD      C,A]
+	subq.b	#0x06,d0                        	| [$01bb: SUB     $06]
 	jeq	l_01c8                             	| [$01be: JP      Z,$01C8]
+	move.b	d0,d2                           	| [$01bd: LD      C,A]
 l_01c1:
-	
 	jbsr	SubtractOneRow_0217               	| [$01c1: CALL    SubtractOneRow_0217]
-	subq.w	#1,d1                           	| [$01c4: DEC     C]
+	subq.b	#1,d2                           	| [$01c4: DEC     C]
 	jne	l_01c1                             	| [$01c5: JP      NZ,$01C1]
 l_01c8:
+	move.b	d0,d2                           	| [$01bd: LD      C,A]
 	move.b	(a0),d0                         	| [$01c8: LD      A,(HL)]
 	move.w	d3,d7
 	jbsr	osd_w_videoram                         	| [$01c9: LD      (DE),A]
@@ -3074,13 +3092,16 @@ l_0fd8:
 	jra	l_3540                             	| [$0ff4: JP      $3540]
 
 l_14e0:
+	
 	move.b	d0,d1                           	| [$14e0: LD      B,A]
 	jbsr	osd_read_dipswitches                       	| [$14e1: LD      A,($7800)] 78xx DSW0
 	and.b	#0x10,d0                         	| [$14e4: AND     $10] Coinage
 	bne.b	0f                               	| [...]
 	rts                                    	| [$14e6: RET     Z] [...]
 0:
-	illegal  | mix a1,d3
+* coinage settings, not interesting for us, skip it
+* (not called with default dipswitch settings)
+	rts
 	exg	a1,a0                              	| [$14e7: EX      DE,HL]
 	move.b	d3,d0                           	| [$14e8: LD      A,D]
 	cmp.b	#0x18,d0                         	| [$14e9: CP      $18]
