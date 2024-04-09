@@ -4547,16 +4547,17 @@ vultures_level_3400:
 3508: 5F              LD      E,A
 3509: 79              LD      A,C
 350A: 80              ADD     A,B
-350B: 4F              LD      C,A
-350C: 06 35           LD      B,$35
-350E: C5              PUSH    BC
+350B: 4F              LD      C,A		; LSB of address
+350C: 06 35           LD      B,$35		; MSB of address
+350E: C5              PUSH    BC		; push address to jump to on RET
 350F: 01 DF FF        LD      BC,$FFDF
 3512: EB              EX      DE,HL
 3513: 36 00           LD      (HL),$00
 3515: 23              INC     HL
 3516: 36 00           LD      (HL),$00
 3518: 09              ADD     HL,BC
-3519: C9              RET
+3519: C9              RET				; jump to address
+; kind of Duff's device/switch case
 
 3520: 1A              LD      A,(DE)
 3521: 77              LD      (HL),A

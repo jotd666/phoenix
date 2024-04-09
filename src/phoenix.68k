@@ -216,9 +216,12 @@ load_ram_in_a0_from_d6w:
 	.ifndef	RELEASE
 	bcc.b	1f
 0:
+	add.w	#RAM_START,d6
+	move.w	d6,d7
+	lea		read_ram_out_of_range_error(pc),a1
+	jbsr	osd_break
 	illegal
-	.word	RAM_START
-	.ascii	"A0D6"
+
 	.endif
 1:
 	.ifndef	RELEASE
@@ -235,9 +238,9 @@ load_rom_in_a1_from_d3w:
 	.ifndef	RELEASE
 	cmp.w	#ROM_TOP,d3
 	bcs.b	0f
+	lea		load_rom_in_a1_from_d3w_error(pc),a1
+	jbsr	osd_break
 	illegal
-	.word	ROM_TOP
-	.ascii	"A1D3"
 0:
 	.endif
 	lea		game_rom,a1
@@ -269,6 +272,8 @@ load_ram_in_a1_from_d3d4_out_of_range_error:
 	.asciz	"load_ram_in_a1_from_d3d4_out_of_range"
 read_ram_out_of_range_error:
 	.asciz	"read_ram_out_of_range"
+load_rom_in_a1_from_d3w_error:
+	.asciz	"load_rom_in_a1_from_d3w"
 	.endif
 	.align	2
 
@@ -333,11 +338,11 @@ mainloop_001A:
 	jra	mainloop_001A                      	| [$002a: JP      mainloop_001A]
 * called only when game not in play
 l_002d:
-	move.b	#0x0F,d0                        	| [$002d: LD      A,$0F]
-	move.b	#0x60,d5                        	| [$002f: LD      H,$60] 60xx sound A
-	move.b	d0,(a0)                         	| [$0031: LD      (HL),A]
-	move.b	#0x68,d5                        	| [$0032: LD      H,$68] 68xx sound B
-	move.b	d0,(a0)                         	| [$0034: LD      (HL),A]
+*	move.b	#0x0F,d0                        	| [$002d: LD      A,$0F]
+*	move.b	#0x60,d5                        	| [$002f: LD      H,$60] 60xx sound A
+*	move.b	d0,(a0)                         	| [$0031: LD      (HL),A]
+*	move.b	#0x68,d5                        	| [$0032: LD      H,$68] 68xx sound B
+*	move.b	d0,(a0)                         	| [$0034: LD      (HL),A]
 	jbsr	l_0377                            	| [$0035: CALL    $0377]
 	nop                                    	| [$0038: NOP]
 	jbsr	l_17e0                            	| [$0039: CALL    $17E0]
@@ -5114,6 +5119,7 @@ l_34c0:
 	add.b	#0xC0,d0                         	| [$34c4: ADD     $C0]
 	move.b	d0,d4                           	| [$34c6: LD      E,A]
 	move.b	#0x3E,d3                        	| [$34c7: LD      D,$3E]
+	bsr		load_rom_in_a1_from_d3d4
 	move.b	(a1),d0                         	| [$34c9: LD      A,(DE)]
 	move.b	d0,d2                           	| [$34ca: LD      C,A]
 	addq.w	#1,a0                           	| [$34cb: INC     L]
@@ -5127,11 +5133,12 @@ l_34c0:
 	and.b	#0x7E,d0                         	| [$34d5: AND     $7E]
 	move.b	d0,d6                           	| [$34d7: LD      L,A]
 	move.b	#0x3E,d5                        	| [$34d8: LD      H,$3E]
+	bsr		load_rom_in_a0_from_d5d6
 	move.b	(a0)+,d0                         	| [$34da: LD      A,(HL)]
 	                           	| [$34db: INC     L]
  	move.b	(a0),d6                         	| [$34dc: LD      L,(HL)]
 	move.b	d0,d5                           	| [$34dd: LD      H,A]
-	bsr		load_ram_in_a0_from_d5d6
+	bsr		load_rom_in_a0_from_d5d6
 l_34de:
 	move.b	d3,d0                           	| [$34de: LD      A,D]
 	cmp.b	#0x4B,d0                         	| [$34df: CP      $4B]
@@ -5160,18 +5167,51 @@ l_3509:
 	add.b	d1,d0                            	| [$350a: ADD     A,B]
 	move.b	d0,d2                           	| [$350b: LD      C,A]
 l_350c:
-	move.b	#0x35,d1                        	| [$350c: LD      B,$35]
-	movem.w	d1/d2,-(sp)                    	| [$350e: PUSH    BC]
-	move.l	a4,-(sp)                        	| [$350e: PUSH    BC]
+	LOAD_D3_16_FROM_D3D4
+	move.w	d3,d7
+	                     	| [$350c: LD      B,$35]
+	                    	| [$350e: PUSH    BC]
 	move.w	#0xFFDF,d1                      	| [$350f: LD      BC,$FFDF]
-	exg	a1,a0                              	| [$3512: EX      DE,HL]
-	clr.b	(a0)+                             	| [$3513: LD      (HL),$00]
-										| [$3515: INC     HL]
-	clr.b	(a0)                             	| [$3516: LD      (HL),$00]
-	add.w	d1,a0                            	| [$3518: ADD     HL,BC]
-	rts                                    	| [$3519: RET]
+	move.l	a0,a1                              	| [$3512: EX      DE,HL]
+	moveq	#0,d0                             	| [$3513: LD      (HL),$00]
+	jbsr	osd_w_videoram									| [$3515: INC     HL]
+	addq	#1,d7
+	jbsr	osd_w_videoram                             	| [$3516: LD      (HL),$00]
+	add.w	d1,d7                            	| [$3518: ADD     HL,BC]
+	
+	* d2 contains the LSB of $35xx address to jump to
+	* it can only be 3520, 28...
+	sub.w	#0x20,d2
+	lsr.w	#3,d2
+	and.w	#0x07,d2
+	add.w	d2,d2
+	add.w	d2,d2
+	lea		jump_table_35xx(pc),a0
+	move.l	(a0,d2.w),a0                                    	| [$3519: RET]
+	jmp	(a0)
+	
+jump_table_35xx:
+	.long	l_3520
+	.long	l_3528
+	.long	l_3530
+	.long	l_3538
+	.long	l_3540
+	.long	l_3548
+	.long	l_3550
+	.long	l_3558
+	
+* kind of Duff's device/switch case
 
-
+l_3520:
+	bsr		copy_2_byte_column_to_screen
+						| [$3520: LD      A,(DE)]
+						| [$3521: LD      (HL),A]
+						| [$3522: INC     DE]
+						| [$3523: INC     HL]
+						| [$3524: LD      A,(DE)]
+						| [$3525: LD      (HL),A]
+						| [$3526: INC     DE]
+							| [$3527: ADD     HL,BC]
 	
 l_3528:
 	bsr		copy_2_byte_column_to_screen
@@ -5184,6 +5224,7 @@ l_3528:
 	                      	| [$352d: LD      (HL),A]
 	         	| [$352e: INC     DE]
 	                       	| [$352f: ADD     HL,BC]
+l_3530:
 	bsr		copy_2_byte_column_to_screen
 	                       	| [$3530: LD      A,(DE)]
 	                       	| [$3531: LD      (HL),A]
@@ -5223,6 +5264,7 @@ l_3548:
 	  	| [$354d: LD      (HL),A]
 	  	| [$354e: INC     DE]
 	   	| [$354f: ADD     HL,BC]
+l_3550:
 	bsr		copy_2_byte_column_to_screen
 	  	| [$3550: LD      A,(DE)]
 	  	| [$3551: LD      (HL),A]
@@ -5232,6 +5274,7 @@ l_3548:
 	  	| [$3555: LD      (HL),A]
 	  	| [$3556: INC     DE]
 	   	| [$3557: ADD     HL,BC]
+l_3558:
 	moveq	#0,d0
 	jbsr	osd_w_videoram
 	addq	#1,d7

@@ -608,6 +608,9 @@ _vblank:
 	move.b	d1,vb_ticks_count
     move.w  d0,vbl_counter
 	
+	* set scrolling
+	jbsr	set_bg_bitplanes
+	
 	tst.b	pause_flag
 	bne.b	23f
 
@@ -1307,7 +1310,8 @@ HW_SpriteYTable_\height:
 set_bg_bitplanes:
     moveq #NB_PLAYFIELD_PLANES-1,d1
 	moveq	#0,d0
-	move.b	scroll_value,d0
+	**move.b	scroll_value,d0
+
 	lea		mulNB_BYTES_PER_ROW_table(pc),a0
 	add.w	d0,d0
 	move.w	(a0,d0.w),d0
@@ -1955,7 +1959,9 @@ sprites:
     .word    sprpt+28,0
     .word    sprpt+30,0
 
-	
+    .word  0xE001,0xFFFE       | PAL wait
+alien_purple_score_screen:
+	.long	((color+14)<<16)+0xA2D		| alien purple
 	* pal limit
     .word  0xFFDF,0xFFFE       | PAL wait
     .word  0x0401,0xFFFE

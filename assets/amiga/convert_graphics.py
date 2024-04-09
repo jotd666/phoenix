@@ -25,8 +25,8 @@ config = {"fore":
 },
 "back":{
 1:{
-"A71BCE":None,
-"D11EAA":None,
+"A71BCE":"EDC63A",  # alien head, yellow, dynamic color change on scores screen
+"F6F644":"EDC63A",
 "CDF040":None
 },
 2:{
@@ -49,7 +49,7 @@ config = {"fore":
 
 
 level_info = {
-1:{"palette":0,"back_end_y":5},
+1:{"palette":0},
 2:{"palette":1,"back_end_y":5},
 3:{"palette":0,"back_start_y":4},
 4:{"palette":1,"back_start_y":4},
@@ -131,7 +131,7 @@ with open(os.path.join(outdir,"palette.68k"),"w") as fp:
                 img_out.paste(black_row,(0,y*8))
 
             # big tile sheet per level/layer
-            #img_out.save(f"sheet_{layer}_{level}_{p}.png")
+            img_out.save(f"sheet_{layer}_{level}_{p}.png")
             index = 0
             for y in range(0,64,8):
                 for x in range(0,256,8):
