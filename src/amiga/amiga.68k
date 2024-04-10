@@ -25,6 +25,7 @@ TOTAL_NB_COLORS = 8
 SCORE_FILE_SIZE = 0x50
 
 
+PURPLE_ALIEN_HEAD_COPPER_LONGWORD = ((color+14)<<16)+0xA2D
 
 	.ifdef	RELEASE
 OPT_ENABLE_PROFILING = 0         | DO NOT CHANGE THIS
@@ -1143,12 +1144,24 @@ write_back_videoram:
 	cmp.b	(a1),d0
 	beq.b	0f		| already the proper value
 
+	* TODO: if specific address written to, enable/disable dyn color
+	*move.w	#0x01FE,alien_purple_score_screen
+	
 	move.b	d0,(a1)	| update logical grid
 	
 	move.l		bg_drawed_screen_ptr,a1
 	lea		back_tile_table,a0
 	move.l	#BG_SCREEN_PLANE_SIZE,d5
+	movem.l	d0/d7/a0/a1,-(a7)
 	jbsr		update_tile
+	movem.l	(a7)+,d0/d7/a0/a1
+
+	* mid screen so it wraps when scrolling
+	
+	lea		back_tile_table,a0
+	add.w	#BG_SCREEN_PLANE_SIZE/2,a1
+	move.l	#BG_SCREEN_PLANE_SIZE,d5
+	*jbsr		update_tile
 	.endif
 0:
 	movem.l	(a7)+,d0-d3/d7/a0-a2
@@ -1310,7 +1323,7 @@ HW_SpriteYTable_\height:
 set_bg_bitplanes:
     moveq #NB_PLAYFIELD_PLANES-1,d1
 	moveq	#0,d0
-	**move.b	scroll_value,d0
+	move.b	scroll_value,d0
 
 	lea		mulNB_BYTES_PER_ROW_table(pc),a0
 	add.w	d0,d0
@@ -1961,7 +1974,7 @@ sprites:
 
     .word  0xE001,0xFFFE       | PAL wait
 alien_purple_score_screen:
-	.long	((color+14)<<16)+0xA2D		| alien purple
+	.long	PURPLE_ALIEN_HEAD_COPPER_LONGWORD		| alien purple
 	* pal limit
     .word  0xFFDF,0xFFFE       | PAL wait
     .word  0x0401,0xFFFE

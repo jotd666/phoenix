@@ -257,7 +257,7 @@ unknown_43AF:
 	.skip	2
 unknown_43B1:
 	.skip	1
-unknown_43B2:
+current_background_rom_data_pointer_43B2:
 	.skip	1
 unknown_43B3:
 	.skip	1
