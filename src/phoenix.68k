@@ -201,6 +201,7 @@ read_ram:
 	move.b	(a1,d7.w),d0
 
 	move.w	(a7)+,d7
+	rts
 	
 load_ram_in_a0_from_d5d6:
 	movem.w	d5/d6,-(a7)
@@ -3172,7 +3173,14 @@ l_1ee6:
 	subq.b	#1,d2                           	| [$1eec: DEC     C]
 	jne	l_1ee6                             	| [$1eed: JP      NZ,$1EE6]
 	move.w	d3,d7
+	cmp.w	#0x3FFD,d7
+	beq.b	0f
 	jbsr	read_ram                         	| [$1ef0: LD      A,(DE)]
+	bra.b	1f
+0:
+	* probably gone too low, now reading from ROM??
+	move.b	#0xB8,d0	| what's in 3FFD now
+1:
 	add.b	d1,d0                            	| [$1ef1: ADD     A,B]
 	add.b	#0x27,d0                         	| [$1ef2: ADD     $27]
 	lea	unknown_4389,a0                	| [$1ef4: LD      HL,unknown_4389]
