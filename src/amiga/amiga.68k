@@ -1144,9 +1144,16 @@ write_back_videoram:
 	cmp.b	(a1),d0
 	beq.b	0f		| already the proper value
 
+	cmp.w	#0x2B8,d7
+	bne.b	1f
+	cmp.b	#0x75,d0
+	beq.b	0f
 	* TODO: if specific address written to, enable/disable dyn color
-	*move.w	#0x01FE,alien_purple_score_screen
-	
+	move.w	#0x01FE,alien_purple_score_screen
+	bra.b	1f
+0:
+	move.w	#PURPLE_ALIEN_HEAD_COPPER_LONGWORD>>16,alien_purple_score_screen
+1:
 	move.b	d0,(a1)	| update logical grid
 	
 	move.l		bg_drawed_screen_ptr,a1

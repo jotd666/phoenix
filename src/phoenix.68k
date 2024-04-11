@@ -390,7 +390,7 @@ l_0070:
 	rts                                    	| [$0077: RET] Done
 
 l_0078:
-	jbsr	l_0196                            	| [$0078: CALL    $0196]
+	jbsr	draw_intro_text_0196                            	| [$0078: CALL    $0196]
 	jra	l_06f0                             	| [$007b: JP      $06F0]
 
 
@@ -487,7 +487,7 @@ write_digits_to_screen_00c4:
 
 * depending on counter, perform various stuff
 misc_event_trigger_routine_00e3:
-	lea	unknown_4399,a0                	| [$00e3: LD      HL,unknown_4399]
+	lea	sequence_timer_16bit_4399,a0                	| [$00e3: LD      HL,sequence_timer_16bit_4399]
 	jbsr	AddOneToMem_0200                  	| [$00e6: CALL    AddOneToMem_0200]
 	move.w	#0x0001,d1                      	| [$00e9: LD      BC,$0001] 1
 	jbsr	CompareBCtoMem_0258               	| [$00ec: CALL    CompareBCtoMem_0258]
@@ -495,7 +495,7 @@ misc_event_trigger_routine_00e3:
 	move.w	#0x0002,d1                      	| [$00f2: LD      BC,$0002] 2
 	move.w	#0x011F,d3                      	| [$00f5: LD      DE,$011F]
 	jbsr	SubtractIfEnough_0260             	| [$00f8: CALL    SubtractIfEnough_0260]
-	jcc	l_0196                             	| [$00fb: JP      NC,$0196]
+	jcc	draw_intro_text_0196                             	| [$00fb: JP      NC,$0196]
 	move.w	#0x0120,d1                      	| [$00fe: LD      BC,$0120]
 	jbsr	CompareBCtoMem_0258               	| [$0101: CALL    CompareBCtoMem_0258]
 	jeq	draw_bird_extended_winds_0bca                             	| [$0104: JP      Z,$0BCA]
@@ -512,7 +512,7 @@ misc_event_trigger_routine_00e3:
 	move.w	#0x0300,d1                      	| [$0122: LD      BC,$0300]
 	move.w	#0x03AF,d3                      	| [$0125: LD      DE,$03AF]
 	jbsr	SubtractIfEnough_0260             	| [$0128: CALL    SubtractIfEnough_0260]
-	jcc	l_21dc                             	| [$012b: JP      NC,$21DC]
+	jcc	animate_title_vulture_21dc                             	| [$012b: JP      NC,$21DC]
 	move.w	#0x03E6,d1                      	| [$012e: LD      BC,$03E6]
 	moveq	#-1,d3                      	| [$0131: LD      DE,$FFFF]
 	jbsr	SubtractIfEnough_0260             	| [$0134: CALL    SubtractIfEnough_0260]
@@ -577,8 +577,8 @@ l_0173:
 	rts                                    	| [$018a: RET     C] [...]
 0:
 	move.b	#0xFE,d1                        	| [$018b: LD      B,$FE]
-	subq.w	#1,a0                           	| [$018d: DEC     L]
-	move.b	(a0),d0                         	| [$018e: LD      A,(HL)]
+	                           	| [$018d: DEC     L]
+	move.b	-(a0),d0                         	| [$018e: LD      A,(HL)]
 	cmp.b	#0x09,d0                         	| [$018f: CP      $09]
 	beq.b	0f                               	| [...]
 	rts                                    	| [$0191: RET     NZ] [...]
@@ -587,7 +587,7 @@ l_0173:
 	rts                                    	| [$0194: RET]
 
 * HL=$4399 on entry
-l_0196:
+draw_intro_text_0196:
 	move.b	(a0),d0                         	| [$0196: LD      A,(HL)]
 	and.b	#0x1F,d0                         	| [$0197: AND     $1F]
 	cmp.b	#0x06,d0                         	| [$0199: CP      $06]
@@ -1573,7 +1573,7 @@ l_0706:
 	cmp.b	#0xEC,d0                         	| [$0711: CP      $EC]
 	jne	l_0706                             	| [$0713: JP      NZ,$0706]
 	rts                                    	| [$0716: RET]
-	rts                                    	| [$0717: RET]
+	                                    	| [$0717: RET]
 l_0718:
 	jbsr	l_0720                            	| [$0718: CALL    $0720]
 	jra	l_0740                             	| [$071b: JP      $0740]
@@ -1600,7 +1600,7 @@ l_0720:
 	                        	| [$0733: LD      L,(HL)]
 	add.w	d0,d0
 	add.w	d0,d0
-	lea		table_0738(pc),a0
+	lea		jump_table_0738(pc),a0
 	move.l	(a0,d0.w),d0
 	.ifndef		RELEASE
 	bpl.b	0f
@@ -1612,7 +1612,7 @@ l_0720:
 	jra	(a0)                               	| [$0734: JP      (HL)]
 
 
-table_0738:
+jump_table_0738:
 	.long	l_0763       | $763
 	.long	l_0779       | $779
 	.long	-1          |
@@ -1678,17 +1678,18 @@ l_0763:
 l_076D:
 	exg	a1,a0                              	| [$076d: EX      DE,HL]
 	addq.w	#2,a0                           	| [$076e: INC     HL] * 2
-	move.b	(a0),d3                         	| [$0770: LD      D,(HL)]
-	addq.w	#1,a0                           	| [$0771: INC     HL]
+	move.b	(a0)+,d3                         	| [$0770: LD      D,(HL)]
+	                           	| [$0771: INC     HL]
 	move.b	(a0),d4                         	| [$0772: LD      E,(HL)]
+	bsr		load_ram_in_a1_from_d3d4
 	move.b	(a4),d0                         	| [$0773: LD      A,(BC)]
 	move.b	d0,(a1)                         	| [$0774: LD      (DE),A]
 	subq.w	#1,a4                           	| [$0775: DEC     BC]
 	rts                                    	| [$0776: RET]
 	
 
-	move.b	d0,(a1)                         	| [$0777: LD      (DE),A]
-	addq.w	#1,a0                           	| [$0778: INC     HL]
+                       	| [$0777: LD      (DE),A]
+                       	| [$0778: INC     HL]
 l_0779:
 	exg	d3,a0                              	| [$0779: EX      DE,HL]
 	move.b	(a0),d3                         	| [$077a: LD      D,(HL)]
@@ -1701,7 +1702,7 @@ l_0779:
 	jbsr	osd_w_videoram
 	jbsr	SubtractOneRow_0217               	| [$0780: CALL    SubtractOneRow_0217]
 	clr.b	d0                               	| [$0783: XOR     A]
-	move.b	d0,(a1)                         	| [$0784: LD      (DE),A]
+	jbsr	osd_w_videoram                         	| [$0784: LD      (DE),A]
 	exg	d3,a0                              	| [$0785: EX      DE,HL]
 	rts                                    	| [$0786: RET]
 	
@@ -1713,19 +1714,23 @@ l_0788:
 	move.b	(a0),d3                         	| [$078b: LD      D,(HL)]
 	addq.w	#1,a0                           	| [$078c: INC     HL]
 	move.b	(a0),d4                         	| [$078d: LD      E,(HL)]
+	LOAD_D3_16_FROM_D3D4
+	move.w	d3,d7
 	move.b	(a4),d0                         	| [$078e: LD      A,(BC)]
 	move.b	d0,d6                           	| [$078f: LD      L,A]
 	move.b	#0x14,d5                        	| [$0790: LD      H,$14]
-	move.b	(a0),d0                         	| [$0792: LD      A,(HL)]
-	move.b	d0,(a1)                         	| [$0793: LD      (DE),A]
-	addq.w	#1,a0                           	| [$0794: INC     HL]
+	jbsr	load_rom_in_a0_from_d5d6
+	move.b	(a0)+,d0                         	| [$0792: LD      A,(HL)]
+	jbsr	osd_w_videoram                         	| [$0793: LD      (DE),A]
+	                           	| [$0794: INC     HL]
 	jbsr	SubtractOneRow_0217               	| [$0795: CALL    SubtractOneRow_0217]
 	move.b	(a0),d0                         	| [$0798: LD      A,(HL)]
-	move.b	d0,(a1)                         	| [$0799: LD      (DE),A]
+	move.w	d3,d7
+	jbsr	osd_w_videoram                         	| [$0799: LD      (DE),A]
 	subq.w	#1,a4                           	| [$079a: DEC     BC]
 	rts                                    	| [$079b: RET]
 
-	exg	a1,a0                              	| [$079d: EX      DE,HL]
+	                              	| [$079d: EX      DE,HL]
 l_079E:
 	exg	d3,a0                              	| [$079e: EX      DE,HL]
 	move.b	(a0),d3                         	| [$079f: LD      D,(HL)]
@@ -1737,7 +1742,7 @@ l_079E:
 	move.w	d3,d7
 	jbsr	osd_w_videoram                         	| [$07a4: LD      (DE),A]
 	addq.w	#1,d7                           	| [$07a5: INC     DE]
-	move.b	d0,(a1)                         	| [$07a6: LD      (DE),A]
+	jbsr	osd_w_videoram                         	| [$07a6: LD      (DE),A]
 	exg	d3,a0                              	| [$07a7: EX      DE,HL]
 	rts                                    	| [$07a8: RET]
 
@@ -1751,9 +1756,9 @@ l_07AA:
 	move.b	(a4),d0                         	| [$07b0: LD      A,(BC)]
 	move.b	d0,d6                           	| [$07b1: LD      L,A]
 	move.b	#0x14,d5                        	| [$07b2: LD      H,$14]
-	move.b	(a0),d0                         	| [$07b4: LD      A,(HL)]
+	move.b	(a0)+,d0                         	| [$07b4: LD      A,(HL)]
 	jbsr	osd_w_videoram                         	| [$07b5: LD      (DE),A]
-	addq.w	#1,a0                           	| [$07b6: INC     HL]
+	                           	| [$07b6: INC     HL]
 	addq.w	#1,d7                           	| [$07b7: INC     DE]
 	move.b	(a0),d0                         	| [$07b8: LD      A,(HL)]
 	jbsr	osd_w_videoram                         	| [$07b9: LD      (DE),A]
@@ -1761,23 +1766,25 @@ l_07AA:
 	rts                                    	| [$07bb: RET]
 	
 	
-	addq.w	#1,a0                           	| [$07bc: INC     HL]
-	addq.w	#1,a1                           	| [$07bd: INC     DE]
+	                           	| [$07bc: INC     HL]
+	                           	| [$07bd: INC     DE]
 l_07BE:
 	exg	a1,a0                              	| [$07be: EX      DE,HL]
 	move.b	(a0),d3                         	| [$07bf: LD      D,(HL)]
-	addq.w	#1,a0                           	| [$07c0: INC     HL]
-	move.b	(a0),d4                         	| [$07c1: LD      E,(HL)]
-	subq.w	#1,a0                           	| [$07c2: DEC     HL]
+	                           	| [$07c0: INC     HL]
+	move.b	(1,a0),d4                         	| [$07c1: LD      E,(HL)]
+	                           	| [$07c2: DEC     HL]
+	LOAD_D3_16_FROM_D3D4
+	move.w	d3,d7
 	clr.b	d0                               	| [$07c3: XOR     A]
-	move.b	d0,(a1)                         	| [$07c4: LD      (DE),A]
-	addq.w	#1,a1                           	| [$07c5: INC     DE]
-	move.b	d0,(a1)                         	| [$07c6: LD      (DE),A]
+	jbsr	osd_w_videoram                         	| [$07c4: LD      (DE),A]
+	addq.w	#1,d7                           	| [$07c5: INC     DE]
+	jbsr	osd_w_videoram                         	| [$07c6: LD      (DE),A]
 	jbsr	SubtractOneRow_0217               	| [$07c7: CALL    SubtractOneRow_0217]
 	clr.b	d0                               	| [$07ca: XOR     A]
-	move.b	d0,(a1)                         	| [$07cb: LD      (DE),A]
-	subq.w	#1,a1                           	| [$07cc: DEC     DE]
-	move.b	d0,(a1)                         	| [$07cd: LD      (DE),A]
+	jbsr	osd_w_videoram                         	| [$07cb: LD      (DE),A]
+	subq.w	#1,d7                           	| [$07cc: DEC     DE]
+	jbsr	osd_w_videoram                         	| [$07cd: LD      (DE),A]
 	exg	a1,a0                              	| [$07ce: EX      DE,HL]
 	rts                                    	| [$07cf: RET]
 
@@ -2529,7 +2536,7 @@ l_0cf4:
 	movem.w	(sp)+,d1/d2                    	| [$0cf5: POP     BC]
 	rts                                    	| [$0cf6: RET]
 
-	lea	unknown_4393,a0                	| [$0d08: LD      HL,unknown_4393]
+	lea	birds_attack_counter_4393,a0                	| [$0d08: LD      HL,birds_attack_counter_4393]
 	addq.b	#1,(a0)                         	| [$0d0b: INC     (HL)]
 	move.b	(a0),d0                         	| [$0d0c: LD      A,(HL)]
 	and.b	#0x07,d0                         	| [$0d0d: AND     $07]
@@ -2550,8 +2557,8 @@ l_0d22:
 	jbsr	l_0d30                            	| [$0d22: CALL    $0D30]
 	addq.w	#2,a4                           	| [$0d25: INC     C]
 	addq.w	#1,a0                           	| [$0d27: INC     L]
-	move.b	#0xB0,d0                        	| [$0d28: LD      A,$B0]
-	cmp.b	d2,d0                            	| [$0d2a: CP      C]
+												| [$0d28: LD      A,$B0]
+	cmp.l	#unknown_4B70+0xB0-0x70,a4                            	| [$0d2a: CP      C]
 	jne	l_0d22                             	| [$0d2b: JP      NZ,$0D22]
 	rts                                    	| [$0d2e: RET]
 
@@ -2565,6 +2572,7 @@ l_0d30:
 	rts                                    	| [$0d37: RET     Z] [...]
 0:
 	move.b	(a0),d4                         	| [$0d38: LD      E,(HL)]
+	bsr		load_rom_in_a1_from_d3d4
 	exg	a1,a0                              	| [$0d39: EX      DE,HL]
 	move.b	(a0),d0                         	| [$0d3a: LD      A,(HL)]
 	rol.b	#1,d0                            	| [$0d3b: RLCA]
@@ -2590,8 +2598,8 @@ l_0d4f:
 	add.b	(a0),d0                          	| [$0d52: ADD     A,(HL)]
 	move.b	d0,(a4)                         	| [$0d53: LD      (BC),A]
 	subq.w	#1,a4                           	| [$0d54: DEC     BC]
-	and.b	#0x07,d0                         	| [$0d55: AND     $07]
 	exg	a1,a0                              	| [$0d57: EX      DE,HL]
+	and.b	#0x07,d0                         	| [$0d55: AND     $07]
 	beq.b	0f                               	| [...]
 	rts                                    	| [$0d58: RET     NZ] [...]
 0:
@@ -2617,11 +2625,11 @@ l_0d70:
 	* loops
 l_0d76:
 	jbsr	l_0d86                            	| [$0d76: CALL    $0D86]
-	move.b	d2,d0                           	| [$0d79: LD      A,C]
-	addq.b	#0x04,d0                        	| [$0d7a: ADD     $04]
-	move.b	d0,d2                           	| [$0d7c: LD      C,A]
-	move.b	#0xB0,d0                        	| [$0d7d: LD      A,$B0]
-	cmp.b	d2,d0                            	| [$0d7f: CP      C]
+	                           	| [$0d79: LD      A,C]
+	addq.w	#0x04,a4                        	| [$0d7a: ADD     $04]
+	                           	| [$0d7c: LD      C,A]
+	cmp.l	#unknown_4B70+0xB0-0x70,a4                        	| [$0d7d: LD      A,$B0]
+	                            	| [$0d7f: CP      C]
 	jne	l_0d76                             	| [$0d80: JP      NZ,$0D76]
 	rts                                    	| [$0d83: RET]
 
@@ -3429,7 +3437,7 @@ l_2146:
 
 l_2150:
 	jbsr	l_0a50                            	| [$2150: CALL    $0A50]
-	jbsr	l_3000                            	| [$2153: CALL    $3000]
+	jbsr	handle_small_birds_attacks_3000                            	| [$2153: CALL    $3000]
 	jra	l_0f00                             	| [$2156: JP      $0F00]
 
 l_2160:
@@ -3450,7 +3458,7 @@ l_2180:
 
 l_2190:
 	jbsr	l_0a50                            	| [$2190: CALL    $0A50]
-	jbsr	l_3000                            	| [$2193: CALL    $3000]
+	jbsr	handle_small_birds_attacks_3000                            	| [$2193: CALL    $3000]
 	jbsr	l_0f00                            	| [$2196: CALL    $0F00]
 	jbsr	l_2560                            	| [$2199: CALL    $2560]
 	jra	l_0c40                             	| [$219c: JP      $0C40]
@@ -3476,9 +3484,12 @@ l_21ba:
 	move.b	#0x10,d0                        	| [$21d2: LD      A,$10]
 	move.b	d0,nb_to_kill_before_stage_completed_43BA	| [$21d4: LD      (nb_to_kill_before_stage_completed_43BA),A]
 	jra	l_0526                             	| [$21d7: JP      $0526]
-l_21dc:
+	
+	* vulture appearing from a star, flying and disappearing into a star
+	* during title sequence
+animate_title_vulture_21dc:
 	move.b	(a0),d0                         	| [$21dc: LD      A,(HL)]
-	nop                                    	| [$21dd: NOP]
+	                                    	| [$21dd: NOP]
 	move.b	d0,d1                           	| [$21de: LD      B,A]
 	lea	unknown_4B73,a0                	| [$21df: LD      HL,unknown_4B73]
 	and.b	#0x07,d0                         	| [$21e2: AND     $07]
@@ -3494,6 +3505,7 @@ l_21dc:
 	add.b	#0x3A,d0                         	| [$21f2: ADD     $3A]
 	move.b	d0,d4                           	| [$21f4: LD      E,A]
 	move.b	#0x23,d3                        	| [$21f5: LD      D,$23]
+	bsr		load_rom_in_a1_from_d3d4
 	move.b	(a1),d0                         	| [$21f7: LD      A,(DE)]
 	move.b	d0,-(a0)                         	| [$21f8: LD      (HL),A]
 	jbsr	l_34c0                            	| [$21f9: CALL    $34C0]
@@ -4059,7 +4071,7 @@ l_2552:
 
 
 l_2560:
-	lea	unknown_4393,a0                	| [$2560: LD      HL,unknown_4393]
+	lea	birds_attack_counter_4393,a0                	| [$2560: LD      HL,birds_attack_counter_4393]
 	move.b	(a0),d0                         	| [$2563: LD      A,(HL)]
 	and.b	#0x01,d0                         	| [$2564: AND     $01]
 	rol.b	#5,d0                            	| [$2566: RLCA] * 5
@@ -4503,19 +4515,20 @@ l_27e9:
 	move.b	#0x8F,(a0)                      	| [$27ec: LD      (HL),$8F]
 	rts                                    	| [$27ee: RET]
 
-l_3000:
-	lea	unknown_4393,a0                	| [$3000: LD      HL,unknown_4393]
+* if not called, birds just move left and right
+handle_small_birds_attacks_3000:
+	lea	birds_attack_counter_4393,a0                	| [$3000: LD      HL,birds_attack_counter_4393]
 	move.b	(a0),d0                         	| [$3003: LD      A,(HL)]
 	addq.b	#1,(a0)                         	| [$3004: INC     (HL)]
-	and.b	#0x07,d0                         	| [$3005: AND     $07]
+	and.w	#0x07,d0                         	| [$3005: AND     $07]
 	lea	jump_table_3018,a0             	| [$3007: LD      HL,jump_table_3018]
-	rol.b	#1,d0                            	| [$300a: RLCA]
-	add.b	d6,d0                            	| [$300b: ADD     A,L]
-	move.b	d0,d6                           	| [$300c: LD      L,A]
-	move.b	(a0),d0                         	| [$300d: LD      A,(HL)]
-	addq.w	#1,a0                           	| [$300e: INC     HL]
-	move.b	(a0),d6                         	| [$300f: LD      L,(HL)]
-	move.b	d0,d5                           	| [$3010: LD      H,A]
+	add.w	d0,d0                         	| [$300a: RLCA]
+	add.w	d0,d0                         	| [$300b: ADD     A,L]
+	move.l	(a0,d0.w),a0               	| [$300c: LD      L,A]
+	                        	| [$300d: LD      A,(HL)]
+	                        	| [$300e: INC     HL]
+	                        	| [$300f: LD      L,(HL)]
+	                        	| [$3010: LD      H,A]
 	jra	(a0)                               	| [$3011: JP      (HL)]
 l_3012:
 	rts                                    	| [$3012: RET]
@@ -5162,8 +5175,8 @@ l_34c0:
 	                           	| [$34db: INC     L]
  	move.b	(a0),d6                         	| [$34dc: LD      L,(HL)]
 	move.b	d0,d5                           	| [$34dd: LD      H,A]
-	bsr		load_rom_in_a0_from_d5d6
 l_34de:
+	bsr		load_rom_in_a0_from_d5d6
 	move.b	d3,d0                           	| [$34de: LD      A,D]
 	cmp.b	#0x4B,d0                         	| [$34df: CP      $4B]
 	jne	l_350c                             	| [$34e1: JP      NZ,$350C]
@@ -5191,12 +5204,13 @@ l_3509:
 	add.b	d1,d0                            	| [$350a: ADD     A,B]
 	move.b	d0,d2                           	| [$350b: LD      C,A]
 l_350c:
+	move.b	#1,0x100
 	LOAD_D3_16_FROM_D3D4
 	move.w	d3,d7
 	                     	| [$350c: LD      B,$35]
 	                    	| [$350e: PUSH    BC]
 	move.w	#0xFFDF,d1                      	| [$350f: LD      BC,$FFDF]
-	move.l	a0,a1                              	| [$3512: EX      DE,HL]
+	move.l	a0,a1                              	| [$3512: EX      DE,HL] source
 	moveq	#0,d0                             	| [$3513: LD      (HL),$00]
 	jbsr	osd_w_videoram									| [$3515: INC     HL]
 	addq	#1,d7
@@ -5340,6 +5354,7 @@ l_3586:
 	add.b	#0x80,d0                         	| [$3591: ADD     $80]
 	move.b	d0,d6                           	| [$3593: LD      L,A]
 	move.b	#0x3E,d5                        	| [$3594: LD      H,$3E]
+	bsr		load_rom_in_a0_from_d5d6
 	move.b	(a0)+,d0                         	| [$3596: LD      A,(HL)]
 	move.b	d0,unknown_436E                 	| [$3597: LD      (unknown_436E),A]
 	                           	| [$359a: INC     L]
@@ -5569,8 +5584,8 @@ l_36ab:
 0:
 	move.b	d0,(a0)                         	| [$36ba: LD      (HL),A]
 	rts                                    	| [$36bb: RET]
-	move.b	d0,(a0)                         	| [$36bc: LD      (HL),A]
-	rts                                    	| [$36bd: RET]
+	                        	| [$36bc: LD      (HL),A]
+	                       	| [$36bd: RET]
 
 command_36c0:
 	move.b	(a0),d0                         	| [$36c0: LD      A,(HL)]
@@ -5792,6 +5807,7 @@ l_37cc:
 	move.b	#0x43,d5                        	| [$37d5: LD      H,$43]
 	move.w	#0xFFDF,d1                      	| [$37d7: LD      BC,$FFDF]
 	move.w	#0x001A,d3                      	| [$37da: LD      DE,$001A] 26
+	bsr		load_ram_in_a0_from_d5d6
 l_37dd:
 	move.b	d3,(a0)+                         	| [$37dd: LD      (HL),D]
 	                           	| [$37de: INC     HL]
@@ -5818,10 +5834,11 @@ player_shots_vs_vultures_collision_3800:
 	move.b	d0,d1                           	| [$3815: LD      B,A]
 	move.b	unknown_43E7,d0                 	| [$3816: LD      A,(unknown_43E7)]
 	sub.b	d4,d0                            	| [$3819: SUB     E]
-	nop                                    	| [$381a: NOP]
+	                                    	| [$381a: NOP]
 	and.b	#0x1F,d0                         	| [$381b: AND     $1F]
 	or.b	d1,d0                             	| [$381d: OR      B]
 	move.b	d0,d4                           	| [$381e: LD      E,A]
+	bsr		load_ram_in_a1_from_d3d4
 	move.b	(a1),d0                         	| [$381f: LD      A,(DE)]
 	sub.b	#0x90,d0                         	| [$3820: SUB     $90]
 	bcc.b	0f                               	| [...]
@@ -5833,6 +5850,7 @@ player_shots_vs_vultures_collision_3800:
 	                        	| [$3829: ADD     $00]
 	move.b	d0,d6                           	| [$382b: LD      L,A]
 	move.b	#0x3E,d5                        	| [$382c: LD      H,$3E]
+	bsr		load_rom_in_a0_from_d5d6
 	move.b	(a0),d2                         	| [$382e: LD      C,(HL)]
 	move.b	d4,d0                           	| [$382f: LD      A,E]
 	and.b	#0x0E,d0                         	| [$3830: AND     $0E]
@@ -5852,6 +5870,7 @@ l_3844:
 	add.b	#0x60,d0                         	| [$3844: ADD     $60]
 	move.b	d0,d6                           	| [$3846: LD      L,A]
 	move.b	#0x3B,d5                        	| [$3847: LD      H,$3B]
+	bsr		load_rom_in_a0_from_d5d6
 	move.b	(a0),d0                         	| [$3849: LD      A,(HL)]
 	and.b	d2,d0                            	| [$384a: AND     C]
 	bne.b	0f                               	| [...]
@@ -5923,6 +5942,7 @@ l_38bc:
 	add.b	#0xB0,d0                         	| [$38bc: ADD     $B0]
 	move.b	d0,d6                           	| [$38be: LD      L,A]
 	move.b	#0x3B,d5                        	| [$38bf: LD      H,$3B]
+	jbsr	load_rom_in_a0_from_d5d6
 	move.b	(a0),d0                         	| [$38c1: LD      A,(HL)]
 	and.b	d2,d0                            	| [$38c2: AND     C]
 	bne.b	0f                               	| [...]

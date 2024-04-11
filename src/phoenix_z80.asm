@@ -2056,7 +2056,7 @@ moving_bird_shot_0C00:
 0CF5: C1              POP     BC
 0CF6: C9              RET
 
-0D08: 21 93 43        LD      HL,unknown_4393
+0D08: 21 93 43        LD      HL,birds_attack_counter_4393
 0D0B: 34              INC     (HL)
 0D0C: 7E              LD      A,(HL)
 0D0D: E6 07           AND     $07
@@ -3514,7 +3514,7 @@ end_of_level_transition_244C:
 255B: 36 FF           LD      (HL),$FF
 255D: C9              RET
 
-2560: 21 93 43        LD      HL,unknown_4393
+2560: 21 93 43        LD      HL,birds_attack_counter_4393
 2563: 7E              LD      A,(HL)
 2564: E6 01           AND     $01
 2566: 07              RLCA
@@ -3919,7 +3919,7 @@ end_of_level_transition_244C:
 27EC: 36 8F           LD      (HL),$8F
 27EE: C9              RET
 
-3000: 21 93 43        LD      HL,unknown_4393
+3000: 21 93 43        LD      HL,birds_attack_counter_4393
 3003: 7E              LD      A,(HL)
 3004: 34              INC     (HL)
 3005: E6 07           AND     $07

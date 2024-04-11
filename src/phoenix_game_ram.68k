@@ -51,13 +51,13 @@
 	.global	unknown_438E
 	.global	CoinCount_438F
 	.global	unknown_4392
-	.global	unknown_4393
+	.global	birds_attack_counter_4393
 	.global	unknown_4394
 	.global	unknown_4395
 	.global	unknown_4396
 	.global	unknown_4397
 	.global	unknown_4398
-	.global	unknown_4399
+	.global	sequence_timer_16bit_4399
 	.global	counter_439A
 	.global	unknown_439B
 	.global	unknown_439C
@@ -207,7 +207,7 @@ nb_lives_p2_4391:
 	.skip	1
 unknown_4392:
 	.skip	1
-unknown_4393:
+birds_attack_counter_4393:
 	.skip	1
 unknown_4394:
 	.skip	1
@@ -219,7 +219,7 @@ unknown_4397:
 	.skip	1
 unknown_4398:
 	.skip	1
-unknown_4399:
+sequence_timer_16bit_4399:
 	.skip	1
 counter_439A:
 	.skip	1
