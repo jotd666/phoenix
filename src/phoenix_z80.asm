@@ -38,7 +38,8 @@
 ;
 ; "bird" means small birds, I'm calling the big birds vultures (or eagles?)
 
-;http://www.computerarcheology.com/Arcade/Phoenix/
+;http://www.computerarcheology.com/Arcade/Phoenix/    where the Z80 disassembly code is
+;http://www.donhodges.com/phoenix.htm				  proposes a fix for highscore corruption
 
 0000: 00              NOP                         ; Start/restart and interrupts end up at 0008
 0001: 00              NOP
@@ -208,7 +209,7 @@ CheckInputBits:
 00EF: CA E1 01        JP      Z,$01E1             ;
 00F2: 01 02 00        LD      BC,$0002
 00F5: 11 1F 01        LD      DE,$011F
-00F8: CD 60 02        CALL    SubtractIfEnough_0260    ;
+00F8: CD 60 02        CALL    test_if_mem_between_BC_and_DE_0260    ;
 00FB: D2 96 01        JP      NC,$0196            ;
 00FE: 01 20 01        LD      BC,$0120
 0101: CD 58 02        CALL    CompareBCtoMem_0258      ;
@@ -221,15 +222,15 @@ CheckInputBits:
 0114: CA 80 05        JP      Z,$0580             ;
 0117: 0E C0           LD      C,$C0
 0119: 11 DF 02        LD      DE,$02DF
-011C: CD 60 02        CALL    SubtractIfEnough_0260    ;
+011C: CD 60 02        CALL    test_if_mem_between_BC_and_DE_0260    ;
 011F: D2 78 00        JP      NC,$0078            ;
 0122: 01 00 03        LD      BC,$0300
 0125: 11 AF 03        LD      DE,$03AF
-0128: CD 60 02        CALL    SubtractIfEnough_0260    ;
+0128: CD 60 02        CALL    test_if_mem_between_BC_and_DE_0260    ;
 012B: D2 DC 21        JP      NC,$21DC            ;
 012E: 01 E6 03        LD      BC,$03E6
 0131: 11 FF FF        LD      DE,$FFFF
-0134: CD 60 02        CALL    SubtractIfEnough_0260    ;
+0134: CD 60 02        CALL    test_if_mem_between_BC_and_DE_0260    ;
 0137: D2 B0 03        JP      NC,$03B0            ;
 013A: C9              RET
 
@@ -477,7 +478,7 @@ CompareBCtoMem_0258:
 
 ; Subtract DE from memory if memory is greater/equal to BC.
 ;
-SubtractIfEnough_0260:
+test_if_mem_between_BC_and_DE_0260:
 0260: CD 70 02        CALL    SubtractFromMemory_0270  ; Try subtraction. Is memory larger (or equal) to BC?
 0263: D8              RET     C                   ; No ... ignore request
 0264: CD 77 02        CALL    SubtractToMemory_0277    ; Yes ... subtract DE from memory
@@ -2369,30 +2370,51 @@ bird_shot_0EA4:
 0EB5: 46              LD      B,(HL)
 0EB6: 23              INC     HL
 0EB7: 4E              LD      C,(HL)    ; load into BC (ram pointer)
-0EB8: 21 78 43        LD      HL,unknown_4378
+0EB8: 21 78 43        LD      HL,slot_for_special_animation_4378	; HL := #4378 [slot for special animation]
 0EBB: 7A              LD      A,D
-0EBC: FE 10           CP      $10
-0EBE: CA C3 0E        JP      Z,$0EC3             ;
-0EC1: 2E 70           LD      L,$70
-0EC3: 7E              LD      A,(HL)
-0EC4: A7              AND     A
-0EC5: CA D5 0E        JP      Z,$0ED5             ;
+0EBC: FE 10           CP      $10			; Are we to use the special animation?
+0EBE: CA C3 0E        JP      Z,$0EC3             ; Yes, skip next step
+0EC1: 2E 70           LD      L,$70			; Else HL := #4370 [slot for regular animation]
+0EC3: 7E              LD      A,(HL)		; Load timer from this slot
+0EC4: A7              AND     A				; Is this slot available?
+0EC5: CA D5 0E        JP      Z,$0ED5             ; Yes, skip ahead, we will use this slot
+; else check next slot ...
 0EC8: 2C              INC     L
 0EC9: 2C              INC     L
 0ECA: 2C              INC     L
-0ECB: 2C              INC     L
-0ECC: 7E              LD      A,(HL)
-0ECD: A7              AND     A
-0ECE: CA D5 0E        JP      Z,$0ED5             ;
+0ECB: 2C              INC     L			; Increase HL by 4. [now at 2nd or 4th slot]
+0ECC: 7E              LD      A,(HL)	; Load timer from this slot
+0ECD: A7              AND     A				; Is this slot available?
+0ECE: CA D5 0E        JP      Z,$0ED5            ; yes, skip ahead, we will use this slo
+; else use the next slot.  Bugged when birds are flying upwards.
+; source of 204K bug. HL becomes #4380 which is start of score.
 0ED1: 2C              INC     L
 0ED2: 2C              INC     L
 0ED3: 2C              INC     L
-0ED4: 2C              INC     L
-0ED5: 72              LD      (HL),D
-0ED6: 2C              INC     L
-0ED7: 73              LD      (HL),E
-0ED8: 2C              INC     L
-0ED9: 70              LD      (HL),B
+0ED4: 2C              INC     L		; Increase HL by 4 [now at 3rd or 5th slot]
+; there should have been a check here to see if HL==#4380 and change it if so.
+; else, score bug appears
+
+
+;This bug can be fixed by the following patch, which requires changing 10 bytes of code:
+;
+;0ED2: CD E6 0E 	call $0EE6 	; call patch
+;...
+;0EE6: 2C	inr l 		; restore instructions wiped by the patch call
+;0EE7: 2C 	inr l		; 
+;0EE8: 2C 	inr l		; if L becomes #80 then the S flag is set. Did it happen?
+;0EE9: F0 	rp 		; no, return and continue normally
+;0EEA: 2E 70 	mov l,$70 	; else set L to #70 to use 1st slot, not the score RAM
+;0EEC: C9 	ret 		; return
+
+
+
+
+0ED5: 72              LD      (HL),D	; Store D into byte 1
+0ED6: 2C              INC     L			; Next byte
+0ED7: 73              LD      (HL),E	; Store E into byte 2. score becomes 20xxxx
+0ED8: 2C              INC     L			; Next byte
+0ED9: 70              LD      (HL),B	; Store B into byte 3. score becomes 2041xx or 2042xx
 0EDA: 2C              INC     L
 0EDB: 71              LD      (HL),C
 0EDC: 2E 64           LD      L,$64
@@ -2527,11 +2549,11 @@ bird_shot_0EA4:
 0FB8: 2B              DEC     HL
 0FB9: C3 AD 0E        JP      $0EAD               ;
 
-0FC0: 21 70 43        LD      HL,unknown_4370
+0FC0: 21 70 43        LD      HL,slot_for_regular_animation_4370
 0FC3: CD D8 0F        CALL    $0FD8               ;
 0FC6: 21 74 43        LD      HL,unknown_4374
 0FC9: CD D8 0F        CALL    $0FD8               ;
-0FCC: 21 78 43        LD      HL,unknown_4378
+0FCC: 21 78 43        LD      HL,slot_for_special_animation_4378
 0FCF: CD 58 37        CALL    $3758               ;
 0FD2: 21 7C 43        LD      HL,unknown_437C
 0FD5: C3 58 37        JP      $3758               ;
@@ -3782,7 +3804,7 @@ end_of_level_transition_244C:
 270E: 6F              LD      L,A
 270F: 3E FF           LD      A,$FF
 2711: 32 97 43        LD      (unknown_4397),A
-2714: 11 70 43        LD      DE,unknown_4370
+2714: 11 70 43        LD      DE,slot_for_regular_animation_4370
 2717: CD 48 27        CALL    $2748               ;
 271A: 1C              INC     E
 271B: 1C              INC     E
@@ -5138,7 +5160,7 @@ player_shots_vs_vultures_collision_3800:
 3862: 5F              LD      E,A
 3863: 3E FF           LD      A,$FF
 3865: 32 69 43        LD      (unknown_4369),A
-3868: 21 78 43        LD      HL,unknown_4378
+3868: 21 78 43        LD      HL,slot_for_special_animation_4378
 386B: 01 10 10        LD      BC,$1010
 386E: 7B              LD      A,E
 386F: FE 0F           CP      $0F
@@ -5220,7 +5242,7 @@ player_shots_vs_vultures_collision_3800:
 38EE: 01 02 07        LD      BC,$0702
 38F1: C3 F8 38        JP      $38F8               ;
 
-38F8: 21 70 43        LD      HL,unknown_4370
+38F8: 21 70 43        LD      HL,slot_for_regular_animation_4370
 38FB: AF              XOR     A
 38FC: BE              CP      (HL)
 38FD: CA 06 39        JP      Z,$3906             ;

@@ -17,7 +17,7 @@
 	.global	unknown_4351
 	.global	unknown_4352
 	.global	unknown_4353
-	.global	unknown_4354
+	.global	offset_from_4300_4354
 	.global	unknown_4355
 	.global	unknown_4356
 	.global	unknown_4357
@@ -37,12 +37,12 @@
 	.global	unknown_436D
 	.global	unknown_436E
 	.global	unknown_436F
-	.global	unknown_4370
+	.global	slot_for_regular_animation_4370
 	.global	unknown_4374
-	.global	unknown_4378
+	.global	slot_for_special_animation_4378
 	.global	unknown_437C
 	.global	unknown_4380
-	.global	unknown_4383
+	.global	player_2_score_end_4383
 	.global player_score_end_4387
 	.global	unknown_4389
 	.global	unknown_438B
@@ -133,7 +133,7 @@ unknown_4352:
 	.skip	1
 unknown_4353:
 	.skip	1
-unknown_4354:
+offset_from_4300_4354:
 	.skip	1
 unknown_4355:
 	.skip	1
@@ -173,18 +173,18 @@ unknown_436E:
 	.skip	1
 unknown_436F:
 	.skip	1
-unknown_4370:
+slot_for_regular_animation_4370:
 	.skip	4
 unknown_4374:
 	.skip	4
-unknown_4378:
+slot_for_special_animation_4378:
 	.skip	4
 unknown_437C:
 	.skip	4
 	* player 1 score highest digit: 4381
 unknown_4380:
 	.skip	3
-unknown_4383:
+player_2_score_end_4383:
 	.skip	4
 player_score_end_4387:
 	.skip	2

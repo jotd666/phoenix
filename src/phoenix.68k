@@ -155,6 +155,30 @@ load_rom_in_a0_from_d6w:
 	lea		game_rom,a0
 	add.w	d6,a0
 	rts
+
+load_ram_in_a4_from_d1d2:
+	movem.w	d1/d2,-(a7)
+	LOAD_D1_16_FROM_D1D2
+	
+	sub.w	#RAM_START,d1
+	.ifndef	RELEASE
+	bcc.b	1f
+0:
+	add.w	#RAM_START,d1
+	lea		load_ram_in_a4_from_d1d2_out_of_range_error(pc),a1
+	jbsr	osd_break
+	illegal
+	.endif
+1:
+	.ifndef	RELEASE
+	cmp.w	#RAM_TOP-RAM_START,d1
+	bcc.b	0b
+	.endif
+
+	lea		game_ram,a4
+	add.w	d1,a4
+	movem.w	(a7)+,d1/d2
+	rts
 	
 load_ram_in_a1_from_d3d4:
 	movem.w	d3/d4,-(a7)
@@ -265,6 +289,8 @@ load_rom_in_a1_from_d3d4:
 	rts
 	
 	.ifndef	RELEASE
+load_ram_in_a4_from_d1d2_out_of_range_error:
+	.asciz	"load_ram_in_a4_from_d1d2_out_of_range"
 load_rom_in_a0_from_d5d6_out_of_range_error:
 	.asciz	"load_rom_in_a0_from_d5d6_out_of_range"
 load_rom_in_a0_from_d6w_out_of_range_error:
@@ -486,6 +512,9 @@ write_digits_to_screen_00c4:
 	rts                                    	| [$00e1: RET]
 
 * depending on counter, perform various stuff
+* test_if_mem_between_d1_and_d3_0260 returns carry clear if timer (4399) is within the interval
+* given by D1/D3: D1<=(4399.W)<=D3
+
 misc_event_trigger_routine_00e3:
 	lea	sequence_timer_16bit_4399,a0                	| [$00e3: LD      HL,sequence_timer_16bit_4399]
 	jbsr	AddOneToMem_0200                  	| [$00e6: CALL    AddOneToMem_0200]
@@ -494,8 +523,8 @@ misc_event_trigger_routine_00e3:
 	jeq	l_01e1                             	| [$00ef: JP      Z,$01E1]
 	move.w	#0x0002,d1                      	| [$00f2: LD      BC,$0002] 2
 	move.w	#0x011F,d3                      	| [$00f5: LD      DE,$011F]
-	jbsr	SubtractIfEnough_0260             	| [$00f8: CALL    SubtractIfEnough_0260]
-	jcc	draw_intro_text_0196                             	| [$00fb: JP      NC,$0196]
+	jbsr	test_if_mem_between_d1_and_d3_0260             	| [$00f8: CALL    test_if_mem_between_d1_and_d3_0260]
+	jcc	draw_intro_text_0196                             	| [$00fb: JP      NC,$0196] draw text if timer in interval
 	move.w	#0x0120,d1                      	| [$00fe: LD      BC,$0120]
 	jbsr	CompareBCtoMem_0258               	| [$0101: CALL    CompareBCtoMem_0258]
 	jeq	draw_bird_extended_winds_0bca                             	| [$0104: JP      Z,$0BCA]
@@ -507,16 +536,18 @@ misc_event_trigger_routine_00e3:
 	jeq	init_scrolling_data_0580                             	| [$0114: JP      Z,$0580]
 	move.w	#0x01C0,d1                        	| [$0117: LD      C,$C0]
 	move.w	#0x02DF,d3                      	| [$0119: LD      DE,$02DF]
-	jbsr	SubtractIfEnough_0260             	| [$011c: CALL    SubtractIfEnough_0260]
+	jbsr	test_if_mem_between_d1_and_d3_0260             	| [$011c: CALL    test_if_mem_between_d1_and_d3_0260]
 	jcc	l_0078                             	| [$011f: JP      NC,$0078]
 	move.w	#0x0300,d1                      	| [$0122: LD      BC,$0300]
 	move.w	#0x03AF,d3                      	| [$0125: LD      DE,$03AF]
-	jbsr	SubtractIfEnough_0260             	| [$0128: CALL    SubtractIfEnough_0260]
+	move.b	#1,0x200
+	jbsr	test_if_mem_between_d1_and_d3_0260             	| [$0128: CALL    test_if_mem_between_d1_and_d3_0260]
 	jcc	animate_title_vulture_21dc                             	| [$012b: JP      NC,$21DC]
+	* after that, this is intro sequence
 	move.w	#0x03E6,d1                      	| [$012e: LD      BC,$03E6]
 	moveq	#-1,d3                      	| [$0131: LD      DE,$FFFF]
-	jbsr	SubtractIfEnough_0260             	| [$0134: CALL    SubtractIfEnough_0260]
-	jcc	l_03b0                             	| [$0137: JP      NC,$03B0]
+	jbsr	test_if_mem_between_d1_and_d3_0260             	| [$0134: CALL    test_if_mem_between_d1_and_d3_0260]
+	jcc	rest_of_intro_sequence_03b0                             	| [$0137: JP      NC,$03B0]
 	rts                                    	| [$013a: RET]
 
 
@@ -775,40 +806,56 @@ CompareBCtoMem_0258:
 *
 * < A0 points to 16 bit data
 * < D3.W
-SubtractIfEnough_0260:
+test_if_mem_between_d1_and_d3_0260:
 	jbsr	SubtractFromMemory_0270           	| [$0260: CALL    SubtractFromMemory_0270] Try subtraction. Is memory larger (or equal) to BC?
 	bcc.b	0f                               	| [...]
 	rts                                    	| [$0263: RET     C] No ... ignore request [...]
 0:
-	jbsr	SubtractToMemory_0277             	| [$0264: CALL    SubtractToMemory_0277] Yes ... subtract DE from memory
-	rts                                    	| [$0267: RET] Done
+	jbra	SubtractToMemory_0277             	| [$0264: CALL    SubtractToMemory_0277] Yes ... subtract DE from memory
+	                                    	| [$0267: RET] Done
 
 
 
 * Two byte subtraction of memory from BC. BC = BC -  (HL-1):(HL)
 *
+* better reimplemented as 16 bit comparison
+
 SubtractFromMemory_0270:
-	move.b	(a0),d0                         	| [$0270: LD      A,(HL)] Get the low byte
-	sub.b	d1,d0                            	| [$0271: SUB     C] Subtract from C
-	                           	| [$0272: DEC     L] Point to upper byte
-	move.b	(-1,a0),d0                         	| [$0273: LD      A,(HL)] Get the upper byte
-	rol.w	#8,d1
-	subx.b	d1,d0                           	| [$0274: SBC     B] Subtract from B (with borrow)
-	                           	| [$0275: INC     L] Restore pointer
-	rol.w	#8,d1		| doesn't affect X
-	SET_C_FROM_X
+	move.b	(-1,a0),d0
+	lsl.w	#8,d0
+	move.b	(a0),d0
+	cmp.w	d1,d0
+	rts
+	
+
+	                       	| [$0270: LD      A,(HL)] Get the low byte
+	                        	| [$0271: SUB     C] Subtract from C
+	          	| [$0272: DEC     L] Point to upper byte
+	                         	| [$0273: LD      A,(HL)] Get the upper byte
+	
+	                       	| [$0274: SBC     B] Subtract from B (with borrow)
+	          	| [$0275: INC     L] Restore pointer
+	
 	rts                                    	| [$0276: RET] Done
 
 * Two byte subtraction of DE from memory. (HL-1):(HL) = (HL-1):(HL) - DE
 SubtractToMemory_0277:
-	move.b	d3,d0                           	| [$0277: LD      A,E] Lower byte
-	sub.b	(a0),d0                          	| [$0278: SUB     (HL)] Subtract it from memory
-	                           	| [$0279: DEC     L] Point to upper byte
-	rol.w	#8,d3
-	move.b	d3,d0                           	| [$027a: LD      A,D] Value to A
-	rol.w	#8,d3
-	move.b	(-1,a0),d7                         	| [$027b: SBC     (HL)] Subtract upper byte from memory (with borrow)
-	subx.b	d7,d0                         	| [$027b: SBC     (HL)] Subtract upper byte from memory (with borrow)
+	move.b	(-1,a0),d0
+	lsl.w	#8,d0
+	move.b	(a0),d0
+
+	cmp.w	d0,d3
+	rts
+	
+
+	                     	| [$0277: LD      A,E] Lower byte
+	                      	| [$0278: SUB     (HL)] Subtract it from memory
+	        	| [$0279: DEC     L] Point to upper byte
+	
+	                     	| [$027a: LD      A,D] Value to A
+	
+	                        	| [$027b: SBC     (HL)] Subtract upper byte from memory (with borrow)
+	                   	| [$027b: SBC     (HL)] Subtract upper byte from memory (with borrow)
 	                           	| [$027c: INC     L] Restore pointer
 	rts                                    	| [$027d: RET] Done
 
@@ -873,7 +920,7 @@ l_02e3:
 
 
 l_02f0:
-	lea	unknown_4383,a1                	| [$02f0: LD      DE,unknown_4383]
+	lea	player_2_score_end_4383,a1                	| [$02f0: LD      DE,player_2_score_end_4383]
 	lea	unknown_438B,a0                	| [$02f3: LD      HL,unknown_438B]
 	jbsr	l_0314                            	| [$02f6: CALL    $0314]
 	bcs.b	0f                               	| [...]
@@ -922,14 +969,17 @@ copy_3_bytes_a0_a1_0320:
 
 
 l_032e:
+	* clears 7 bytes
 	lea	unknown_4380,a0                	| [$032e: LD      HL,unknown_4380]
-l_0331:
-	clr.b	(a0)                             	| [$0331: LD      (HL),$00]
-	addq.w	#1,a0                           	| [$0333: INC     HL]
-	move.b	d6,d0                           	| [$0334: LD      A,L]
-	cmp.b	#0x88,d0                         	| [$0335: CP      $88]
-	jne	l_0331                             	| [$0337: JP      NZ,$0331]
-	lea	unknown_4383,a0                        	| [$033a: LD      L,$83]
+	clr.l	(a0)+
+	clr.w	(a0)+
+	clr.b	(a0)				
+											| [$0331: LD      (HL),$00]
+											| [$0333: INC     HL]
+											| [$0334: LD      A,L]
+							| [$0335: CP      $88]
+												| [$0337: JP      NZ,$0331]
+	lea	player_2_score_end_4383,a0                        	| [$033a: LD      L,$83]
 	move.w	#0x4261,d7                	| [$033c: LD      DE,unknown_4261]
 	move.b	#0x06,d1                        	| [$033f: LD      B,$06]
 	jbsr	write_digits_to_screen_00c4                            	| [$0341: CALL    $00C4]
@@ -1019,7 +1069,7 @@ l_03a6:
 	rts                                    	| [$03af: RET]
 	
 	
-l_03b0:
+rest_of_intro_sequence_03b0:
 	move.w	#0x07A0,d1                      	| [$03b0: LD      BC,$07A0]
 	jbsr	SubtractFromMemory_0270           	| [$03b3: CALL    SubtractFromMemory_0270]
 	jcs	l_03ce                             	| [$03b6: JP      C,$03CE]
@@ -1038,7 +1088,7 @@ l_03ce:
 	or.b	d1,d0                             	| [$03d7: OR      B]
 	move.b	d0,(a0)                         	| [$03d8: LD      (HL),A]
 	jra	in_game_scheduler_0400             	| [$03d9: JP      in_game_scheduler_0400]
-	jra	in_game_scheduler_0400             	| [$03dc: JP      in_game_scheduler_0400]
+												| [$03dc: JP      in_game_scheduler_0400]
 
 
 l_03e2:
@@ -1238,21 +1288,21 @@ init_new_play_clear_screen_04AC:
 	cmp.b	#0x7F,d0                         	| [$04b8: CP      $7F]
 	jeq	l_07f0                             	| [$04ba: JP      Z,$07F0]
 	lea	counter_439A,a0                        	| [$04bd: LD      L,$9A]
-	clr.b	(a0)                             	| [$04bf: LD      (HL),$00]
+	clr.w	(a0)                             	| [$04bf: LD      (HL),$00]
 	                           	| [$04c1: INC     L]
- 	clr.b	-(a0)                             	| [$04c2: LD      (HL),$00]
+ 	                             	| [$04c2: LD      (HL),$00]
 	and.b	#0x08,d0                         	| [$04c4: AND     $08]
 	jne	l_04e6                             	| [$04c6: JP      NZ,$04E6]
 	jbsr	l_06e8                            	| [$04c9: CALL    $06E8]
 	* location of score depending on active player          	| [$04cc: NOP]
 	lea	current_player_is_p2_43A3,a0                	| [$04cd: LD      HL,current_player_is_p2_43A3]
-	move.w	#0x4261,d7                	| [$04d4: LD      DE,unknown_4261]
+	move.w	#0x4261,d3                	| [$04d4: LD      DE,unknown_4261]
 	tst.b	(a0)                         	| [$04d0: LD      A,(HL)]
+	lea	player_2_score_end_4383,a0                        	| [$04d2: LD      L,$83]
 	                               	| [$04d1: AND     A]
-	lea	unknown_4383,a0                        	| [$04d2: LD      L,$83]
 	jeq	l_04df                             	| [$04d7: JP      Z,$04DF]
 	lea	player_score_end_4387,a0                        	| [$04da: LD      L,$87]
-	move.w	#0x4021,d7                	| [$04dc: LD      DE,unknown_4021]
+	move.w	#0x4021,d3                	| [$04dc: LD      DE,unknown_4021]
 l_04df:
 	move.b	#0x06,d1                        	| [$04df: LD      B,$06]
 	jbsr	write_digits_to_screen_00c4                            	| [$04e1: CALL    $00C4]
@@ -1260,9 +1310,9 @@ l_04df:
 
 l_04e6:
 	lea	current_player_is_p2_43A3,a0                	| [$04e6: LD      HL,current_player_is_p2_43A3]
+	move.w	#0x4261,d7                	| [$04eb: LD      DE,unknown_4261]
 	move.b	(a0),d0                         	| [$04e9: LD      A,(HL)]
 	                               	| [$04ea: AND     A]
-	move.w	#0x4261,d7                	| [$04eb: LD      DE,unknown_4261]
 	jeq	l_04f4                             	| [$04ee: JP      Z,$04F4]
 	move.w	#0x4021,d7                	| [$04f1: LD      DE,unknown_4021]
 l_04f4:
@@ -1544,8 +1594,8 @@ l_06b0:
 	move.b	(a0),d6                         	| [$06e3: LD      L,(HL)]
 	lea	game_rom+0x1E00,a0
 	add.w	d6,a0
-	jbsr	l_07dc                            	| [$06e4: CALL    $07DC]
-	rts                                    	| [$06e7: RET]
+	jbra	write_2x2_chars_07dc                            	| [$06e4: CALL    $07DC]
+	                                    	| [$06e7: RET]
 	
 	
 l_06e8:
@@ -1613,16 +1663,15 @@ l_0720:
 
 
 jump_table_0738:
-	.long	l_0763       | $763
-	.long	l_0779       | $779
+	.long	erase_shots_0763       | $763
+	.long	erase_bird_remaining_char_0779       | $779
 	.long	-1          |
-	.long	l_079E       | $79E
-	.long	l_07BE       | $7BE
+	.long	erase_attacking_birds_079E       | $79E
+	.long	erase_remaining_char_07BE       | $7BE
 	.long	-1       
 	.long	-1       
 	.long	-1       
 
-* looks like random? not sure
 l_0740:
 	move.b	(a4),d0                         	| [$0740: LD      A,(BC)]
 	move.b	d0,d5                           	| [$0741: LD      H,A]
@@ -1645,25 +1694,26 @@ l_0740:
 	and.w	#0xFF,d0
 	add.w	d0,d0
 	add.w	d0,d0
-	
+	lea		jump_table_075B(pc),a0
 	                       	| [$0754: LD      L,A]
 	                       	| [$0755: LD      H,$07]
 	move.w	(a0,d0.w),a0                         	| [$0757: LD      L,(HL)]
 * jump from jump table to $07xx
 	jra	(a0)                               	| [$0758: JP      (HL)]
 
-table_075B:
-	.long	l_076D      | $76D
-	.long	l_0788      | $788
+jump_table_075B:
+	.long	display_erase_shots_0763      | $76D
+	.long	animate_bird_in_swarm_0788      | $788
 	.long	0xFF        |
-	.long	l_07AA      | $7AA
-	.long	l_07D2      | $7D2
+	.long	display_attacking_birds_07AA      | $7AA
+	.long	display_attacking_bird_07D2      | $7D2  ????
 	.long	0XFF      
 	.long	0XFF      
 	.long	0XFF      
 
-l_0763:
-	exg	d3,a0                              	| [$0763: EX      DE,HL]
+erase_shots_0763:
+	bsr		load_ram_in_a1_from_d3d4
+	exg	a1,a0                              	| [$0763: EX      DE,HL]
 	move.b	(a0),d3                         	| [$0764: LD      D,(HL)]
 	                           	| [$0765: INC     HL]
 	move.b	(1,a0),d4                         	| [$0766: LD      E,(HL)]
@@ -1675,23 +1725,28 @@ l_0763:
 	exg	d3,a0                              	| [$076a: EX      DE,HL]
 	rts                                    	| [$076b: RET]
 
-l_076D:
+display_erase_shots_0763:
+	bsr		load_ram_in_a1_from_d3d4
 	exg	a1,a0                              	| [$076d: EX      DE,HL]
 	addq.w	#2,a0                           	| [$076e: INC     HL] * 2
 	move.b	(a0)+,d3                         	| [$0770: LD      D,(HL)]
 	                           	| [$0771: INC     HL]
 	move.b	(a0),d4                         	| [$0772: LD      E,(HL)]
-	bsr		load_ram_in_a1_from_d3d4
+	LOAD_D3D4_FROM_D3_16
+	move.w	d3,d7
 	move.b	(a4),d0                         	| [$0773: LD      A,(BC)]
-	move.b	d0,(a1)                         	| [$0774: LD      (DE),A]
+	jbsr	osd_w_videoram                         	| [$0774: LD      (DE),A]
 	subq.w	#1,a4                           	| [$0775: DEC     BC]
 	rts                                    	| [$0776: RET]
 	
 
                        	| [$0777: LD      (DE),A]
                        	| [$0778: INC     HL]
-l_0779:
-	exg	d3,a0                              	| [$0779: EX      DE,HL]
+						
+* remove remaining character of bird when needed (not all the time)
+erase_bird_remaining_char_0779:
+	bsr		load_ram_in_a1_from_d3d4
+	exg	a1,a0                              	| [$0779: EX      DE,HL]
 	move.b	(a0),d3                         	| [$077a: LD      D,(HL)]
 	                           	| [$077b: INC     HL]
 	move.b	(1,a0),d4                         	| [$077c: LD      E,(HL)]
@@ -1703,16 +1758,17 @@ l_0779:
 	jbsr	SubtractOneRow_0217               	| [$0780: CALL    SubtractOneRow_0217]
 	clr.b	d0                               	| [$0783: XOR     A]
 	jbsr	osd_w_videoram                         	| [$0784: LD      (DE),A]
-	exg	d3,a0                              	| [$0785: EX      DE,HL]
+	exg	a1,a0                              	| [$0785: EX      DE,HL]
 	rts                                    	| [$0786: RET]
 	
 
-	addq.w	#1,a0                           	| [$0787: INC     HL]
-l_0788:
-	exg	d3,a0                              	| [$0788: EX      DE,HL]
+	                           	| [$0787: INC     HL]
+animate_bird_in_swarm_0788:
+	bsr		load_ram_in_a1_from_d3d4
+	exg	a1,a0                              	| [$0788: EX      DE,HL]
 	addq.w	#2,a0                           	| [$0789: INC     HL] * 2
-	move.b	(a0),d3                         	| [$078b: LD      D,(HL)]
-	addq.w	#1,a0                           	| [$078c: INC     HL]
+	move.b	(a0)+,d3                         	| [$078b: LD      D,(HL)]
+	                           	| [$078c: INC     HL]
 	move.b	(a0),d4                         	| [$078d: LD      E,(HL)]
 	LOAD_D3_16_FROM_D3D4
 	move.w	d3,d7
@@ -1731,8 +1787,9 @@ l_0788:
 	rts                                    	| [$079b: RET]
 
 	                              	| [$079d: EX      DE,HL]
-l_079E:
-	exg	d3,a0                              	| [$079e: EX      DE,HL]
+erase_attacking_birds_079E:
+	bsr		load_ram_in_a1_from_d3d4
+	exg	a1,a0                              	| [$079e: EX      DE,HL]
 	move.b	(a0),d3                         	| [$079f: LD      D,(HL)]
 	                           	| [$07a0: INC     HL]
 	move.b	(1,a0),d4                         	| [$07a1: LD      E,(HL)]
@@ -1743,11 +1800,12 @@ l_079E:
 	jbsr	osd_w_videoram                         	| [$07a4: LD      (DE),A]
 	addq.w	#1,d7                           	| [$07a5: INC     DE]
 	jbsr	osd_w_videoram                         	| [$07a6: LD      (DE),A]
-	exg	d3,a0                              	| [$07a7: EX      DE,HL]
+	exg	a1,a0                              	| [$07a7: EX      DE,HL]
 	rts                                    	| [$07a8: RET]
 
-l_07AA:
-	exg	d3,a0                              	| [$07aa: EX      DE,HL]
+display_attacking_birds_07AA:
+	bsr		load_ram_in_a1_from_d3d4
+	exg	a1,a0                              	| [$07aa: EX      DE,HL]
 	addq.w	#2,a0                           	| [$07ab: INC     HL] * 2
 	move.b	(a0)+,d3                         	| [$07ad: LD      D,(HL)]
 	                           	| [$07ae: INC     HL]
@@ -1768,7 +1826,9 @@ l_07AA:
 	
 	                           	| [$07bc: INC     HL]
 	                           	| [$07bd: INC     DE]
-l_07BE:
+* erase char for bird & ship
+erase_remaining_char_07BE:
+	bsr		load_ram_in_a1_from_d3d4
 	exg	a1,a0                              	| [$07be: EX      DE,HL]
 	move.b	(a0),d3                         	| [$07bf: LD      D,(HL)]
 	                           	| [$07c0: INC     HL]
@@ -1789,18 +1849,18 @@ l_07BE:
 	rts                                    	| [$07cf: RET]
 
 
-l_07D2: 
-	illegal
-	exg	d3,a0
+display_attacking_bird_07D2: 
+	bsr		load_ram_in_a1_from_d3d4
+	exg	a1,a0
 	addq.w	#2,a0                           	| [$07d3: INC     HL] * 2
 	move.b	(a0),d3                         	| [$07d5: LD      D,(HL)]
 	addq.w	#1,a0                           	| [$07d6: INC     HL]
 	move.b	(a0),d4                         	| [$07d7: LD      E,(HL)]
 	move.b	(a4),d0                         	| [$07d8: LD      A,(BC)]
 	move.b	d0,d6                           	| [$07d9: LD      L,A]
-	move.b	#0x14,d5                        	| [$07da: LD      H,$14]
-* also updates background tile scrolling
-l_07dc:
+	move.b	#0x14,d5                        	| [$07da: LD      H,$14] ROM lsb 0x14xx
+	bsr		load_rom_in_a0_from_d5d6
+write_2x2_chars_07dc:
 	LOAD_D3_16_FROM_D3D4
 	move.w	d3,d7
 	move.b	(a0)+,d0                         	| [$07dc: LD      A,(HL)]
@@ -1932,12 +1992,12 @@ l_0886:
 	move.b	#0x03,d1                        	| [$0889: LD      B,$03]
 l_088b:
 	move.b	(a0),d3                         	| [$088b: LD      D,(HL)]
-	subq.w	#1,a0                           	| [$088c: DEC     HL]
-	move.b	(a0),d4                         	| [$088d: LD      E,(HL)]
-	subq.w	#1,a0                           	| [$088e: DEC     HL]
-	move.b	d3,(a0)                         	| [$088f: LD      (HL),D]
-	subq.w	#1,a0                           	| [$0890: DEC     HL]
-	move.b	d4,(a0)                         	| [$0891: LD      (HL),E]
+										| [$088c: DEC     HL]
+	move.b	-(a0),d4                         	| [$088d: LD      E,(HL)]
+	                           	| [$088e: DEC     HL]
+	move.b	d3,-(a0)                         	| [$088f: LD      (HL),D]
+	                           	| [$0890: DEC     HL]
+	move.b	d4,-(a0)                         	| [$0891: LD      (HL),E]
 	subq.w	#1,a0                           	| [$0892: DEC     HL]
 	subq.b	#1,d1                           	| [$0893: DEC     B]
 	jne	l_088b                             	| [$0894: JP      NZ,$088B]
@@ -1945,7 +2005,7 @@ l_088b:
 l_08a0:
 	jbsr	l_08c4                            	| [$08a0: CALL    $08C4]
 	lea	player_shot_1_structure_43C4,a0	| [$08a3: LD      HL,player_shot_1_structure_43C4]
-	jbsr	l_0930                            	| [$08a6: CALL    $0930]
+	jbsr	handle_player_shot_0930                            	| [$08a6: CALL    $0930]
 	move.b	current_stage_43B8,d0           	| [$08a9: LD      A,(current_stage_43B8)]
 	and.b	#0x0F,d0                         	| [$08ac: AND     $0F]
 	cmp.b	#0x03,d0                         	| [$08ae: CP      $03]
@@ -1953,7 +2013,7 @@ l_08a0:
 	rts                                    	| [$08b0: RET     NZ] nop to get 2 bullets all the time [...]
 0:
 	lea	player_shot_2_structure_43C8,a0	| [$08b1: LD      HL,player_shot_2_structure_43C8]
-	jbsr	l_0930                            	| [$08b4: CALL    $0930]
+	jbsr	handle_player_shot_0930                            	| [$08b4: CALL    $0930]
 	rts                                    	| [$08b7: RET]
 
 l_08c4:
@@ -2014,15 +2074,18 @@ l_0917:
 	rts                                    	| [$0921: RET]
 
 l_0926:
+	moveq	#0,d0
 	move.b	(a0),d0                         	| [$0926: LD      A,(HL)]
 	and.b	#0x07,d0                         	| [$0927: AND     $07]
-	add.b	d2,d0                            	| [$0929: ADD     A,C]
-	move.b	d0,d2                           	| [$092a: LD      C,A]
+	add.w	d0,a4
+	                            	| [$0929: ADD     A,C]
+	                           	| [$092a: LD      C,A]
 	move.b	(a4),d0                         	| [$092b: LD      A,(BC)]
-	subq.w	#1,a0                           	| [$092c: DEC     L]
-	move.b	d0,(a0)                         	| [$092d: LD      (HL),A]
+	                           	| [$092c: DEC     L]
+	move.b	d0,-(a0)                         	| [$092d: LD      (HL),A]
 	rts                                    	| [$092e: RET]
-l_0930:
+	
+handle_player_shot_0930:
 	move.b	(a0),d0                         	| [$0930: LD      A,(HL)]
 	and.b	#0x08,d0                         	| [$0931: AND     $08]
 	jne	l_0964                             	| [$0933: JP      NZ,$0964]
@@ -2041,8 +2104,8 @@ l_0930:
 	addq.w	#2,a1                           	| [$0945: INC     DE] * 2
 	move.b	player_ship_x_43C2,d0           	| [$0947: LD      A,(player_ship_x_43C2)]
 	addq.b	#0x04,d0                        	| [$094a: ADD     $04]
-	move.b	d0,(a1)                         	| [$094c: LD      (DE),A]
-	addq.w	#1,a1                           	| [$094d: INC     DE]
+	move.b	d0,(a1)+                         	| [$094c: LD      (DE),A]
+	                           	| [$094d: INC     DE]
 	move.b	player_ship_y_43C3,d0           	| [$094e: LD      A,(player_ship_y_43C3)]
 	sub.b	#0x08,d0                         	| [$0951: SUB     $08]
 	move.b	d0,(a1)                         	| [$0953: LD      (DE),A]
@@ -2073,15 +2136,16 @@ l_096e:
 l_097a:
 	move.b	  player_ship_x_43C2,d0                       	| [$097A: LD      A,(player_ship_x_43C2)]
 	move.b	d0,d1								| [$097D : LD      B,A]
-	and.b	#0x07,d0                         	| [$097e: AND     $07]
+	and.w	#0x07,d0                         	| [$097e: AND     $07]
 	rol.b	#1,d0                            	| [$0980: RLCA]
 	lea	game_rom+0x0B38,a0                      	| [$0981: LD      HL,$0B38]
-	add.b	d6,d0                            	| [$0984: ADD     A,L]
-	move.b	d0,d6                           	| [$0985: LD      L,A]
+	add.w	d0,a0
+												| [$0984: ADD     A,L]
+											| [$0985: LD      L,A]
 	move.b	d1,d0                           	| [$0986: LD      A,B]
-	sub.b	(a0),d0                          	| [$0987: SUB     (HL)]
+	sub.b	(a0)+,d0                          	| [$0987: SUB     (HL)]
 	move.b	d0,unknown_439E                 	| [$0988: LD      (unknown_439E),A]
-	addq.w	#1,a0                           	| [$098b: INC     HL]
+	                           	| [$098b: INC     HL]
 	move.b	d1,d0                           	| [$098c: LD      A,B]
 	add.b	(a0),d0                          	| [$098d: ADD     A,(HL)]
 	move.b	d0,unknown_439F                 	| [$098e: LD      (unknown_439F),A]
@@ -2096,8 +2160,8 @@ l_09a6:
 	jbsr	l_09ba                            	| [$09a6: CALL    $09BA]
 	addq.w	#3,a4                           	| [$09a9: INC     BC] * 3
 	addq.w	#3,a1                           	| [$09ac: INC     DE] * 3
-	move.b	d2,d0                           	| [$09af: LD      A,C]
-	cmp.b	#0xCE,d0                         	| [$09b0: CP      $CE]
+												| [$09af: LD      A,C]
+	cmp.l	#player_ship_x_43C2+12,d0                         	| [$09b0: CP      $CE]
 	jne	l_09a6                             	| [$09b2: JP      NZ,$09A6]
 	rts                                    	| [$09b5: RET]
 
@@ -2110,11 +2174,11 @@ l_09ba:
 	add.w	d0,a0		| okay as HL is 0xA00
 	                            	| [$09c2: ADD     A,L]
 	                           	| [$09c3: LD      L,A]
-	move.b	(a0),d0                         	| [$09c4: LD      A,(HL)]
-	move.b	d0,(a1)                         	| [$09c5: LD      (DE),A]
+	move.b	(a0)+,(a1)+                         	| [$09c4: LD      A,(HL)]
+											| [$09c5: LD      (DE),A]
 	addq.w	#1,a4                           	| [$09c6: INC     BC]
-	addq.w	#1,a1                           	| [$09c7: INC     DE]
-	addq.w	#1,a0                           	| [$09c8: INC     HL]
+	                           	| [$09c7: INC     DE]
+	                           	| [$09c8: INC     HL]
 	move.b	(a4),d0                         	| [$09c9: LD      A,(BC)]
 	and.b	#0xF8,d0                         	| [$09ca: AND     $F8]
 	ror.b	#3,d0                            	| [$09cc: RRCA] * 3
@@ -2122,14 +2186,21 @@ l_09ba:
 	move.b	d0,(a1)                         	| [$09d0: LD      (DE),A]
 	rts                                    	| [$09d1: RET]
 
+* for those routines below, we can't play smart because there are
+* too many risks of wrong address computations, so we "emulate" the
+* address registers to avoid issues
+
 l_0a50:
-	lea	unknown_4B70,a4                	| [$0a50: LD      BC,unknown_4B70]
-	lea	unknown_4BB0,a1                	| [$0a53: LD      DE,unknown_4BB0]
+	move.b	#0x4B,d1
+	move.b	d1,d3
+	move.b	#0x70,d2
+	move.b	#0xB0,d4     	| [$0a50: LD      BC,unknown_4B70]
+	            	| [$0a53: LD      DE,unknown_4BB0]
 l_0a56:
+	bsr		load_ram_in_a1_from_d3d4
+	bsr		load_ram_in_a4_from_d1d2
 	movem.w	d1/d2,-(sp)                    	| [$0a56: PUSH    BC]
-	move.l	a4,-(sp)                        	| [$0a56: PUSH    BC]
 	jbsr	l_0718                            	| [$0a57: CALL    $0718]
-	move.l	(sp)+,a4                        	| [$0a5a: POP     BC]
 	movem.w	(sp)+,d1/d2                    	| [$0a5a: POP     BC]
 	move.b	d2,d0                           	| [$0a5b: LD      A,C]
 	addq.b	#0x04,d0                        	| [$0a5c: ADD     $04]
@@ -2141,33 +2212,37 @@ l_0a56:
 	jne	l_0a56                             	| [$0a64: JP      NZ,$0A56]
 	rts                                    	| [$0a67: RET]
 
+
+* same here, register emulation
 l_0a6c:
-	lea	unknown_4B70,a4                	| [$0a6c: LD      BC,unknown_4B70]
-	lea	unknown_4BB3,a1                	| [$0a6f: LD      DE,unknown_4BB3]
+	move.b	#0x4B,d1
+	move.b	d1,d3
+	move.b	#0x70,d2
+	move.b	#0xB3,d4
+	
+	              	| [$0a6c: LD      BC,unknown_4B70]
+	              	| [$0a6f: LD      DE,unknown_4BB3]
 l_0a72:
-	movem.w	d1/d2,-(sp)                    	| [$0a72: PUSH    BC]
-	move.l	a4,-(sp)                        	| [$0a72: PUSH    BC]
+	bsr		load_ram_in_a1_from_d3d4
+	bsr		load_ram_in_a4_from_d1d2
 	movem.w	d3/d4,-(sp)                    	| [$0a73: PUSH    DE]
-	move.l	a1,-(sp)                        	| [$0a73: PUSH    DE]
 	move.b	(a4),d0                         	| [$0a74: LD      A,(BC)]
 	and.b	#0x18,d0                         	| [$0a75: AND     $18]
 	jeq	l_0a8a                             	| [$0a77: JP      Z,$0A8A]
 	exg	a1,a0                              	| [$0a7a: EX      DE,HL]
 	move.b	(a0),d3                         	| [$0a7b: LD      D,(HL)]
-	subq.w	#1,a0                           	| [$0a7c: DEC     HL]
-	move.b	(a0),d4                         	| [$0a7d: LD      E,(HL)]
-	subq.w	#1,a0                           	| [$0a7e: DEC     HL]
-	move.b	d3,(a0)                         	| [$0a7f: LD      (HL),D]
-	subq.w	#1,a0                           	| [$0a80: DEC     HL]
-	move.b	d4,(a0)                         	| [$0a81: LD      (HL),E]
+	                           	| [$0a7c: DEC     HL]
+	move.b	-(a0),d4                         	| [$0a7d: LD      E,(HL)]
+	                           	| [$0a7e: DEC     HL]
+	move.b	d3,-(a0)                         	| [$0a7f: LD      (HL),D]
+	                           	| [$0a80: DEC     HL]
+	move.b	d4,-(a0)                         	| [$0a81: LD      (HL),E]
 	exg	a1,a0                              	| [$0a82: EX      DE,HL]
 	addq.w	#2,a1                           	| [$0a83: INC     DE] * 2
 	addq.w	#2,a4                           	| [$0a85: INC     BC] * 2
 	jbsr	l_09ba                            	| [$0a87: CALL    $09BA]
 l_0a8a:
-	move.l	(sp)+,a1                        	| [$0a8a: POP     DE]
 	movem.w	(sp)+,d3/d4                    	| [$0a8a: POP     DE]
-	move.l	(sp)+,a4                        	| [$0a8b: POP     BC]
 	movem.w	(sp)+,d1/d2                    	| [$0a8b: POP     BC]
 	move.b	d2,d0                           	| [$0a8c: LD      A,C]
 	addq.b	#0x04,d0                        	| [$0a8d: ADD     $04]
@@ -2210,10 +2285,10 @@ copy_block_to_screen_0ad6:
 	movem.w	d3/d4,-(sp)                    	| [$0ad6: PUSH    DE]
 	movem.w	d1/d2,-(sp)                    	| [$0ad7: PUSH    BC]
 l_0ad8:
-	move.b	(a0),d0                         	| [$0ad8: LD      A,(HL)]
+	move.b	(a0)+,d0                         	| [$0ad8: LD      A,(HL)]
 	move.w	d3,d7
 	jbsr	osd_w_videoram                         	| [$0ad9: LD      (DE),A]
-	addq.w	#1,a0                           	| [$0ada: INC     HL]
+	                           	| [$0ada: INC     HL]
 	addq.w	#1,d3                           	| [$0adb: INC     DE]
 	subq.b	#1,d1                           	| [$0adc: DEC     B]
 	jne	l_0ad8                             	| [$0add: JP      NZ,$0AD8]
@@ -2232,8 +2307,8 @@ player_hit_0AEA:
 	move.b	d0,(a0)                         	| [$0af0: LD      (HL),A]
 	jbsr	osd_set_scroll_value                       	| [$0af1: LD      ($5800),A] 58xx scroll register
 	lea		screen_address_43E2,a0                        	| [$0af4: LD      L,$E2]
-	move.b	(a0),d3                         	| [$0af6: LD      D,(HL)]
-	addq.w	#1,a0                           	| [$0af7: INC     L]
+	move.b	(a0)+,d3                         	| [$0af6: LD      D,(HL)]
+	                           	| [$0af7: INC     L]
 	move.b	(a0),d4                         	| [$0af8: LD      E,(HL)]
 	LOAD_D3_16_FROM_D3D4
 	jbsr	AddOneRow_0210                    	| [$0af9: CALL    AddOneRow_0210]
@@ -2466,15 +2541,17 @@ l_0c84:
 	jcc	l_096e                             	| [$0c97: JP      NC,$096E]
 	subq.w	#1,a0                           	| [$0c9a: DEC     L]
 	jbsr	l_0cb4                            	| [$0c9b: CALL    $0CB4]
-	illegal   | reg shit going on here
-	move.b	d5,d3                           	| [$0c9e: LD      D,H]
-	move.b	d6,d0                           	| [$0c9f: LD      A,L]
-	add.b	#0x20,d0                         	| [$0ca0: ADD     $20]
-	move.b	d0,d4                           	| [$0ca2: LD      E,A]
+	
+	lea		(0x20,a0),a1
+												| [$0c9e: LD      D,H]
+												| [$0c9f: LD      A,L]
+												| [$0ca0: ADD     $20]
+												| [$0ca2: LD      E,A]
 	exg	a1,a0                              	| [$0ca3: EX      DE,HL]
-	move.b	(a0),d1                         	| [$0ca4: LD      B,(HL)]
-	addq.w	#1,a0                           	| [$0ca5: INC     HL]
+	move.b	(a0)+,d1                         	| [$0ca4: LD      B,(HL)]
+	                           	| [$0ca5: INC     HL]
 	move.b	(a0),d2                         	| [$0ca6: LD      C,(HL)]
+	bsr		load_ram_in_a4_from_d1d2
 	move.b	(a4),d0                         	| [$0ca7: LD      A,(BC)]
 	exg	a1,a0                              	| [$0ca8: EX      DE,HL]
 	addq.w	#1,a0                           	| [$0ca9: INC     L]
@@ -2797,8 +2874,8 @@ l_0e45:
 	jbsr	moving_bird_close_to_shot_0E58    	| [$0e4a: CALL    NZ,moving_bird_close_to_shot_0E58]
 0:
 	addq.w	#2,a0                           	| [$0e4d: INC     HL] * 2
-	move.b	#0xB0,d0                        	| [$0e4f: LD      A,$B0]
-	cmp.b	d6,d0                            	| [$0e51: CP      L]
+	cmp.l	#unknown_4B70+0xB0-0x70,a0                        	| [$0e4f: LD      A,$B0]
+											| [$0e51: CP      L]
 	jne	l_0e45                             	| [$0e52: JP      NZ,$0E45]
 	rts                                    	| [$0e55: RET]
 
@@ -2849,8 +2926,8 @@ l_0e7e:
 	jbsr	swarm_bird_close_to_shot_0E90     	| [$0e83: CALL    NZ,swarm_bird_close_to_shot_0E90]
 0:
 	addq.w	#2,a0                           	| [$0e86: INC     HL] * 2
-	move.b	#0xB0,d0                        	| [$0e88: LD      A,$B0]
-	cmp.b	d6,d0                            	| [$0e8a: CP      L]
+	                        	| [$0e88: LD      A,$B0]
+	cmp.l	#unknown_4B70+0xB0-0x70,d0                            	| [$0e8a: CP      L]
 	jne	l_0e7e                             	| [$0e8b: JP      NZ,$0E7E]
 	rts                                    	| [$0e8e: RET]
 
@@ -2900,20 +2977,38 @@ l_0ead:
 	move.b	(a0)+,d1                         	| [$0eb5: LD      B,(HL)]
 	                           	| [$0eb6: INC     HL]
 	move.b	(a0),d2                         	| [$0eb7: LD      C,(HL)] load into BC (ram pointer)
-	lea	unknown_4378,a0                	| [$0eb8: LD      HL,unknown_4378]
+	lea	slot_for_special_animation_4378,a0                	| [$0eb8: LD      HL,slot_for_special_animation_4378]
 	move.b	d3,d0                           	| [$0ebb: LD      A,D]
-	cmp.b	#0x10,d0                         	| [$0ebc: CP      $10]
+	cmp.b	#0x10,d0                         	| [$0ebc: CP      $10]	Are we to use the special animation?
 	jeq	l_0ec3                             	| [$0ebe: JP      Z,$0EC3]
-	lea	unknown_4370,a0                        	| [$0ec1: LD      L,$70]
+	lea	slot_for_regular_animation_4370,a0                        	| [$0ec1: LD      L,$70]
 l_0ec3:
 	move.b	(a0),d0                         	| [$0ec3: LD      A,(HL)]
 	                               	| [$0ec4: AND     A]
 	jeq	l_0ed5                             	| [$0ec5: JP      Z,$0ED5]
-	addq.w	#4,a0                           	| [$0ec8: INC     L]
-	move.b	(a0),d0                         	| [$0ecc: LD      A,(HL)]
-	                               	| [$0ecd: AND     A]
-	jeq	l_0ed5                             	| [$0ece: JP      Z,$0ED5]
-	addq.w	#4,a0                           	| [$0ed1: INC     L]
+	addq.w	#4,a0                           	| [$0ec8: INC     L]   Increase HL by 4. [now at 2nd or 4th slot]
+	move.b	(a0),d0                         	| [$0ecc: LD      A,(HL)] 
+	                               	| [$0ecd: AND     A]	Is this slot available?
+
+* else use the next slot.  Bugged when birds are flying upwards.
+* source of 204K bug. HL becomes #4380 which is start of score.
+	jeq	l_0ed5                             	| [$0ece: JP      Z,$0ED5] Yes, skip ahead, we will use this slot
+	addq.w	#4,a0                           	| [$0ed1: INC     L] 
+* there should have been a check here to see if HL==#4380 and change it if so.
+* else, score bug appears
+
+
+*This bug can be fixed by the following patch, which requires changing 10 bytes of code:
+*
+*0ED2: CD E6 0E 	call $0EE6 	; call patch
+*...
+*0EE6: 2C	inr l 		; restore instructions wiped by the patch call
+*0EE7: 2C 	inr l		; 
+*0EE8: 2C 	inr l		; if L becomes #80 then the S flag is set. Did it happen?
+*0EE9: F0 	rp 		; no, return and continue normally
+*0EEA: 2E 70 	mov l,$70 	; else set L to #70 to use 1st slot, not the score RAM
+*0EEC: C9 	ret 		; return
+
 l_0ed5:
 	move.b	d3,(a0)+                         	| [$0ed5: LD      (HL),D]
 	                           	| [$0ed6: INC     L]
@@ -2964,9 +3059,8 @@ l_0f23:
 	jbsr	l_0f38                            	| [$0f28: CALL    NZ,$0F38]
 0:
 	addq.w	#2,a0                           	| [$0f2b: INC     L]
-	move.b	#0xB0,d0                        	| [$0f2d: LD      A,$B0]
-	illegal | d6 limit
-	cmp.b	d6,d0                            	| [$0f2f: CP      L]
+	cmp.l	#unknown_4B70+0xB0-0x70,a0                        	| [$0f2d: LD      A,$B0]
+	                            	| [$0f2f: CP      L]
 	jne	l_0f23                             	| [$0f30: JP      NZ,$0F23]
 	rts                                    	| [$0f33: RET]
 l_0f38:
@@ -3073,11 +3167,11 @@ l_0fa6:
 	jra	l_0ead                             	| [$0fb9: JP      $0EAD]
 
 l_0fc0:
-	lea	unknown_4370,a0                	| [$0fc0: LD      HL,unknown_4370]
+	lea	slot_for_regular_animation_4370,a0                	| [$0fc0: LD      HL,slot_for_regular_animation_4370]
 	jbsr	l_0fd8                            	| [$0fc3: CALL    $0FD8]
 	lea	unknown_4374,a0                	| [$0fc6: LD      HL,unknown_4374]
 	jbsr	l_0fd8                            	| [$0fc9: CALL    $0FD8]
-	lea	unknown_4378,a0                	| [$0fcc: LD      HL,unknown_4378]
+	lea	slot_for_special_animation_4378,a0                	| [$0fcc: LD      HL,slot_for_special_animation_4378]
 	jbsr	l_3758                            	| [$0fcf: CALL    $3758]
 	lea	unknown_437C,a0                	| [$0fd2: LD      HL,unknown_437C]
 	jra	l_3758                             	| [$0fd5: JP      $3758]
@@ -3508,7 +3602,7 @@ animate_title_vulture_21dc:
 	bsr		load_rom_in_a1_from_d3d4
 	move.b	(a1),d0                         	| [$21f7: LD      A,(DE)]
 	move.b	d0,-(a0)                         	| [$21f8: LD      (HL),A]
-	jbsr	l_34c0                            	| [$21f9: CALL    $34C0]
+	jbsr	animate_vulture_34c0                            	| [$21f9: CALL    $34C0]
 	jra	l_1ee0                             	| [$21fc: JP      $1EE0]
 
 l_2204:
@@ -3604,7 +3698,7 @@ l_227b:
 	                           	| [$227e: INC     HL]
 	subq.b	#1,d3                           	| [$227f: DEC     D]
 	jne	l_227b                             	| [$2280: JP      NZ,$227B]
-	addq	#2,d6		| follow a0 increases
+	addq	#2,d6		| followed a0 increases
 	move.b	d6,d0                           	| [$2283: LD      A,L]
 	sub.b	d2,d0                            	| [$2284: SUB     C]
 	sub.b	d2,d0                            	| [$2285: SUB     C]
@@ -4161,9 +4255,9 @@ l_25cd:
 	move.b	(a0),d0                         	| [$25cd: LD      A,(HL)]
 	and.b	#0x08,d0                         	| [$25ce: AND     $08]
 	jeq	l_25e0                             	| [$25d0: JP      Z,$25E0]
-	move.b	d6,d0                           	| [$25d3: LD      A,L]
-	addq.b	#0x04,d0                        	| [$25d4: ADD     $04]
-	move.b	d0,d6                           	| [$25d6: LD      L,A]
+	                           	| [$25d3: LD      A,L]
+	addq.w	#0x04,a0                        	| [$25d4: ADD     $04]
+	                           	| [$25d6: LD      L,A]
 	subq.b	#1,d3                           	| [$25d7: DEC     D]
 	jne	l_25cd                             	| [$25d8: JP      NZ,$25CD]
 	move.l	(sp)+,a0                        	| [$25db: POP     HL]
@@ -4269,6 +4363,7 @@ l_2685:
 	move.b	d0,d6                           	| [$268a: LD      L,A]
 	move.b	#0x3E,d5                        	| [$268b: LD      H,$3E]
 	move.b	d1,d0                           	| [$268d: LD      A,B]
+	jbsr	load_rom_in_a0_from_d5d6
 	cmp.b	(a0),d0                          	| [$268e: CP      (HL)]
 	jcs	l_2693                             	| [$268f: JP      C,$2693]
 	move.b	(a0),d0                         	| [$2692: LD      A,(HL)]
@@ -4369,7 +4464,7 @@ l_2700:
 	move.b	d0,d6                           	| [$270e: LD      L,A]
 	st.b	d0                                	| [$270f: LD      A,$FF]
 	move.b	d0,unknown_4397                 	| [$2711: LD      (unknown_4397),A]
-	lea	unknown_4370,a1                	| [$2714: LD      DE,unknown_4370]
+	lea	slot_for_regular_animation_4370,a1                	| [$2714: LD      DE,slot_for_regular_animation_4370]
 l_2717:
 	jbsr	l_2748                            	| [$2717: CALL    $2748]
 	addq.w	#3,d4                           	| [$271a: INC     E]
@@ -4814,8 +4909,10 @@ l_3192:
 	beq.b	0f                               	| [...]
 	rts                                    	| [$31a2: RET     NZ] [...]
 0:
-	move.b	d6,d0                           	| [$31a3: LD      A,L]
-	move.b	d0,unknown_4354                 	| [$31a4: LD      (unknown_4354),A]
+	* recompute low-nibble offset from base address
+	move.l	a0,d0
+	sub.l	#unknown_4350-0x50,d0                           	| [$31a3: LD      A,L]
+	move.b	d0,offset_from_4300_4354                 	| [$31a4: LD      (offset_from_4300_4354),A]
 	move.b	#0x03,d0                        	| [$31a7: LD      A,$03]
 	move.b	d0,unknown_4350                 	| [$31a9: LD      (unknown_4350),A]
 	move.l	(sp)+,a0                        	| [$31ac: POP     HL]
@@ -4827,12 +4924,13 @@ l_31b4:
 	beq.b	0f                               	| [...]
 	rts                                    	| [$31b9: RET     NZ] [...]
 0:
-	move.b	unknown_4354,d0                 	| [$31ba: LD      A,(unknown_4354)]
+	move.b	offset_from_4300_4354,d0                 	| [$31ba: LD      A,(offset_from_4300_4354)]
 	sub.b	#0x50,d0                         	| [$31bd: SUB     $50]
 	rol.b	#1,d0                            	| [$31bf: RLCA]
 	add.b	#0x72,d0                         	| [$31c0: ADD     $72]
 	move.b	d0,d6                           	| [$31c2: LD      L,A]
 	move.b	#0x4B,d5                        	| [$31c3: LD      H,$4B]
+	jbsr	load_ram_in_a0_from_d5d6
 	move.b	(a0)+,d1                         	| [$31c5: LD      B,(HL)]
 	                           	| [$31c6: INC     L]
 	move.b	(a0),d3                         	| [$31c7: LD      D,(HL)]
@@ -4851,7 +4949,7 @@ l_31d6:
 	                        	| [$31dc: ADD     $00]
 	move.b	d0,d6                           	| [$31de: LD      L,A]
 	move.b	#0x33,d5                        	| [$31df: LD      H,$33]
-	bsr		load_ram_in_a0_from_d5d6
+	bsr		load_rom_in_a0_from_d5d6
 	move.b	(a0),d0                         	| [$31e1: LD      A,(HL)]
 	add.b	d2,d0                            	| [$31e2: ADD     A,C]
 	rol.b	#2,d0                            	| [$31e3: RLCA] * 2
@@ -4867,14 +4965,14 @@ l_31d6:
 	add.b	#0x10,d0                         	| [$31f2: ADD     $10]
 	move.b	d0,d6                           	| [$31f4: LD      L,A]
 	move.b	#0x33,d5                        	| [$31f5: LD      H,$33]
-	bsr		load_ram_in_a0_from_d5d6
+	bsr		load_rom_in_a0_from_d5d6
 	move.b	(a0),d2                         	| [$31f7: LD      C,(HL)]
 	jbsr	l_30aa                            	| [$31f8: CALL    $30AA]
 	and.b	#0x06,d0                         	| [$31fb: AND     $06]
 	add.b	d2,d0                            	| [$31fd: ADD     A,C]
 	move.b	d0,d6                           	| [$31fe: LD      L,A]
 	move.b	#0x33,d5                        	| [$31ff: LD      H,$33]
-	bsr		load_ram_in_a0_from_d5d6
+	bsr		load_rom_in_a0_from_d5d6
 	move.b	(a0)+,d0                         	| [$3201: LD      A,(HL)]
 	                           	| [$3202: INC     L]
  	move.b	(a0),d1                         	| [$3203: LD      B,(HL)]
@@ -4967,8 +5065,8 @@ l_3264:
 0:
 	clr.b	(a0)                             	| [$3275: LD      (HL),$00]
 	lea	unknown_4353,a0                        	| [$3277: LD      L,$53]
-	move.b	(a0),d2                         	| [$3279: LD      C,(HL)]
-	addq.w	#1,a0                           	| [$327a: INC     L]
+	move.b	(a0)+,d2                         	| [$3279: LD      C,(HL)]
+	                           	| [$327a: INC     L]
 	move.w	#0x4B00,d7
 	move.b	(a0),d7                         	| [$327b: LD      L,(HL)]
 	
@@ -4977,7 +5075,7 @@ l_3264:
 	move.b	d0,d3                           	| [$3281: LD      D,A]
 	move.b	unknown_4394,d0                 	| [$3282: LD      A,(unknown_4394)]
 	move.b	d0,d4                           	| [$3285: LD      E,A]
-	move.b	d6,d0                           	| [$3286: LD      A,L]
+	move.b	d7,d0                           	| [$3286: LD      A,L]
 	sub.b	#0x50,d0                         	| [$3287: SUB     $50]
 	ror.b	#1,d0                            	| [$3289: RRCA]
 	move.b	d0,d1                           	| [$328a: LD      B,A]
@@ -5034,15 +5132,19 @@ l_32b0:
 	add.b	#0x10,d0                         	| [$32da: ADD     $10]
 	move.b	d0,d6                           	| [$32dc: LD      L,A]
 	move.b	d2,d1                           	| [$32dd: LD      B,C]
+	jbsr	load_rom_in_a0_from_d5d6
+	jbsr	load_ram_in_a1_from_d3d4
 	move.b	current_stage_43B8,d0           	| [$32de: LD      A,(current_stage_43B8)]
 	ror.b	#2,d0                            	| [$32e1: RRCA] * 2
 	jcc	copy_memory_05e0                             	| [$32e3: JP      NC,$05E0]
-	move.b	d6,d0                           	| [$32e6: LD      A,L]
-	add.b	#0x40,d0                         	| [$32e7: ADD     $40]
-	move.b	d0,d6                           	| [$32e9: LD      L,A]
+	                           	| [$32e6: LD      A,L]
+	add.w	#0x40,a0                         	| [$32e7: ADD     $40]
+	                           	| [$32e9: LD      L,A]
+	
 	jra	copy_memory_05e0                             	| [$32ea: JP      $05E0]
-	jbsr	copy_memory_05e0                            	| [$32ed: CALL    $05E0]
-	jra	clear_background_tiles_03a0                             	| [$32f0: JP      $03A0]
+	
+	                  	| [$32ed: CALL    $05E0]
+	                          	| [$32f0: JP      $03A0]
 
 
 
@@ -5098,7 +5200,7 @@ l_3474:
 l_3477:
 
 	move.l	a0,-(sp)                        	| [$3477: PUSH    HL]
-	jbsr	l_34c0                            	| [$3478: CALL    $34C0]
+	jbsr	animate_vulture_34c0                            	| [$3478: CALL    $34C0]
 	move.l	(sp)+,a0                        	| [$347b: POP     HL]
 	move.b	d6,d0                           	| [$347c: LD      A,L]
 	add.b	#0x08,d0                         	| [$347d: ADD     $08]
@@ -5111,7 +5213,7 @@ l_3486:
 l_3489:
 
 	move.l	a0,-(sp)                        	| [$3489: PUSH    HL]
-	jbsr	l_34c0                            	| [$348a: CALL    $34C0]
+	jbsr	animate_vulture_34c0                            	| [$348a: CALL    $34C0]
 	move.l	(sp)+,a0                        	| [$348d: POP     HL]
 	move.b	d6,d0                           	| [$348e: LD      A,L]
 	add.b	#0x08,d0                         	| [$348f: ADD     $08]
@@ -5146,7 +5248,8 @@ l_34ad:
 	jne	l_34ad                             	| [$34b8: JP      NZ,$34AD]
 	rts                                    	| [$34bb: RET]
 
-l_34c0:
+* used in title & in game
+animate_vulture_34c0:
 	move.b	(a0),d0                         	| [$34c0: LD      A,(HL)]
 	                               	| [$34c1: AND     A]
 	bne.b	0f                               	| [...]
@@ -5204,7 +5307,6 @@ l_3509:
 	add.b	d1,d0                            	| [$350a: ADD     A,B]
 	move.b	d0,d2                           	| [$350b: LD      C,A]
 l_350c:
-	move.b	#1,0x100
 	LOAD_D3_16_FROM_D3D4
 	move.w	d3,d7
 	                     	| [$350c: LD      B,$35]
@@ -5890,7 +5992,7 @@ l_3844:
 	move.b	d0,d4                           	| [$3862: LD      E,A]
 	st.b	d0                                	| [$3863: LD      A,$FF]
 	move.b	d0,unknown_4369                 	| [$3865: LD      (unknown_4369),A]
-	lea	unknown_4378,a0                	| [$3868: LD      HL,unknown_4378]
+	lea	slot_for_special_animation_4378,a0                	| [$3868: LD      HL,slot_for_special_animation_4378]
 	lea	game_rom+0x1010,a4                      	| [$386b: LD      BC,$1010]
 	move.b	d4,d0                           	| [$386e: LD      A,E]
 	cmp.b	#0x0F,d0                         	| [$386f: CP      $0F]
@@ -5985,7 +6087,7 @@ l_38e9:
 	                             	| [$38f1: JP      $38F8]
 
 l_38f8:
-	lea	unknown_4370,a0                	| [$38f8: LD      HL,unknown_4370]
+	lea	slot_for_regular_animation_4370,a0                	| [$38f8: LD      HL,slot_for_regular_animation_4370]
 l_38fb:
 	clr.b	d0                               	| [$38fb: XOR     A]
 	cmp.b	(a0),d0                          	| [$38fc: CP      (HL)]
@@ -6144,7 +6246,7 @@ l_39db:
 	lea	player_shot_1_structure_43C4,a1	| [$39de: LD      DE,player_shot_1_structure_43C4]
 	move.b	#0x04,d1                        	| [$39e1: LD      B,$04]
 	jbsr	copy_memory_05e0                            	| [$39e3: CALL    $05E0]
-	move.b	#0xE6,d4                        	| [$39e6: LD      E,$E6]
+	lea	ram_pointer_on_flying_enemies_table_43E6,a1                        	| [$39e6: LD      E,$E6]
 	move.b	#0x02,d1                        	| [$39e8: LD      B,$02]
 	jra	copy_memory_05e0                             	| [$39ea: JP      $05E0]
 
