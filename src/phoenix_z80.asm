@@ -572,7 +572,7 @@ CompareHLtoBC_0280:
 02ED: C9              RET
 
 
-02F0: 11 83 43        LD      DE,unknown_4383
+02F0: 11 83 43        LD      DE,player_2_score_end_4383
 02F3: 21 8B 43        LD      HL,unknown_438B
 02F6: CD 14 03        CALL    $0314               ;
 02F9: D4 20 03        CALL    NC,copy_3_bytes_a0_a1_0320            ;
