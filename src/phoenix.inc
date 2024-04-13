@@ -8,13 +8,15 @@
     OPT_DISABLE_BG_LAYER=0            | LEAVE AT 0!!!
     OPT_DISABLE_FG_LAYER=0            | LEAVE AT 0!!!
     OPT_START_SCORE=0                 | LEAVE AT 0!!!
+	OPT_SKIP_INTRO=0                  | LEAVE AT 0!!!
 	.else
 	
     * hardware options
     OPT_DISABLE_BG_LAYER=0
     OPT_DISABLE_FG_LAYER=0
-   
+  
 	* permanent cheats/hacks to test game
+ 	OPT_SKIP_INTRO=0
     * score is BCD format???
 	* all options are zeroed for release
     OPT_START_SCORE=0x0
