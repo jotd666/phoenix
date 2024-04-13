@@ -1096,7 +1096,7 @@ decode_sprite_data:
 	rts
 
 
-	
+REAL_VIDEO_SIZE = 0x360	
 * d7=screen address (preserved), d0=tile (preserved)
 * d7 starts at 0x4000-0x43FF or 0x4800-0x4BFF
 * should preserve all registers
@@ -1120,12 +1120,12 @@ osd_w_videoram:
 	
 	sub.w	#FORE_SCREEN_ADDRESS,d7
 	bcs.b	0f
-	cmp.w	#0x400,d7
+	cmp.w	#REAL_VIDEO_SIZE,d7
 	bcs.b	write_fore_videoram
 
 	sub.w	#BACK_SCREEN_ADDRESS-FORE_SCREEN_ADDRESS,d7
 	bcs.b	0f
-	cmp.w	#0x400,d7
+	cmp.w	#REAL_VIDEO_SIZE,d7
 	bcs.b	write_back_videoram
 0:
 	* should not happen
@@ -1134,7 +1134,7 @@ osd_w_videoram:
 	nop
 	move.b	d0,d0
 	nop	
-	bra.b	0f
+	bra.b	2f
 
 write_back_videoram:
     .ifeq OPT_DISABLE_BG_LAYER
@@ -1142,13 +1142,13 @@ write_back_videoram:
 	add.w	d7,a1
 	
 	cmp.b	(a1),d0
-	beq.b	0f		| already the proper value
+	beq.b	2f		| already the proper value
 
 	cmp.w	#0x2B8,d7
 	bne.b	1f
 	cmp.b	#0x75,d0
 	beq.b	0f
-	* TODO: if specific address written to, enable/disable dyn color
+	* if specific address written to, enable/disable dyn color
 	move.w	#0x01FE,alien_purple_score_screen
 	bra.b	1f
 0:
@@ -1170,7 +1170,7 @@ write_back_videoram:
 	move.l	#BG_SCREEN_PLANE_SIZE,d5
 	jbsr		update_tile
 	.endif
-0:
+2:
 	movem.l	(a7)+,d0-d3/d7/a0-a2
 	rts
 write_fore_videoram:

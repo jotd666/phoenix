@@ -1006,7 +1006,7 @@ clear_area_05D8:
 05F7: 56              LD      D,(HL)
 05F8: 23              INC     HL
 05F9: 5E              LD      E,(HL)
-05FA: 21 70 4B        LD      HL,unknown_4B70
+05FA: 21 70 4B        LD      HL,bird_data_4B70
 05FD: 3A BA 43        LD      A,(nb_to_kill_before_stage_completed_43BA)
 0600: 47              LD      B,A
 0601: A7              AND     A
@@ -1716,7 +1716,7 @@ read_controls_to_move_ship_0900:
 09D0: 12              LD      (DE),A
 09D1: C9              RET
 
-0A50: 01 70 4B        LD      BC,unknown_4B70
+0A50: 01 70 4B        LD      BC,bird_data_4B70
 0A53: 11 B0 4B        LD      DE,unknown_4BB0
 0A56: C5              PUSH    BC
 0A57: CD 18 07        CALL    $0718               ;
@@ -1731,7 +1731,7 @@ read_controls_to_move_ship_0900:
 0A64: C2 56 0A        JP      NZ,$0A56            ;
 0A67: C9              RET
 
-0A6C: 01 70 4B        LD      BC,unknown_4B70
+0A6C: 01 70 4B        LD      BC,bird_data_4B70
 0A6F: 11 B3 4B        LD      DE,unknown_4BB3
 0A72: C5              PUSH    BC
 0A73: D5              PUSH    DE
@@ -2057,6 +2057,7 @@ moving_bird_shot_0C00:
 0CF5: C1              POP     BC
 0CF6: C9              RET
 
+; not called anywhere, not reached during the game (checked with MAME)
 0D08: 21 93 43        LD      HL,birds_attack_counter_4393
 0D0B: 34              INC     (HL)
 0D0C: 7E              LD      A,(HL)
@@ -2070,7 +2071,7 @@ moving_bird_shot_0C00:
 0D16: 77              LD      (HL),A
 0D17: C9              RET
 
-0D1C: 01 70 4B        LD      BC,unknown_4B70
+0D1C: 01 70 4B        LD      BC,bird_data_4B70
 0D1F: 21 50 4B        LD      HL,unknown_4B50
 0D22: CD 30 0D        CALL    $0D30               ;
 0D25: 0C              INC     C
@@ -2127,7 +2128,7 @@ moving_bird_shot_0C00:
 0D66: 34              INC     (HL)
 0D67: C9              RET
 
-0D70: 01 70 4B        LD      BC,unknown_4B70
+0D70: 01 70 4B        LD      BC,bird_data_4B70
 0D73: 21 50 4B        LD      HL,unknown_4B50
 0D76: CD 86 0D        CALL    $0D86               ;
 0D79: 79              LD      A,C
@@ -2270,7 +2271,7 @@ player_shot_vs_bird_collision_0E10:
 0E3F: E6 F8           AND     $F8
 0E41: 5F              LD      E,A
 ; shot close to a bird in motion (not in swarm)
-0E42: 21 70 4B        LD      HL,unknown_4B70
+0E42: 21 70 4B        LD      HL,bird_data_4B70
 0E45: 7E              LD      A,(HL)
 0E46: 23              INC     HL
 0E47: 23              INC     HL
@@ -2314,7 +2315,7 @@ moving_bird_close_to_shot_0E58:
 0E77: 0A              LD      A,(BC)
 0E78: E6 F8           AND     $F8
 0E7A: 5F              LD      E,A
-0E7B: 21 70 4B        LD      HL,unknown_4B70
+0E7B: 21 70 4B        LD      HL,bird_data_4B70
 0E7E: 7E              LD      A,(HL)
 0E7F: 23              INC     HL
 0E80: 23              INC     HL
@@ -2446,7 +2447,7 @@ bird_shot_0EA4:
 0F1D: 47              LD      B,A
 0F1E: 2C              INC     L
 0F1F: 4E              LD      C,(HL)
-0F20: 21 70 4B        LD      HL,unknown_4B70
+0F20: 21 70 4B        LD      HL,bird_data_4B70
 0F23: 7E              LD      A,(HL)
 0F24: 2C              INC     L
 0F25: 2C              INC     L
@@ -2517,7 +2518,7 @@ bird_shot_0EA4:
 0F8B: 47              LD      B,A
 0F8C: C6 2D           ADD     $2D
 0F8E: 4F              LD      C,A
-0F8F: 21 70 4B        LD      HL,unknown_4B70
+0F8F: 21 70 4B        LD      HL,bird_data_4B70
 0F92: 7E              LD      A,(HL)
 0F93: 2C              INC     L
 0F94: 2C              INC     L
@@ -4298,7 +4299,7 @@ jump_table_3018:
 322F: FE 04           CP      $04
 3231: C0              RET     NZ
 3232: 21 50 4B        LD      HL,unknown_4B50
-3235: 11 70 4B        LD      DE,unknown_4B70
+3235: 11 70 4B        LD      DE,bird_data_4B70
 3238: 3A 56 43        LD      A,(unknown_4356)
 323B: 4F              LD      C,A
 323C: 3A 94 43        LD      A,(unknown_4394)
@@ -4386,7 +4387,7 @@ jump_table_3018:
 32C5: 07              RLCA
 32C6: 07              RLCA
 32C7: 4F              LD      C,A
-32C8: 21 70 4B        LD      HL,unknown_4B70
+32C8: 21 70 4B        LD      HL,bird_data_4B70
 32CB: 06 40           LD      B,$40
 32CD: CD D8 05        CALL    clear_area_05D8               ;
 32D0: 16 4B           LD      D,$4B
@@ -4475,7 +4476,7 @@ vultures_level_3400:
 346A: CD C0 0F        CALL    $0FC0               ;
 346D: C3 04 22        JP      $2204               ;
 
-3474: 21 70 4B        LD      HL,unknown_4B70
+3474: 21 70 4B        LD      HL,bird_data_4B70
 3477: E5              PUSH    HL
 3478: CD C0 34        CALL    $34C0               ;
 347B: E1              POP     HL
@@ -4495,7 +4496,7 @@ vultures_level_3400:
 3492: FE B0           CP      $B0
 3494: C2 89 34        JP      NZ,$3489            ;
 3497: C9              RET
-3498: 21 70 4B        LD      HL,unknown_4B70
+3498: 21 70 4B        LD      HL,bird_data_4B70
 349B: E5              PUSH    HL
 349C: CD B0 35        CALL    $35B0               ;
 349F: E1              POP     HL
@@ -5483,7 +5484,7 @@ player_shots_vs_vultures_collision_3800:
 3A93: 7E              LD      A,(HL)
 3A94: A7              AND     A
 3A95: C3 23 39        JP      $3923               ;
-3A98: 21 70 4B        LD      HL,unknown_4B70
+3A98: 21 70 4B        LD      HL,bird_data_4B70
 3A9B: 01 00 08        LD      BC,$0800
 3A9E: 11 B0 03        LD      DE,$03B0
 3AA1: 7E              LD      A,(HL)

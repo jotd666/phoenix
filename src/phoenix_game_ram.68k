@@ -57,7 +57,7 @@
 	.global	unknown_4396
 	.global	unknown_4397
 	.global	unknown_4398
-	.global	sequence_timer_16bit_4399
+	.global	sequence_timer_16bit_lsb_4399
 	.global	counter_439A
 	.global	unknown_439B
 	.global	unknown_439C
@@ -99,7 +99,7 @@
 	.global	unknown_4743
 
 	.global	unknown_4B50
-	.global	unknown_4B70
+	.global	bird_data_4B70
 	.global	unknown_4B72
 	.global	unknown_4B73
 	.global	unknown_4B90
@@ -219,7 +219,7 @@ unknown_4397:
 	.skip	1
 unknown_4398:
 	.skip	1
-sequence_timer_16bit_4399:
+sequence_timer_16bit_lsb_4399:
 	.skip	1
 counter_439A:
 	.skip	1
@@ -328,7 +328,7 @@ unknown_4B40:
 	.skip	0x10
 unknown_4B50:
 	.skip	32
-unknown_4B70:
+bird_data_4B70:
 	.skip	2
 unknown_4B72:
 	.skip	1
