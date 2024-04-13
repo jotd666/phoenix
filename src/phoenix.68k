@@ -1548,11 +1548,11 @@ update_scrolling_067A:
 * if 8 pixels were scrolled, then feed scroll
 * by updating a character row
 	move.w	#0x20,d1
-	move.b	#0x47,d2                      	| [$0685: LD      BC,$2047] 0x20 in B for next char, 0x47 in C for 0x4700 limit
+	move.b	#0x47,d2                      	| [$0685: LD      BC,$2047] 0x20 in B for next char, 0x47 in C for 0x47xx limit
 	move.w	#0x4B21,d7                	| [$0688: LD      DE,unknown_4B21] screen address (background tiles)
 	move.b	(a0),d0                         	| [$068b: LD      A,(HL)] scroll value
-	ror.b	#3,d0                            	| [$068c: RRCA] * 3 divided by 8
-	and.b	#0x1F,d0                         	| [$068f: AND     $1F] masked (useless as 256/8 = 32...)
+	lsr.b	#3,d0                            	| [$068c: RRCA] * 3 divided by 8
+												| [$068f: AND     $1F] masked
 												| [$0691: ADD     A,E]
 	add.b	d0,d7                           	| [$0692: LD      E,A]
 	lea	current_background_rom_data_pointer_43B2,a0                        	| [$0693: LD      L,$B2]
@@ -1563,9 +1563,8 @@ update_scrolling_067A:
 	bsr		load_rom_in_a0_from_d5d6
 l_0699:
 	move.b	(a0)+,d0                         	| [$0699: LD      A,(HL)]
-	addq.b	#1,d6								| [$069b: INC     L] we need to follow a0/d6
 	jbsr	osd_w_videoram                         	| [$069a: LD      (DE),A]
-	                           	| [$069b: INC     L]
+	addq.b	#1,d6								| [$069b: INC     L] we need to follow a0/d6
 	                           	| [$069c: LD      A,E]
 	sub.w	d1,d7                            	| [$069d: SUB     B] prev column
 	                           	| [$069e: LD      E,A]
@@ -1901,6 +1900,7 @@ display_attacking_bird_07D2:
 	move.b	d0,d6                           	| [$07d9: LD      L,A]
 	move.b	#0x14,d5                        	| [$07da: LD      H,$14] ROM lsb 0x14xx
 	bsr		load_rom_in_a0_from_d5d6
+	* also used when updating scrolling
 write_2x2_chars_07dc:
 	LOAD_D3_16_FROM_D3D4
 	move.w	d3,d7
@@ -1912,7 +1912,7 @@ write_2x2_chars_07dc:
 	jbsr	osd_w_videoram                         	| [$07e1: LD      (DE),A]
 	                           	| [$07e2: INC     HL]
 	                           	| [$07e3: DEC     DE]
-	sub.w	#0x20,d7               	| [$07e4: CALL    SubtractOneRow_0217]
+	sub.w	#0x21,d7               	| [$07e4: CALL    SubtractOneRow_0217]
 	
 	move.b	(a0)+,d0                         	| [$07e7: LD      A,(HL)]
 	jbsr	osd_w_videoram                         	| [$07e8: LD      (DE),A]
@@ -2548,8 +2548,8 @@ l_0c71:
 	jbsr	l_09ba                            	| [$0c71: CALL    $09BA]
 	addq.w	#3,a4                           	| [$0c74: INC     BC] * 3
 	addq.w	#3,a1                           	| [$0c77: INC     DE] * 3
-	move.b	d2,d0                           	| [$0c7a: LD      A,C]
-	cmp.b	#0xE2,d0                         	| [$0c7b: CP      $E2]
+												| [$0c7a: LD      A,C]
+	cmp.l	#unknown_43CE+0xE2-0XCE,a4                         	| [$0c7b: CP      $E2]
 	jne	l_0c71                             	| [$0c7d: JP      NZ,$0C71]
 	rts                                    	| [$0c80: RET]
 
