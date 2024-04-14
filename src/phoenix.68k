@@ -42,6 +42,51 @@
 
 *http://www.computerarcheology.com/Arcade/Phoenix/
 
+*	PORT_START("IN0")
+*	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_COIN1 )
+*	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_START1 )
+*	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_START2 )
+*	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_UNUSED )
+*	PORT_BIT( 0xf0, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER(phoenix_state, player_input_r)
+*
+*	PORT_START("DSW0")
+*	PORT_DIPNAME( 0x03, 0x00, DEF_STR( Lives ) )            PORT_DIPLOCATION( "SW1:1,2" )
+*	PORT_DIPSETTING(    0x00, "3" )
+*	PORT_DIPSETTING(    0x01, "4" )
+*	PORT_DIPSETTING(    0x02, "5" )
+*	PORT_DIPSETTING(    0x03, "6" )
+*	PORT_DIPNAME( 0x0c, 0x00, DEF_STR( Bonus_Life ) )       PORT_DIPLOCATION( "SW1:3,4" )
+*	PORT_DIPSETTING(    0x00, "3K 30K" )
+*	PORT_DIPSETTING(    0x04, "4K 40K" )
+*	PORT_DIPSETTING(    0x08, "5K 50K" )
+*	PORT_DIPSETTING(    0x0c, "6K 60K" )
+*	PORT_DIPNAME( 0x10, 0x00, DEF_STR( Coinage ) )          PORT_DIPLOCATION( "SW1:5" )
+*	PORT_DIPSETTING(    0x10, DEF_STR( 2C_1C ) )
+*	PORT_DIPSETTING(    0x00, DEF_STR( 1C_1C ) )
+*	PORT_DIPNAME( 0x20, 0x20, DEF_STR( Unknown ) )          PORT_DIPLOCATION( "SW1:6" )
+*	PORT_DIPSETTING(    0x20, DEF_STR( Off ) )
+*	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+*	PORT_DIPNAME( 0x40, 0x40, DEF_STR( Unknown ) )          PORT_DIPLOCATION( "SW1:7" )
+*	PORT_DIPSETTING(    0x40, DEF_STR( Off ) )
+*	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
+*	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_CUSTOM ) PORT_VBLANK("screen")
+*
+*	PORT_START("CAB")       // fake port for non-memory mapped dip switch
+*	PORT_DIPNAME( 0x01, 0x00, DEF_STR( Cabinet ) )          PORT_DIPLOCATION( "SW1:!8" )
+*	PORT_DIPSETTING(    0x00, DEF_STR( Upright ) )
+*	PORT_DIPSETTING(    0x01, DEF_STR( Cocktail ) )
+*
+*	PORT_START("CTRL")      // fake port for multiplexed controls
+*	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_BUTTON1 )
+*	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT ) PORT_2WAY
+*	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  ) PORT_2WAY
+*	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_BUTTON2 )
+*	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_BUTTON1 ) PORT_COCKTAIL                  PORT_CONDITION("CAB",0x01,EQUALS,0x01)
+*	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT ) PORT_2WAY PORT_COCKTAIL PORT_CONDITION("CAB",0x01,EQUALS,0x01)
+*	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT  ) PORT_2WAY PORT_COCKTAIL PORT_CONDITION("CAB",0x01,EQUALS,0x01)
+*	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_BUTTON2 ) PORT_COCKTAIL                  PORT_CONDITION("CAB",0x01,EQUALS,0x01)
+
+
 	.include "phoenix.inc"
 	.ifdef	__amiga__
 	.include "phoenix_ram.68k"
@@ -504,10 +549,11 @@ WaitVBlankCoin_0080:
 0:
 	**jcc	l_0000                             	| [$00a3: JP      NC,$0000] More than 9? OOPS -- soft reset
 	move.b	#0x01,d1                        	| [$00a6: LD      B,$01] Coin bit of the input register
-	jbsr	CheckInputBits                    	| [$00a8: CALL    CheckInputBits] Has the coin input gone from 1 to 0?
+	jbsr	check_input_bits_00bb                    	| [$00a8: CALL    check_input_bits_00bb] Has the coin input gone from 1 to 0?
 	bne.b	0f                               	| [...]
 	rts                                    	| [$00ab: RET     Z] No ... no coins inserted ... done [...]
 0:
+	* insert coin!
 	lea	CoinCount_438F,a0                        	| [$00ac: LD      L,$8F] Add one ...
 	addq.b	#1,(a0)                         	| [$00ae: INC     (HL)] ... to coin count (438F)
 	move.b	(a0),d0                         	| [$00af: LD      A,(HL)] Current value ...
@@ -517,11 +563,11 @@ WaitVBlankCoin_0080:
 	rts                                    	| [$00b5: RET] Done
 
 
-
+	DECL_ADDRESS	bb
 * Check to see if a particular bit(s) in the input register has changed
 * from 1 to 0 since last we checked. Return NZ if transitioned from 1 to 0.
 *
-CheckInputBits:
+check_input_bits_00bb:
 	lea	current_input_value_43A0,a0                	| [$00bb: LD      HL,current_input_value_43A0] Get current ...
 	move.b	(a0)+,d0                         	| [$00be: LD      A,(HL)] ... input value
 	not.b	d0                               	| [$00bf: CPL] Flip the current bits
@@ -530,6 +576,7 @@ CheckInputBits:
 	and.b	(a0),d0                          	| [$00c2: AND     (HL)] Zero unles new bit is 0 and old is 1
 	rts                                    	| [$00c3: RET] Return state
 
+	DECL_ADDRESS	c4
 * < A0: data to write (0x.0-0x.9) as BCD
 * < D3: screen address
 * < D1: number of digits to write
@@ -983,7 +1030,7 @@ l_02f0:
 	jbsr	copy_3_bytes_a0_a1_0320                            	| [$0303: CALL    NC,$0320]
 0:
 	lea	unknown_438B,a0                        	| [$0306: LD      L,$8B]
-	move.w	#0x4141,d7                	| [$0308: LD      DE,unknown_4141]
+	move.w	#0x4141,d3                	| [$0308: LD      DE,unknown_4141]
 	move.b	#0x06,d1                        	| [$030b: LD      B,$06]
 	jbsr	write_digits_to_screen_00c4                            	| [$030d: CALL    $00C4]
 	rts                                    	| [$0310: RET]
@@ -1030,11 +1077,11 @@ l_032e:
 							| [$0335: CP      $88]
 												| [$0337: JP      NZ,$0331]
 	lea	player_2_score_end_4383,a0                        	| [$033a: LD      L,$83]
-	move.w	#0x4261,d7                	| [$033c: LD      DE,unknown_4261]
+	move.w	#0x4261,d3                	| [$033c: LD      DE,unknown_4261]
 	move.b	#0x06,d1                        	| [$033f: LD      B,$06]
 	jbsr	write_digits_to_screen_00c4                            	| [$0341: CALL    $00C4]
 	lea	player_score_end_4387,a0                        	| [$0344: LD      L,$87]
-	move.w	#0x4021,d7                	| [$0346: LD      DE,unknown_4021]
+	move.w	#0x4021,d3                	| [$0346: LD      DE,unknown_4021]
 	move.b	#0x06,d1                        	| [$0349: LD      B,$06]
 	jbsr	write_digits_to_screen_00c4                            	| [$034b: CALL    $00C4]
 	rts                                    	| [$034e: RET]
@@ -1322,7 +1369,8 @@ l_04a0:
 	rts                                    	| [$04aa: RET]
 
 
-
+	DECL_ADDRESS	4ac
+	
 * ?? Function 1
 init_new_play_clear_screen_04AC:
 	lea	timer_43A5,a0                  	| [$04ac: LD      HL,timer_43A5]
@@ -1369,7 +1417,10 @@ l_04e6:
 l_04f4:
 	move.b	#0x06,d1                        	| [$04f4: LD      B,$06]
 	jbsr	clear_score_digits_04fb                            	| [$04f6: CALL    $04FB]
-	rts                                    	| [$04f9: RET]
+	rts                                   	| [$04f9: RET]
+	
+	DECL_ADDRESS	4fb
+	
 clear_score_digits_04fb:
 	clr.b	d0                               	| [$04fb: LD      A,$00]
 	jbsr	osd_w_videoram                         	| [$04fd: LD      (DE),A]
@@ -2112,8 +2163,9 @@ l_08c4:
 	                               	| [$08d0: AND     A]
 	jne	l_08ea                             	| [$08d1: JP      NZ,$08EA]
 	move.b	#0x80,d1                        	| [$08d4: LD      B,$80]
-	jbsr	CheckInputBits                    	| [$08d6: CALL    CheckInputBits]
+	jbsr	check_input_bits_00bb                    	| [$08d6: CALL    check_input_bits_00bb]
 	jeq	l_08eb                             	| [$08d9: JP      Z,$08EB]
+	* shield requested (button 2)
 	lea	unknown_4362,a0                        	| [$08dc: LD      L,$62]
 	move.b	#0x40,(a0)                      	| [$08de: LD      (HL),$40]
 	lea	unknown_43C0,a0                        	| [$08e0: LD      L,$C0]
@@ -2130,30 +2182,34 @@ l_08eb:
 	lea	game_rom+0x1600,a4                      	| [$08f0: LD      BC,$1600]
 	jra	l_0926                             	| [$08f3: JP      $0926]
 
+	DECL_ADDRESS	900
+	
 read_controls_to_move_ship_0900:
 	jbsr	osd_read_inputs                   	| [$0900: LD      A,(IN0Current)]
-	not.b	d0                               	| [$0903: CPL]
+	not.b	d0                               	| [$0903: CPL] inverted logic
 	and.b	#0x60,d0                         	| [$0904: AND     $60]
-	bne.b	0f                               	| [...]
+	bne.b	0f                               	| [...] a bit is set, test it
 	rts                                    	| [$0906: RET     Z] [...]
 0:
 	and.b	#0x40,d0                         	| [$0907: AND     $40]
-	jeq	l_0917                             	| [$0909: JP      Z,$0917]
+	jeq	player_move_right_requested_0917                             	| [$0909: JP      Z,$0917]
 	move.b	(a0),d0                         	| [$090c: LD      A,(HL)]
 	cmp.b	#0x0D,d0                         	| [$090d: CP      $0D]
 	bcc.b	0f                               	| [...]
 	rts                                    	| [$090f: RET     C] [...]
 0:
+	* move to left
 	subq.b	#1,(a0)                         	| [$0910: DEC     (HL)]
 	st.b	d0                                	| [$0911: LD      A,$FF]
 	move.b	d0,unknown_4360                 	| [$0913: LD      (unknown_4360),A]
 	rts                                    	| [$0916: RET]
-l_0917:
+player_move_right_requested_0917:
 	move.b	(a0),d0                         	| [$0917: LD      A,(HL)]
 	cmp.b	#0xC0,d0                         	| [$0918: CP      $C0]
 	bcs.b	0f                               	| [...]
 	rts                                    	| [$091a: RET     NC] [...]
 0:
+	* move to right
 	addq.b	#1,(a0)                         	| [$091b: INC     (HL)]
 	st.b	d0                                	| [$091c: LD      A,$FF]
 	move.b	d0,unknown_4360                 	| [$091e: LD      (unknown_4360),A]
@@ -2179,7 +2235,7 @@ handle_player_shot_0930:
 	jne	l_0964                             	| [$0933: JP      NZ,$0964]
 	exg	a1,a0                              	| [$0936: EX      DE,HL]
 	move.b	#0x10,d1                        	| [$0937: LD      B,$10]
-	jbsr	CheckInputBits                    	| [$0939: CALL    CheckInputBits]
+	jbsr	check_input_bits_00bb                    	| [$0939: CALL    check_input_bits_00bb]
 	bne.b	0f                               	| [...]
 	rts                                    	| [$093c: RET     Z] [...]
 0:
@@ -4231,6 +4287,7 @@ l_2520:
 	jcc	l_253d                             	| [$2539: JP      NC,$253D]
 	move.b	d0,d1                           	| [$253c: LD      B,A]
 l_253d:
+	* probably display boss score
 	clr.b	d0                               	| [$253d: XOR     A]
 	move.b	d1,d0                           	| [$253e: LD      A,B]
 | DAA TODO 
@@ -4238,9 +4295,9 @@ l_253d:
 	move.b	d0,(a0)+                         	| [$2543: LD      (HL),A]
 	                           	| [$2544: INC     L]
 	clr.b	(a0)                             	| [$2545: LD      (HL),$00]
-	move.b	d4,d0                           	| [$2547: LD      A,E]
-	sub.b	#0x5E,d0                         	| [$2548: SUB     $5E]
-	move.b	d0,d4                           	| [$254a: LD      E,A]
+	                           	| [$2547: LD      A,E]
+	sub.w	#0x5E,d3                         	| [$2548: SUB     $5E]
+	                           	| [$254a: LD      E,A]
 	move.b	#0x04,d1                        	| [$254b: LD      B,$04]
 	jra	write_digits_to_screen_00c4                             	| [$254d: JP      $00C4]
 
@@ -4609,12 +4666,12 @@ l_2748:
 l_2768:
 
 	move.l	a0,-(sp)                        	| [$2768: PUSH    HL]
-	move.w	#0x4261,d7                	| [$2769: LD      DE,unknown_4261]
+	move.w	#0x4261,d3                	| [$2769: LD      DE,unknown_4261]
 	move.b	#0x06,d1                        	| [$276c: LD      B,$06]
 	tst.b	current_player_is_p2_43A3                 	| [$276e: LD      A,(current_player_is_p2_43A3)]
 	                               	| [$2771: AND     A]
 	jeq	l_2778                             	| [$2772: JP      Z,$2778]
-	move.w	#0x4021,d7                	| [$2775: LD      DE,unknown_4021]
+	move.w	#0x4021,d3                	| [$2775: LD      DE,unknown_4021]
 l_2778:
 	jbsr	write_digits_to_screen_00c4                            	| [$2778: CALL    $00C4]
 	move.l	(sp)+,a0                        	| [$277b: POP     HL]
