@@ -45,7 +45,7 @@
 	.global	player_2_score_end_4383
 	.global player_score_end_4387
 	.global	unknown_4389
-	.global	unknown_438B
+	.global	highest_score_438B
 	.global	unknown_438C
 	.global	unknown_438D
 	.global	unknown_438E
@@ -190,7 +190,7 @@ player_score_end_4387:
 	.skip	2
 unknown_4389:
 	.skip	2
-unknown_438B:
+highest_score_438B:
 	.skip	1
 unknown_438C:
 	.skip	1
