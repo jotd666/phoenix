@@ -41,7 +41,7 @@
 	.global	unknown_4374
 	.global	slot_for_special_animation_4378
 	.global	unknown_437C
-	.global	unknown_4380
+	.global	player_scores_buffer_4380
 	.global	player_2_score_end_4383
 	.global player_score_end_4387
 	.global	unknown_4389
@@ -182,7 +182,7 @@ slot_for_special_animation_4378:
 unknown_437C:
 	.skip	4
 	* player 1 score highest digit: 4381
-unknown_4380:
+player_scores_buffer_4380:
 	.skip	3
 player_2_score_end_4383:
 	.skip	4

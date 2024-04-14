@@ -972,14 +972,16 @@ l_0288:
 l_02a7:
 	jbsr	osd_read_inputs                       	| [$02a7: LD      A,($7000)] 70xx IN0
 	not.b	d0                               	| [$02aa: CPL]
+	* start bit(s) 1 or 2
 	and.b	d2,d0                            	| [$02ab: AND     C]
 	bne.b	0f                               	| [...]
 	rts                                    	| [$02ac: RET     Z] [...]
 0:
-	jbsr	l_02cb                            	| [$02ad: CALL    $02CB]
-	jbsr	l_02f0                            	| [$02b0: CALL    $02F0]
-	jbsr	l_032e                            	| [$02b3: CALL    $032E]
-	jbsr	l_0350                            	| [$02b6: CALL    $0350]
+	jbsr	decrease_credits_02cb                            	| [$02ad: CALL    $02CB]
+	* we should update highscore in real time like newer games
+	jbsr	update_highscore_02f0                            	| [$02b0: CALL    $02F0]
+	jbsr	zero_player_scores_032e                            	| [$02b3: CALL    $032E]
+	jbsr	init_player_lives_0350                            	| [$02b6: CALL    $0350]
 	jbsr	init_new_play_0140                            	| [$02b9: CALL    $0140]
 	moveq	#1,d0
 	jbsr	osd_write_5000                      	| [$02bc: LD      H,$50] 50xx video register
@@ -991,12 +993,13 @@ l_02a7:
 
 
 
-l_02cb:
+decrease_credits_02cb:
 	move.b	#0x01,d2                        	| [$02cb: LD      C,$01]
 	cmp.b	#0x02,d0                         	| [$02cd: CP      $02]
 	jeq	l_02d4                             	| [$02cf: JP      Z,$02D4]
 	move.b	#0x02,d2                        	| [$02d2: LD      C,$02]
 l_02d4:
+	* set number of players
 	lea	game_in_play_43A2,a0           	| [$02d4: LD      HL,game_in_play_43A2]
 	move.b	d2,(a0)                         	| [$02d7: LD      (HL),C]
 	jbsr	osd_read_dipswitches                       	| [$02d8: LD      A,($7800)] 78xx DSW0
@@ -1016,27 +1019,27 @@ l_02e3:
 	rts                                    	| [$02ed: RET]
 
 
-l_02f0:
+update_highscore_02f0:
 	lea	player_2_score_end_4383,a1                	| [$02f0: LD      DE,player_2_score_end_4383]
-	lea	unknown_438B,a0                	| [$02f3: LD      HL,unknown_438B]
-	jbsr	l_0314                            	| [$02f6: CALL    $0314]
+	lea	highest_score_438B,a0                	| [$02f3: LD      HL,highest_score_438B]
+	jbsr	compare_scores_0314                            	| [$02f6: CALL    $0314]
 	bcs.b	0f                               	| [...]
 	jbsr	copy_3_bytes_a0_a1_0320                            	| [$02f9: CALL    NC,$0320]
 0:
 	lea	player_score_end_4387,a1										| [$02fc: LD      E,$87]
-	lea	unknown_438B,a0										| [$02fe: LD      L,$8B]
-	jbsr	l_0314                            	| [$0300: CALL    $0314]
+	lea	highest_score_438B,a0										| [$02fe: LD      L,$8B]
+	jbsr	compare_scores_0314                            	| [$0300: CALL    $0314]
 	bcs.b	0f                               	| [...]
 	jbsr	copy_3_bytes_a0_a1_0320                            	| [$0303: CALL    NC,$0320]
 0:
-	lea	unknown_438B,a0                        	| [$0306: LD      L,$8B]
+	lea	highest_score_438B,a0                        	| [$0306: LD      L,$8B]
 	move.w	#0x4141,d3                	| [$0308: LD      DE,unknown_4141]
 	move.b	#0x06,d1                        	| [$030b: LD      B,$06]
 	jbsr	write_digits_to_screen_00c4                            	| [$030d: CALL    $00C4]
 	rts                                    	| [$0310: RET]
 
 
-l_0314:
+compare_scores_0314:
 	move.b	(a1),d0                         	| [$0314: LD      A,(DE)]
 	sub.b	(a0),d0                          	| [$0315: SUB     (HL)]
 												| [$0316: DEC     E]
@@ -1065,9 +1068,9 @@ copy_3_bytes_a0_a1_0320:
 	rts                                    	| [$032a: RET]
 
 
-l_032e:
-	* clears 7 bytes
-	lea	unknown_4380,a0                	| [$032e: LD      HL,unknown_4380]
+zero_player_scores_032e:
+	* clears 7 bytes for both player scores
+	lea	player_scores_buffer_4380,a0                	| [$032e: LD      HL,player_scores_buffer_4380]
 	clr.l	(a0)+
 	clr.w	(a0)+
 	clr.b	(a0)				
@@ -1086,8 +1089,9 @@ l_032e:
 	jbsr	write_digits_to_screen_00c4                            	| [$034b: CALL    $00C4]
 	rts                                    	| [$034e: RET]
 
-
-l_0350:
+	DECL_ADDRESS	350
+	
+init_player_lives_0350:
 	jbsr	osd_read_dipswitches                       	| [$0350: LD      A,($7800)] 78xx DSW0
 	and.b	#0x03,d0                         	| [$0353: AND     $03] Lives
 	addq.b	#0x03,d0                        	| [$0355: ADD     $03]
@@ -1333,7 +1337,7 @@ copy_bank_0460:
 *	jne	l_0466                             	| [$047e: JP      NZ,$0466]
 
 * then copies 4380 => 43B8 (player/game state)
-*	lea	unknown_4380,a1                	| [$0481: LD      DE,unknown_4380]
+*	lea	player_scores_buffer_4380,a1                	| [$0481: LD      DE,player_scores_buffer_4380]
 *l_0484:
 *	move.b	d1,(a0)                         	| [$0484: LD      (HL),B]
 *	move.b	(a1),d0                         	| [$0485: LD      A,(DE)]
@@ -3139,7 +3143,9 @@ l_0ec3:
 *0EE9: F0 	rp 		; no, return and continue normally
 *0EEA: 2E 70 	mov l,$70 	; else set L to #70 to use 1st slot, not the score RAM
 *0EEC: C9 	ret 		; return
-
+	cmp.l	#slot_for_regular_animation_4370+0x10,a0
+	bne.b	l_0ed5
+	sub.w	#0x10,a0			| fixes animation score bug trash directly
 l_0ed5:
 	move.b	d3,(a0)+                         	| [$0ed5: LD      (HL),D]
 	                           	| [$0ed6: INC     L]
@@ -3167,19 +3173,20 @@ l_0f00:
 	move.b	(a0)+,d3                         	| [$0f0b: LD      D,(HL)]
                            	| [$0f0c: INC     L]
 	move.b	(a0),d4                         	| [$0f0d: LD      E,(HL)]
+	LOAD_D3_16_FROM_D3D4
 	move.b	#2,d1                      	| [$0f0e: LD      BC,$0202]
 	move.b	#2,d2                      	| [$0f0e: LD      BC,$0202]
 	jbsr	l_0f56                            	| [$0f11: CALL    $0F56]
 	bne.b	0f                               	| [...]
 	rts                                    	| [$0f14: RET     Z] [...]
 0:
-	nop                                    	| [$0f15: NOP]
-	nop                                    	| [$0f16: NOP]
+	                                    	| [$0f15: NOP]
+	                                    	| [$0f16: NOP]
 	lea	unknown_439E,a0                	| [$0f17: LD      HL,unknown_439E]
-	move.b	(a0),d0                         	| [$0f1a: LD      A,(HL)]
+	move.b	(a0)+,d0                         	| [$0f1a: LD      A,(HL)]
 	subq.b	#0x06,d0                        	| [$0f1b: SUB     $06]
 	move.b	d0,d1                           	| [$0f1d: LD      B,A]
-	addq.w	#1,a0                           	| [$0f1e: INC     L]
+	                           	| [$0f1e: INC     L]
 	move.b	(a0),d2                         	| [$0f1f: LD      C,(HL)]
 	lea	bird_data_4B70,a0                	| [$0f20: LD      HL,bird_data_4B70]
 l_0f23:
@@ -3661,10 +3668,10 @@ l_2130:
 	cmp.b	#0x02,d0                         	| [$213a: CP      $02]
 	jeq	l_2170                             	| [$213c: JP      Z,$2170]
 	jra	l_2180                             	| [$213f: JP      $2180]
-	sub.b	d1,d0                            	| [$2142: SUB     B]
-	and.b	d6,d0                            	| [$2143: AND     L]
-	move.b	d1,d3                           	| [$2144: LD      D,B]
-	move.b	d1,d5                           	| [$2145: LD      H,B]
+											| [$2142: SUB     B]
+											| [$2143: AND     L]
+										| [$2144: LD      D,B]
+										| [$2145: LD      H,B]
 l_2146:
 	move.b	d1,d0                           	| [$2146: LD      A,B]
 	ror.b	#1,d0                            	| [$2147: RRCA]
@@ -4614,11 +4621,11 @@ l_2700:
 	lea	slot_for_regular_animation_4370,a1                	| [$2714: LD      DE,slot_for_regular_animation_4370]
 l_2717:
 	jbsr	l_2748                            	| [$2717: CALL    $2748]
-	addq.w	#3,d4                           	| [$271a: INC     E]
- 	move.b	d4,d0                           	| [$271d: LD      A,E]
-	cmp.b	#0x80,d0                         	| [$271e: CP      $80]
+	addq.w	#3,a1                           	| [$271a: INC     E]
+												| [$271d: LD      A,E]
+	cmp.l	#slot_for_regular_animation_4370+0x10,a1                         	| [$271e: CP      $80]
 	jne	l_2717                             	| [$2720: JP      NZ,$2717]
-	move.b	#0x9D,d4                        	| [$2723: LD      E,$9D]
+	lea		slot_for_regular_animation_4370+0x2D,a1                        	| [$2723: LD      E,$9D]
 	move.b	game_state_43A4,d0              	| [$2725: LD      A,(game_state_43A4)]
 	cmp.b	#0x06,d0                         	| [$2728: CP      $06]
 	jne	l_2739                             	| [$272a: JP      NZ,$2739]
@@ -4685,7 +4692,7 @@ l_2778:
 0:
 	addq.w	#1,a0                           	| [$2784: INC     L]
 	exg	a1,a0                              	| [$2785: EX      DE,HL]
-	jbsr	l_0314                            	| [$2786: CALL    $0314]
+	jbsr	compare_scores_0314                            	| [$2786: CALL    $0314]
 	bcs.b	0f                               	| [...]
 	rts                                    	| [$2789: RET     NC] [...]
 0:
@@ -5493,6 +5500,8 @@ jump_table_35xx:
 * kind of Duff's device/switch case
 	DECL_ADDRESS	3520
 	
+* < A1: char data
+* < D7: screen address
 l_3520:
 	bsr		copy_2_byte_column_to_screen
 						| [$3520: LD      A,(DE)]
@@ -5989,19 +5998,20 @@ l_3758:
 	move.l	(sp)+,a1                        	| [$377a: POP     DE]
 	movem.w	(sp)+,d3/d4                    	| [$377a: POP     DE]
 	move.w	(sp)+,d0                        	| [$377b: POP     AF]
-	illegal  | fishy D5/D6/A0 stuff
+	* weird screen address computation
 	not.b	d0                               	| [$377c: CPL]
 	move.b	d0,d6                           	| [$377d: LD      L,A]
 	st.b	d5                                	| [$377e: LD      H,$FF]
-	addq.w	#1,a0                           	| [$3780: INC     HL]
-	add.w	d3,a0                            	| [$3781: ADD     HL,DE]
-	exg	d3,a0                              	| [$3782: EX      DE,HL]
+	LOAD_D5_16_FROM_D5D6
+	addq.w	#1,d5                           	| [$3780: INC     HL]
+	add.w	d3,d5                            	| [$3781: ADD     HL,DE]
+	exg	d3,d5                              	| [$3782: EX      DE,HL]
 	move.w	#0xBFA0,d3                      	| [$3783: LD      HL,$BFA0]
-	add.w	d3,a0                            	| [$3786: ADD     HL,DE]
+	add.w	d3,d5                            	| [$3786: ADD     HL,DE]
 	bcs.b	0f                               	| [...]
 	rts                                    	| [$3787: RET     NC] [...]
 0:
-	exg	d3,d7                              	| [$3788: EX      DE,HL]
+	exg	d5,d7                              	| [$3788: EX      DE,HL]
 	lea	game_rom+0x17D6,a1                      	| [$3789: LD      DE,$17D6]
 	moveq	#0,d0
 	jbsr	osd_w_videoram
@@ -6014,19 +6024,20 @@ l_3758:
 l_3796:
 	illegal   | super fishy screen operations
 	clr.b	d5                               	| [$3799: LD      H,$00]
-	add.w	#0x60,d7                         	| [$3796: ADD     $60]
+	add.w	#0x60,d0                         	| [$3796: ADD     $60]
                            	| [$3798: LD      L,A]
 	jcc	l_379f                             	| [$379b: JP      NC,$379F]
 	addq.b	#1,d5                           	| [$379e: INC     H]
 l_379f:
-	add.w	d3,a0                            	| [$379f: ADD     HL,DE]
-	exg	d3,a0                              	| [$37a0: EX      DE,HL]
-	move.w	#0xBCC0,a0                      	| [$37a1: LD      HL,$BCC0]
-	add.w	d3,a0                            	| [$37a4: ADD     HL,DE]
+	LOAD_D5_16_FROM_D5D6
+	add.w	d3,d5                            	| [$379f: ADD     HL,DE]
+	exg	d3,d5                              	| [$37a0: EX      DE,HL]
+	move.w	#0xBCC0,d5                      	| [$37a1: LD      HL,$BCC0]
+	add.w	d3,d5                            	| [$37a4: ADD     HL,DE]
 	bcc.b	0f                               	| [...]
 	rts                                    	| [$37a5: RET     C] [...]
 0:
-	exg	a1,d7                              	| [$37a6: EX      DE,HL]
+	exg	d5,d7                              	| [$37a6: EX      DE,HL]
 	lea	game_rom+0x17D0,a1                      	| [$37a7: LD      DE,$17D0]
 	jra	l_3540                             	| [$37aa: JP      $3540]
 
