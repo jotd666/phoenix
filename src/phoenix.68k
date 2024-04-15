@@ -363,6 +363,8 @@ load_rom_in_a1_from_d3d4:
 	rts
 	
 	.ifndef	RELEASE
+invalid_jump_table_index_error:
+	.asciz	"invalid_jump_table_index_error"
 load_rom_in_a4_from_d1d2_out_of_range_error:
 	.asciz	"load_rom_in_a4_from_d1d2_out_of_range"
 load_ram_in_a4_from_d1d2_out_of_range_error:
@@ -456,7 +458,8 @@ l_002d:
 *	move.b	#0x68,d5                        	| [$0032: LD      H,$68] 68xx sound B
 *	move.b	d0,(a0)                         	| [$0034: LD      (HL),A]
 	jbsr	l_0377                            	| [$0035: CALL    $0377]
-	nop                                    	| [$0038: NOP]
+	* if game has to reboot at some point it lands here
+	                                    	| [$0038: NOP]
 	jbsr	l_17e0                            	| [$0039: CALL    $17E0]
 	tst.b	d0                               	| [$003c: AND     A]
 	jeq	l_0046                             	| [$003d: JP      Z,$0046]
@@ -635,7 +638,6 @@ misc_event_trigger_routine_00e3:
 	jcc	l_0078                             	| [$011f: JP      NC,$0078]
 	move.w	#0x0300,d1                      	| [$0122: LD      BC,$0300]
 	move.w	#0x03AF,d3                      	| [$0125: LD      DE,$03AF]
-	move.b	#1,0x200
 	jbsr	test_if_mem_between_d1_and_d3_0260             	| [$0128: CALL    test_if_mem_between_d1_and_d3_0260]
 	jcc	animate_title_vulture_21dc                             	| [$012b: JP      NC,$21DC]
 	* after that, this is intro sequence
@@ -1760,6 +1762,7 @@ select_game_jump_routine_0720:
 	.ifndef		RELEASE
 	bpl.b	0f
 	lsr.w	#2,d0
+	lea		invalid_jump_table_index_error,a1
 	jbsr	osd_break
 	ILLEGAL
 0:
@@ -1879,8 +1882,6 @@ erase_bird_remaining_char_0779:
 	LOAD_D3_16_FROM_D3D4
 	clr.b	d0                               	| [$077e: XOR     A]
 	exg		d3,d7                         	| [$077f: LD      (DE),A]
-	cmp.w	#0x4000,d7
-	bcs.b	0f					| can try to write in ROM
 	jbsr	osd_w_videoram
 	sub.w	#0x20,d7               	| [$0780: CALL    SubtractOneRow_0217]
 	cmp.w	#0x4000,d7
@@ -1896,7 +1897,6 @@ erase_bird_remaining_char_0779:
 	                           	| [$0787: INC     HL]
 animate_bird_in_swarm_0788:
 	exg	a1,a0                              	| [$0788: EX      DE,HL]
-	move.l	a0,0x200
 	addq.w	#2,a0                           	| [$0789: INC     HL] * 2
 	move.b	(a0)+,d3                         	| [$078b: LD      D,(HL)]
 	                           	| [$078c: INC     HL]
@@ -1991,6 +1991,7 @@ erase_remaining_char_07BE:
 display_attacking_bird_07D2: 
 	exg	a1,a0
 	addq.w	#2,a0                           	| [$07d3: INC     HL] * 2
+	move.l	a0,0x200
 	move.b	(a0)+,d3                         	| [$07d5: LD      D,(HL)]
 												| [$07d6: INC     HL]
 	move.b	(a0),d4                         	| [$07d7: LD      E,(HL)]
@@ -2018,10 +2019,12 @@ write_2x2_chars_07dc:
 	addq.w	#1,d7                           	| [$07ea: INC     DE]
 	move.b	(a0),d0                         	| [$07eb: LD      A,(HL)]
 	jbsr	osd_w_videoram                         	| [$07ec: LD      (DE),A]
+0:
 	subq.w	#1,a4                           	| [$07ed: DEC     BC]
 	rts                                    	| [$07ee: RET]
 
-
+	DECL_ADDRESS	7f0
+	
 l_07f0:
 	move.b	current_scroll_value_43B9,d0    	| [$07f0: LD      A,(current_scroll_value_43B9)]
 	jbsr	osd_set_scroll_value                       	| [$07f3: LD      ($5800),A] 58xx scroll register
@@ -2029,6 +2032,7 @@ l_07f0:
 	jra	set_proper_stage_palette_041E      	| [$07f9: JP      set_proper_stage_palette_041E]
 
 
+	DECL_ADDRESS	800
 
 game_playing_0800:
 	lea	jump_table_0814,a0             	| [$0800: LD      HL,jump_table_0814]
@@ -2092,6 +2096,8 @@ l_0848:
 	move.b	#0x02,(a0)                      	| [$0853: LD      (HL),$02]
 	rts                                    	| [$0855: RET]
 
+	DECL_ADDRESS	85a
+
 select_birds_params_depending_on_phase_085a:
 	move.b	#8,d3                      	| [$085a: LD      DE,$086C]
 	cmp.b	#0x11,d0                         	| [$085d: CP      $11]
@@ -2124,6 +2130,8 @@ l_0876:
 	jbsr	l_09a0                            	| [$087f: CALL    $09A0]
 	jbsr	l_097a                            	| [$0882: CALL    $097A]
 	rts                                    	| [$0885: RET]
+	
+	DECL_ADDRESS	886
 
 * copies byte pairs 2 bytes below
 l_0886:
@@ -2156,6 +2164,8 @@ l_08a0:
 	lea	player_shot_2_structure_43C8,a0	| [$08b1: LD      HL,player_shot_2_structure_43C8]
 	jbsr	handle_player_shot_0930                            	| [$08b4: CALL    $0930]
 	rts                                    	| [$08b7: RET]
+
+	DECL_ADDRESS	8c4
 
 l_08c4:
 	lea	unknown_43C0,a0                	| [$08c4: LD      HL,unknown_43C0]
@@ -2341,6 +2351,8 @@ l_09ba:
 
 
 birds_stuff_0a50:
+	move.b	#1,0x200
+	
 	lea	bird_data_4B70,a4                	| [$0a50: LD      BC,bird_data_4B70]
 	lea	unknown_4BB0,a1                	| [$0a53: LD      DE,unknown_4BB0]
 l_0a56:

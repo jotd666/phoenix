@@ -358,4 +358,8 @@ unknown_4BD7:
 	.skip	33
 unknown_4BF8:
 	.skip	8
+	* make sure we occupy exactly 0x1000 bytes
+	* triggers a "zero" warning so it's correct!!
+	*.skip	.-game_ram-0x1000
+
 	

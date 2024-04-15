@@ -1,6 +1,7 @@
 
 	.global	bg_videoram
 	.global	fg_videoram
+	.global bank_1
 	.global	stack_top
 	.global invincible_flag
 	.global start_level
