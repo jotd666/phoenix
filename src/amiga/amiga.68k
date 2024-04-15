@@ -1137,17 +1137,16 @@ REAL_VIDEO_SIZE = 0x360
 
 osd_w_videoram:
 	movem.l	d0-d3/d7/a0-a2,-(a7)
-	cmp.w	#0x100,d7
-	* game can try to write in ROM (on low addresses)
+	cmp.w	#FORE_SCREEN_ADDRESS,d7
+	* game can try to write in ROM (on low addresses): ignore
 	jcs	2f				
 	* game can try to write in high addresses
-	cmp.w	#0xFF00,d7
+	cmp.w	#0xFD00,d7
 	jcc	2f
 	
 	move.w	d7,d3
 	
 	sub.w	#FORE_SCREEN_ADDRESS,d7
-	bcs.b	0f
 	cmp.w	#REAL_VIDEO_SIZE,d7
 	bcs.b	write_fore_videoram
 
@@ -1157,11 +1156,11 @@ osd_w_videoram:
 	bcs.b	write_back_videoram
 0:
 	* should not happen
-	lea		write_videoram_out_of_range,a0
-	jbsr	osd_break
-	nop
-	move.b	d0,d0
-	nop	
+*	lea		write_videoram_out_of_range,a0
+*	jbsr	osd_break
+*	nop
+*	move.b	d0,d0
+*	nop	
 	bra.b	2f
 
 write_back_videoram:
@@ -1468,27 +1467,23 @@ osd_read_inputs:
 	beq.b	0f
 	bclr	#BIT_RIGHT,d0
 0:
-	tst.b	(0x4C,a0)		| "up" key
-	beq.b	0f
-	bclr	#BIT_BLUE,d0
-0:
-	tst.b	(0x4D,a0)		| "down" key
-	beq.b	0f
-	bclr	#BIT_BLUE,d0
-0:
 	tst.b	(0x63,a0)		| "ctrl" key
 	beq.b	0f
 	bclr	#BIT_RED,d0
+0:
+	tst.b	(0x64,a0)		| "alt" key
+	beq.b	0f
+	bclr	#BIT_BLUE,d0
 0:
 	* directions + fire
 	move.l	_joypad_state(pc),d1
 	btst	#JPB_BTN_UP,d1
 	beq.b	0f
-	bclr	#5,d0
+	bclr	#BIT_BLUE,d0
 0:
 	btst	#JPB_BTN_DOWN,d1
 	beq.b	0f
-	bclr	#6,d0
+	bclr	#BIT_BLUE,d0
 0:
 	btst	#JPB_BTN_LEFT,d1
 	beq.b	0f
@@ -1655,10 +1650,11 @@ handle_keyboard:
 	* add 10000 points
 
 0:
-	cmp.b	#0x53,d0	| F4 key
+	cmp.b	#0x53,d0	| F4 key, skip level
 	bne.b	0f
 	st.b	cheat_used
 	move.w	#0x0FF,_custom+color
+	clr.b	nb_to_kill_before_stage_completed_43BA
 0:
 	cmp.b	#0x54,d0	| F5 key
 	bne.b	0f

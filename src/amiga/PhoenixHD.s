@@ -38,13 +38,7 @@ _expmem
 _config
 	dc.b    "C1:X:invincible:0;"
 	dc.b    "C1:X:infinite lives:1;"
-	dc.b    "C1:X:infinite time:2;"
-	dc.b    "C1:X:infinite pickaxe time:3;"
 	dc.b    "C1:X:cheat keys:4;"
-	dc.b	"C3:X:hard bags layout:0;"
-	dc.b	"C3:X:french language:1;"
-	dc.b	"C3:X:bonus life at 40000:2;"
-	dc.b    "C4:L:difficulty:easy,medium,hard,hardest;"
 	dc.b    "C5:L:start lives:default,2,3,4,5;"
 	dc.b	0
 
@@ -64,8 +58,8 @@ DECL_VERSION:MACRO
 	ENDC
 	ENDM
 _data   dc.b    0
-_name	dc.b	'Bagman',0
-_copy	dc.b	'2023 JOTD',0
+_name	dc.b	'Phoenix',0
+_copy	dc.b	'2024 JOTD',0
 _info
     dc.b    "Music by no9",0
 	dc.b	0

@@ -27,7 +27,7 @@
 	.global	unknown_4361
 	.global	unknown_4362
 	.global	unknown_4363
-	.global	unknown_4364
+	.global	killed_sfx_flag_4364
 	.global	unknown_4366
 	.global	unknown_4367
 	.global	unknown_4368
@@ -38,7 +38,7 @@
 	.global	unknown_436E
 	.global	unknown_436F
 	.global	slot_for_regular_animation_4370
-	.global	unknown_4374
+	.global	slot_for_animation_4374
 	.global	slot_for_special_animation_4378
 	.global	unknown_437C
 	.global	player_scores_buffer_4380
@@ -153,7 +153,7 @@ unknown_4362:
 	.skip	1
 unknown_4363:
 	.skip	1
-unknown_4364:
+killed_sfx_flag_4364:
 	.skip	2
 unknown_4366:
 	.skip	1
@@ -175,7 +175,7 @@ unknown_436F:
 	.skip	1
 slot_for_regular_animation_4370:
 	.skip	4
-unknown_4374:
+slot_for_animation_4374:
 	.skip	4
 slot_for_special_animation_4378:
 	.skip	4

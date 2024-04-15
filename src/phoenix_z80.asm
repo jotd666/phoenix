@@ -2552,7 +2552,7 @@ bird_shot_0EA4:
 
 0FC0: 21 70 43        LD      HL,slot_for_regular_animation_4370
 0FC3: CD D8 0F        CALL    $0FD8               ;
-0FC6: 21 74 43        LD      HL,unknown_4374
+0FC6: 21 74 43        LD      HL,slot_for_animation_4374
 0FC9: CD D8 0F        CALL    $0FD8               ;
 0FCC: 21 78 43        LD      HL,slot_for_special_animation_4378
 0FCF: CD 58 37        CALL    $3758               ;
@@ -5187,7 +5187,7 @@ player_shots_vs_vultures_collision_3800:
 
 3894: 01 05 0D        LD      BC,$0D05
 3897: 3E FF           LD      A,$FF
-3899: 32 64 43        LD      (unknown_4364),A
+3899: 32 64 43        LD      (killed_sfx_flag_4364),A
 389C: C3 F8 38        JP      $38F8               ;
 
 38A1: D5              PUSH    DE
