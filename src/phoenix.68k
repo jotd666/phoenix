@@ -1999,7 +1999,6 @@ erase_remaining_char_07BE:
 display_attacking_bird_07D2: 
 	exg	a1,a0
 	addq.w	#2,a0                           	| [$07d3: INC     HL] * 2
-	move.l	a0,0x200
 	move.b	(a0)+,d3                         	| [$07d5: LD      D,(HL)]
 												| [$07d6: INC     HL]
 	move.b	(a0),d4                         	| [$07d7: LD      E,(HL)]
@@ -2359,8 +2358,6 @@ l_09ba:
 
 
 birds_stuff_0a50:
-	move.b	#1,0x200
-	
 	lea	bird_data_4B70,a4                	| [$0a50: LD      BC,bird_data_4B70]
 	lea	unknown_4BB0,a1                	| [$0a53: LD      DE,unknown_4BB0]
 l_0a56:
@@ -3119,7 +3116,9 @@ swarm_bird_close_to_shot_0E90:
 	beq.b	0f                               	| [...]
 	rts                                    	| [$0e9f: RET     NZ] [...]
 0:
-	lea	game_rom+0x0C02,a1                      	| [$0ea0: LD      DE,$0C02]
+	* regular explosion (swarm)
+	move.b	#0x0C,d3
+	move.b	#0x02,d4                      	| [$0ea0: LD      DE,$0C02]
 	                                    	| [$0ea3: NOP]
 
 * swarm or moving, when shot, ends up here
@@ -3178,6 +3177,7 @@ l_0ec3:
 	cmp.l	#slot_for_regular_animation_4370+0x10,a0
 	bne.b	l_0ed5
 	sub.w	#0x10,a0			| fixes animation score bug trash directly
+	* init explosion animation
 l_0ed5:
 	move.b	d3,(a0)+                         	| [$0ed5: LD      (HL),D]
 	                           	| [$0ed6: INC     L]
@@ -3255,7 +3255,8 @@ l_0f38:
 	rts                                    	| [$0f45: RET     C] [...]
 0:
 	jbsr	l_0cc4                            	| [$0f46: CALL    $0CC4]
-	lea	game_rom+0x0D04,a1                      	| [$0f49: LD      DE,$0D04]
+	move.b	#0x0D,d3
+	move.b	#0x04,d4                      	| [$0f49: LD      DE,$0D04]
 	subq.w	#2,a0                           	| [$0f4c: DEC     HL] * 2
 	jra	l_0ead                             	| [$0f4e: JP      $0EAD]
 
@@ -3337,7 +3338,8 @@ l_0fa6:
 	bcc.b	0f                               	| [...]
 	rts                                    	| [$0fb3: RET     C] [...]
 0:
-	lea	game_rom+0x0D02,a1                      	| [$0fb4: LD      DE,$0D02]
+	move.b	#0x0D,d3
+	move.b	#0x02,d4                      	| [$0fb4: LD      DE,$0D02]
 	subq.w	#2,a0                           	| [$0fb7: DEC     HL] * 2
 	jra	l_0ead                             	| [$0fb9: JP      $0EAD]
 
@@ -3359,8 +3361,8 @@ l_0fd8:
 	rts                                    	| [$0fda: RET     Z] [...]
 0:
 	move.b	(a0),d1                         	| [$0fdb: LD      B,(HL)]
-	subq.b	#1,(a0)                         	| [$0fdc: DEC     (HL)]
-	addq.w	#2,a0                           	| [$0fdd: INC     L]
+	subq.b	#1,(a0)                         	| [$0fdc: DEC     (HL)] decrease animation frame counter
+	addq.w	#2,a0                           	| [$0fdd: INC     L] * 2
 	move.b	(a0)+,d3                         	| [$0fdf: LD      D,(HL)]
 	                           	| [$0fe0: INC     L]
 	move.b	(a0),d4                         	| [$0fe1: LD      E,(HL)]
@@ -3610,16 +3612,22 @@ l_20b1:
 	EX_HL_SP                            	| [$20b2: EX      (SP),HL]
 	move.b	#0x08,d1                        	| [$20b3: LD      B,$08]
 l_20b5:
+	cmp.w	#RAM_START,d6
+	bcs.b	0f
 	bsr		load_ram_in_a0_from_d6w
 	clr.b	(a0)                             	| [$20b5: LD      (HL),$00]
+0:
 	ror.b	#1,d0                            	| [$20b7: RRCA]
 	jcc	l_20bf                             	| [$20b8: JP      NC,$20BF]
 	exg	d3,d6                              	| [$20bb: EX      DE,HL]
 	bsr		load_rom_in_a0_from_d6w
 	move.b	(a0),d2                         	| [$20bc: LD      C,(HL)]
 	exg	d3,d6                              	| [$20bd: EX      DE,HL]
+	cmp.w	#RAM_START,d6
+	bcs.b	0f
 	bsr		load_ram_in_a0_from_d6w
 	move.b	d2,(a0)                         	| [$20be: LD      (HL),C]
+0:
 l_20bf:
 	addq.w	#1,d6                           	| [$20bf: INC     HL]
 	addq.w	#1,d3                           	| [$20c0: INC     DE]
