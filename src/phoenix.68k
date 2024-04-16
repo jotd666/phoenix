@@ -664,7 +664,7 @@ init_new_play_0140:
 	lea	current_stage_43B8,a0                        	| [$0154: LD      L,$B8]
 	move.b	#0x08,d1                        	| [$0156: LD      B,$08]
 	jbsr	clear_area_05D8                   	| [$0158: CALL    clear_area_05D8]
-	lea	nb_to_kill_before_stage_completed_43BA,a0                        	| [$015b: LD      L,$BA]
+	lea	nb_birds_to_kill_before_stage_completed_43BA,a0                        	| [$015b: LD      L,$BA]
 	move.b	#0x10,(a0)                      	| [$015d: LD      (HL),$10]
 	lea	extra_life_at_43BE,a0                        	| [$015f: LD      L,$BE]
 	jbsr	osd_read_dipswitches                       	| [$0161: LD      A,($7800)] 78xx DSW0
@@ -1220,7 +1220,7 @@ l_03f1:
 	move.b	d1,(a0)                         	| [$03f4: LD      (HL),B]
 	lea	current_stage_43B8,a0                       	| [$03f5: LD      L,$B8]
 	move.b	d2,(a0)                         	| [$03f7: LD      (HL),C]
-	lea	nb_to_kill_before_stage_completed_43BA,a0                        	| [$03f8: LD      L,$BA]
+	lea	nb_birds_to_kill_before_stage_completed_43BA,a0                        	| [$03f8: LD      L,$BA]
 	move.b	d3,(a0)                         	| [$03fa: LD      (HL),D]
 	addq.w	#1,a0                           	| [$03fb: INC     L]
 	move.b	d4,(a0)                         	| [$03fc: LD      (HL),E]
@@ -1538,7 +1538,7 @@ l_05ec:
 	move.b	(a0),d4                         	| [$05f9: LD      E,(HL)]
 l_05fa:
 	lea	bird_data_4B70,a0                	| [$05fa: LD      HL,bird_data_4B70]
-	move.b	nb_to_kill_before_stage_completed_43BA,d0	| [$05fd: LD      A,(nb_to_kill_before_stage_completed_43BA)]
+	move.b	nb_birds_to_kill_before_stage_completed_43BA,d0	| [$05fd: LD      A,(nb_birds_to_kill_before_stage_completed_43BA)]
 	move.b	d0,d1                           	| [$0600: LD      B,A]
 	tst.b	d0                               	| [$0601: AND     A]
 	bne.b	0f                               	| [...]
@@ -1567,7 +1567,7 @@ l_0610:
 	move.b	#0x15,d5                        	| [$061f: LD      H,$15] rom $15xx
 	bsr		load_rom_in_a0_from_d5d6
 	lea	unknown_4B72,a1                	| [$0621: LD      DE,unknown_4B72]
-	move.b	nb_to_kill_before_stage_completed_43BA,d0	| [$0624: LD      A,(nb_to_kill_before_stage_completed_43BA)]
+	move.b	nb_birds_to_kill_before_stage_completed_43BA,d0	| [$0624: LD      A,(nb_birds_to_kill_before_stage_completed_43BA)]
 	move.b	d0,d1                           	| [$0627: LD      B,A]
 												| [$0628: AND     A]
 	bne.b	0f                               	| [...]
@@ -1597,7 +1597,7 @@ l_0650:
 											| [$065c: INC     HL]
 	move.b	(a0),d4                         	| [$065d: LD      E,(HL)]
 	lea	unknown_4B50,a0                	| [$065e: LD      HL,unknown_4B50]
-	move.b	nb_to_kill_before_stage_completed_43BA,d0	| [$0661: LD      A,(nb_to_kill_before_stage_completed_43BA)]
+	move.b	nb_birds_to_kill_before_stage_completed_43BA,d0	| [$0661: LD      A,(nb_birds_to_kill_before_stage_completed_43BA)]
 	move.b	d0,d1                           	| [$0664: LD      B,A]
 												| [$0665: AND     A]
 	bne.b	0f                               	| [...]
@@ -3196,7 +3196,7 @@ l_0ed5:
  	move.b	d2,(a0)                         	| [$0edb: LD      (HL),C]
 	lea	killed_sfx_flag_4364,a0                        	| [$0edc: LD      L,$64]
 	move.b	#0xFF,(a0)                      	| [$0ede: LD      (HL),$FF] sets 4364 to $FF: triggers "killed" sfx
-	lea	nb_to_kill_before_stage_completed_43BA,a0                        	| [$0ee0: LD      L,$BA]
+	lea	nb_birds_to_kill_before_stage_completed_43BA,a0                        	| [$0ee0: LD      L,$BA]
 	subq.b	#1,(a0)                         	| [$0ee2: DEC     (HL)] one less enemy to kill (43BA)
 * pops stack and jumps
 * occurs when bird enemy is shot
@@ -3483,13 +3483,13 @@ l_1ee6:
 birds_level_2000:
 	jbsr	common_game_routines_0876                            	| [$2000: CALL    $0876]
 	jbsr	player_shots_vs_birds_collision_0DF0	| [$2003: CALL    player_shots_vs_birds_collision_0DF0]
-	jbsr	l_24a0                            	| [$2006: CALL    $24A0]
+	jbsr	mothership_shot_collision_24a0                            	| [$2006: CALL    $24A0]
 	lea	unknown_435F,a0                	| [$2009: LD      HL,unknown_435F]
 	move.b	(a0),d0                         	| [$200c: LD      A,(HL)]
 	and.b	#0x03,d0                         	| [$200d: AND     $03]
 	move.b	d0,d1                           	| [$200f: LD      B,A]
 	addq.b	#1,(a0)                         	| [$2010: INC     (HL)]
-	move.b	nb_to_kill_before_stage_completed_43BA,d0	| [$2011: LD      A,(nb_to_kill_before_stage_completed_43BA)]
+	move.b	nb_birds_to_kill_before_stage_completed_43BA,d0	| [$2011: LD      A,(nb_birds_to_kill_before_stage_completed_43BA)]
 	                               	| [$2014: AND     A]
 	jeq	l_21ba                             	| [$2015: JP      Z,$21BA]
 	cmp.b	#0x05,d0                         	| [$2018: CP      $05]
@@ -3750,7 +3750,7 @@ l_2150:
 	jra	l_0f00                             	| [$2156: JP      $0F00]
 
 l_2160:
-	jbsr	l_24c4                            	| [$2160: CALL    $24C4]
+	jbsr	animate_mothership_24c4                            	| [$2160: CALL    $24C4]
 	jbsr	l_0c40                            	| [$2163: CALL    $0C40]
 	jbsr	l_0d1c                            	| [$2166: CALL    $0D1C]
 	jra	l_0fc0                             	| [$2169: JP      $0FC0]
@@ -3760,7 +3760,7 @@ l_2170:
 	jra	l_2560                             	| [$2173: JP      $2560]
 
 l_2180:
-	jbsr	l_24c4                            	| [$2180: CALL    $24C4]
+	jbsr	animate_mothership_24c4                            	| [$2180: CALL    $24C4]
 	jbsr	l_0c40                            	| [$2183: CALL    $0C40]
 	jbsr	draw_birds_0a6c                            	| [$2186: CALL    $0A6C]
 	jra	l_0fc0                             	| [$2189: JP      $0FC0]
@@ -3777,7 +3777,7 @@ l_21a5:
 	jbsr	l_0d70                            	| [$21a8: CALL    $0D70]
 	jbsr	draw_birds_0a6c                            	| [$21ab: CALL    $0A6C]
 	jbsr	l_0fc0                            	| [$21ae: CALL    $0FC0]
-	jra	l_24c4                             	| [$21b1: JP      $24C4]
+	jra	animate_mothership_24c4                             	| [$21b1: JP      $24C4]
 
 l_21ba:
 	move.b	d1,d0                           	| [$21ba: LD      A,B]
@@ -3785,13 +3785,13 @@ l_21ba:
 	jcc	l_2204                             	| [$21bc: JP      NC,$2204]
 	jbsr	l_0c40                            	| [$21bf: CALL    $0C40]
 	jbsr	l_0fc0                            	| [$21c2: CALL    $0FC0]
-	jbsr	l_24c4                            	| [$21c5: CALL    $24C4]
+	jbsr	animate_mothership_24c4                            	| [$21c5: CALL    $24C4]
 	move.b	current_stage_43B8,d0           	| [$21c8: LD      A,(current_stage_43B8)]
 	and.b	#0x0F,d0                         	| [$21cb: AND     $0F]
 	cmp.b	#0x0B,d0                         	| [$21cd: CP      $0B]
 	jcs	l_2204                             	| [$21cf: JP      C,$2204]
 	move.b	#0x10,d0                        	| [$21d2: LD      A,$10]
-	move.b	d0,nb_to_kill_before_stage_completed_43BA	| [$21d4: LD      (nb_to_kill_before_stage_completed_43BA),A]
+	move.b	d0,nb_birds_to_kill_before_stage_completed_43BA	| [$21d4: LD      (nb_birds_to_kill_before_stage_completed_43BA),A]
 	jra	l_0526                             	| [$21d7: JP      $0526]
 	
 	* vulture appearing from a star, flying and disappearing into a star
@@ -3841,6 +3841,7 @@ l_2204:
 	move.b	d0,d4                           	| [$221d: LD      E,A]
 	move.b	#0x17,d3                        	| [$221e: LD      D,$17]
 	addq.w	#2,a0                           	| [$2220: INC     L]
+	bsr		load_rom_in_a1_from_d3d4
 	move.b	(a1),d0                         	| [$2222: LD      A,(DE)]
 	                               	| [$2223: AND     A]
 	jpl	l_222a                             	| [$2224: JP      P,$222A]
@@ -4105,9 +4106,9 @@ l_2398:
 l_23ac:
 	jeq	l_23c0                             	| [$23ac: JP      Z,$23C0]
 	move.b	d1,d0                           	| [$23af: LD      A,B]
-	and.b	#0x0F,d0                         	| [$23b0: AND     $0F]
-	add.b	d4,d0                            	| [$23b2: ADD     A,E]
-	move.b	d0,d4                           	| [$23b3: LD      E,A]
+	and.w	#0x0F,d0                         	| [$23b0: AND     $0F]
+	add.w	d0,a1                            	| [$23b2: ADD     A,E]
+												| [$23b3: LD      E,A]
 	move.b	(a1),d0                         	| [$23b4: LD      A,(DE)]
 	move.b	d0,(a0)                         	| [$23b5: LD      (HL),A]
 	st.b	d0                                	| [$23b6: LD      A,$FF]
@@ -4115,8 +4116,8 @@ l_23ac:
 	rts                                    	| [$23bb: RET]
 
 l_23c0:
-	subq.w	#1,a0                           	| [$23c0: DEC     L]
- 	move.b	(a0),d0                         	| [$23c1: LD      A,(HL)]
+	                           	| [$23c0: DEC     L]
+ 	move.b	-(a0),d0                         	| [$23c1: LD      A,(HL)]
 	and.b	#0xF0,d0                         	| [$23c2: AND     $F0]
 	cmp.b	#0x70,d0                         	| [$23c4: CP      $70]
 	beq.b	0f                               	| [...]
@@ -4215,7 +4216,7 @@ end_of_level_transition_244C:
 	and.b	#0xF0,d0                         	| [$245d: AND     $F0]
 	add.b	#0x10,d0                         	| [$245f: ADD     $10]
 	move.b	d0,(a0)                         	| [$2461: LD      (HL),A]
-	lea	nb_to_kill_before_stage_completed_43BA,a0                        	| [$2462: LD      L,$BA]
+	lea	nb_birds_to_kill_before_stage_completed_43BA,a0                        	| [$2462: LD      L,$BA]
 	move.b	#0x10,(a0)                      	| [$2464: LD      (HL),$10]
 	jra	clear_foreground_tiles_0380                             	| [$2466: JP      $0380]
 
@@ -4231,7 +4232,7 @@ l_2476:
 	jbsr	l_2495                            	| [$2478: CALL    $2495]
 	lea	unknown_43D3,a0                        	| [$247b: LD      L,$D3]
 	move.b	d0,(a0)                         	| [$247d: LD      (HL),A]
-	lea	unknown_43BB,a0                	| [$247e: LD      HL,unknown_43BB]
+	lea	nb_vultures_to_kill_before_stage_completed_43BB,a0                	| [$247e: LD      HL,nb_vultures_to_kill_before_stage_completed_43BB]
 	move.b	#0x08,d0                        	| [$2481: LD      A,$08]
 	sub.b	(a0),d0                          	| [$2483: SUB     (HL)]
 	rol.b	#1,d0                            	| [$2484: RLCA]
@@ -4263,11 +4264,13 @@ l_2495:
 0:
 	add.b	d0,d0                            	| [$249e: ADD     A,A]
 	rts                                    	| [$249f: RET]
-l_24a0:
+	
+mothership_shot_collision_24a0:
 	move.b	current_stage_43B8,d0           	| [$24a0: LD      A,(current_stage_43B8)]
 	and.b	#0x0F,d0                         	| [$24a3: AND     $0F]
 	cmp.b	#0x08,d0                         	| [$24a5: CP      $08]
 	bcc.b	0f                               	| [...]
+	* not mothership stage: return
 	rts                                    	| [$24a7: RET     C] [...]
 0:
 	lea	player_shot_1_structure_43C4,a1	| [$24a8: LD      DE,player_shot_1_structure_43C4]
@@ -4283,11 +4286,12 @@ l_24a0:
 	jbsr	l_2351                            	| [$24bc: CALL    $2351]
 	rts                                    	| [$24bf: RET]
 
-l_24c4:
+animate_mothership_24c4:
 	move.b	current_stage_43B8,d0           	| [$24c4: LD      A,(current_stage_43B8)]
 	and.b	#0x0F,d0                         	| [$24c7: AND     $0F]
 	cmp.b	#0x08,d0                         	| [$24c9: CP      $08]
 	jcs	l_06f0                             	| [$24cb: JP      C,$06F0]
+	* mothership stage
 	jbsr	l_24e0                            	| [$24ce: CALL    $24E0]
 	lea	unknown_43AA,a0                	| [$24d1: LD      HL,unknown_43AA]
 	addq.b	#1,(a0)                         	| [$24d4: INC     (HL)]
@@ -4312,7 +4316,7 @@ l_24e0:
 l_24f2:
 	jbsr	l_30aa                            	| [$24f2: CALL    $30AA]
 	add.b	#0x60,d0                         	| [$24f5: ADD     $60]
-	nop                                    	| [$24f7: NOP]
+	                                    	| [$24f7: NOP]
 	move.b	d0,d1                           	| [$24f8: LD      B,A]
 	lea	unknown_439B,a0                	| [$24f9: LD      HL,unknown_439B]
 	and.b	#0x0E,d0                         	| [$24fc: AND     $0E]
@@ -4577,7 +4581,7 @@ l_2676:
 	jcs	l_267c                             	| [$2678: JP      C,$267C]
 	addq.b	#1,d1                           	| [$267b: INC     B]
 l_267c:
-	move.b	nb_to_kill_before_stage_completed_43BA,d0	| [$267c: LD      A,(nb_to_kill_before_stage_completed_43BA)]
+	move.b	nb_birds_to_kill_before_stage_completed_43BA,d0	| [$267c: LD      A,(nb_birds_to_kill_before_stage_completed_43BA)]
 	cmp.b	#0x03,d0                         	| [$267f: CP      $03]
 	jcc	l_2685                             	| [$2681: JP      NC,$2685]
 	addq.b	#1,d1                           	| [$2684: INC     B]
@@ -4593,7 +4597,7 @@ l_2685:
 	move.b	(a0),d0                         	| [$2692: LD      A,(HL)]
 l_2693:
 	move.b	d0,d3                           	| [$2693: LD      D,A]
-	move.b	unknown_43BB,d0                 	| [$2694: LD      A,(unknown_43BB)]
+	move.b	nb_vultures_to_kill_before_stage_completed_43BB,d0                 	| [$2694: LD      A,(nb_vultures_to_kill_before_stage_completed_43BB)]
 	cmp.b	#0x04,d0                         	| [$2697: CP      $04]
 	jcc	l_269d                             	| [$2699: JP      NC,$269D]
 	addq.b	#1,d3                           	| [$269c: INC     D]
@@ -4949,7 +4953,7 @@ l_3089:
 	sub.b	d1,d0                            	| [$3092: SUB     B]
 	add.b	d2,d0                            	| [$3093: ADD     A,C]
 	move.b	d0,d2                           	| [$3094: LD      C,A]
-	move.b	nb_to_kill_before_stage_completed_43BA,d0	| [$3095: LD      A,(nb_to_kill_before_stage_completed_43BA)]
+	move.b	nb_birds_to_kill_before_stage_completed_43BA,d0	| [$3095: LD      A,(nb_birds_to_kill_before_stage_completed_43BA)]
 	subq.b	#0x05,d0                        	| [$3098: SUB     $05]
 	jcc	l_309f                             	| [$309a: JP      NC,$309F]
 	move.b	#0x10,d0                        	| [$309d: LD      A,$10]
@@ -5003,11 +5007,11 @@ l_30da:
 0:
 	subq.b	#1,(a0)                         	| [$30de: DEC     (HL)]
 	rts                                    	| [$30df: RET]
-	move.b	(a0),d0                         	| [$30e0: LD      A,(HL)]
-	cmp.b	#0x01,d0                         	| [$30e1: CP      $01]
-	bcs.b	0f                               	| [...]
-	rts                                    	| [$30e3: RET     NC] [...]
-0:
+											| [$30e0: LD      A,(HL)]
+											| [$30e1: CP      $01]
+											| [...]
+										| [$30e3: RET     NC] [...]
+						
 l_30e4:
 	jbsr	l_3074                            	| [$30e4: CALL    $3074]
 	lea	counter_439A,a0                	| [$30e7: LD      HL,counter_439A]
@@ -5053,8 +5057,8 @@ l_3112:
 	subq.b	#1,d1                           	| [$311e: DEC     B]
 	move.b	#0x0C,(a0)                      	| [$311f: LD      (HL),$0C]
 	rts                                    	| [$3121: RET]
-	add.b	(a0),d0                          	| [$3122: ADD     A,(HL)]
-	move.b	d0,d1                           	| [$3123: LD      B,A]
+									| [$3122: ADD     A,(HL)]
+									| [$3123: LD      B,A]
 l_3124:
 	lea	unknown_4350,a0                	| [$3124: LD      HL,unknown_4350]
 	move.b	(a0),d0                         	| [$3127: LD      A,(HL)]
@@ -5136,9 +5140,9 @@ l_3192:
 	rts                                    	| [$319a: RET     NZ] [...]
 0:
 	move.b	unknown_4356,d0                 	| [$319b: LD      A,(unknown_4356)]
-	addq.w	#1,a0                           	| [$319e: INC     L]
-	move.b	(a0),d1                         	| [$319f: LD      B,(HL)]
-	subq.w	#1,a0                           	| [$31a0: DEC     L]
+												| [$319e: INC    L]
+	move.b	(1,a0),d1                         	| [$319f: LD      B,(HL)]
+												| [$31a0: DEC     L]
  	cmp.b	d1,d0                            	| [$31a1: CP      B]
 	beq.b	0f                               	| [...]
 	rts                                    	| [$31a2: RET     NZ] [...]
@@ -5350,7 +5354,7 @@ l_32b0:
 	lea	counter_439A,a0                        	| [$32b8: LD      L,$9A]
 	move.b	#0x04,d1                        	| [$32ba: LD      B,$04]
 	jbsr	clear_area_05D8                   	| [$32bc: CALL    clear_area_05D8]
-	move.b	unknown_43BB,d0                 	| [$32bf: LD      A,(unknown_43BB)]
+	move.b	nb_vultures_to_kill_before_stage_completed_43BB,d0                 	| [$32bf: LD      A,(nb_vultures_to_kill_before_stage_completed_43BB)]
 	                               	| [$32c2: AND     A]
 	bne.b	0f                               	| [...]
 	rts                                    	| [$32c3: RET     Z] [...]
@@ -5391,13 +5395,13 @@ vultures_level_3400:
 	jbsr	l_2600                            	| [$3406: CALL    $2600]
 	jbsr	player_shots_vs_vultures_collision_3800	| [$3409: CALL    player_shots_vs_vultures_collision_3800]
 	jbsr	l_3980                            	| [$340c: CALL    $3980]
-	move.b	unknown_43BB,d0                 	| [$340f: LD      A,(unknown_43BB)]
+	move.b	nb_vultures_to_kill_before_stage_completed_43BB,d0                 	| [$340f: LD      A,(nb_vultures_to_kill_before_stage_completed_43BB)]
 	                               	| [$3412: AND     A]
 	jeq	l_3462                             	| [$3413: JP      Z,$3462]
 	cmp.b	#0x04,d0                         	| [$3416: CP      $04]
 	jcc	l_3438                             	| [$3418: JP      NC,$3438]
-	jbsr	l_3474                            	| [$341b: CALL    $3474]
-	jbsr	l_3486                            	| [$341e: CALL    $3486]
+	jbsr	animate_vultures_3474                            	| [$341b: CALL    $3474]
+	jbsr	animate_vultures_3486                            	| [$341e: CALL    $3486]
 	jbsr	l_3560                            	| [$3421: CALL    $3560]
 	jbsr	l_3498                            	| [$3424: CALL    $3498]
 	jbsr	l_34aa                            	| [$3427: CALL    $34AA]
@@ -5410,14 +5414,14 @@ l_3438:
 	move.b	counter_439A+1,d0                    	| [$3438: LD      A,(counter_439A+1)]
 	ror.b	#1,d0                            	| [$343b: RRCA]
 	jcs	l_3452                             	| [$343c: JP      C,$3452]
-	jbsr	l_3474                            	| [$343f: CALL    $3474]
+	jbsr	animate_vultures_3474                            	| [$343f: CALL    $3474]
 	jbsr	l_3560                            	| [$3442: CALL    $3560]
 	jbsr	l_3498                            	| [$3445: CALL    $3498]
 	jbsr	l_3930                            	| [$3448: CALL    $3930]
 	jra	l_0c40                             	| [$344b: JP      $0C40]
 
 l_3452:
-	jbsr	l_3486                            	| [$3452: CALL    $3486]
+	jbsr	animate_vultures_3486                            	| [$3452: CALL    $3486]
 	jbsr	l_3560                            	| [$3455: CALL    $3560]
 	jbsr	l_34aa                            	| [$3458: CALL    $34AA]
 	jra	l_0fc0                             	| [$345b: JP      $0FC0]
@@ -5432,30 +5436,30 @@ l_3462:
 	jbsr	l_0fc0                            	| [$346a: CALL    $0FC0]
 	jra	l_2204                             	| [$346d: JP      $2204]
 
-l_3474:
+animate_vultures_3474:
 	lea	bird_data_4B70,a0                	| [$3474: LD      HL,bird_data_4B70]
 l_3477:
 
 	move.l	a0,-(sp)                        	| [$3477: PUSH    HL]
 	jbsr	animate_vulture_34c0                            	| [$3478: CALL    $34C0]
 	move.l	(sp)+,a0                        	| [$347b: POP     HL]
-	move.b	d6,d0                           	| [$347c: LD      A,L]
-	add.b	#0x08,d0                         	| [$347d: ADD     $08]
-	move.b	d0,d6                           	| [$347f: LD      L,A]
-	cmp.b	#0x90,d0                         	| [$3480: CP      $90]
+	addq.w	#8,a0                        	| [$347c: LD      A,L]
+											| [$347d: ADD     $08]
+											| [$347f: LD      L,A]
+	cmp.l	#bird_data_4B70+0x20,a0                         	| [$3480: CP      $90]
 	jne	l_3477                             	| [$3482: JP      NZ,$3477]
 	rts                                    	| [$3485: RET]
-l_3486:
+animate_vultures_3486:
 	lea	unknown_4B90,a0                	| [$3486: LD      HL,unknown_4B90]
 l_3489:
 
 	move.l	a0,-(sp)                        	| [$3489: PUSH    HL]
 	jbsr	animate_vulture_34c0                            	| [$348a: CALL    $34C0]
 	move.l	(sp)+,a0                        	| [$348d: POP     HL]
-	move.b	d6,d0                           	| [$348e: LD      A,L]
-	add.b	#0x08,d0                         	| [$348f: ADD     $08]
-	move.b	d0,d6                           	| [$3491: LD      L,A]
-	cmp.b	#0xB0,d0                         	| [$3492: CP      $B0]
+	addq.w	#8,a0         	| [$348e: LD      A,L]
+	                       	| [$348f: ADD     $08]
+	                      	| [$3491: LD      L,A]
+	cmp.l	#unknown_4B90+0x20,a0                         	| [$3492: CP      $B0]
 	jne	l_3489                             	| [$3494: JP      NZ,$3489]
 	rts                                    	| [$3497: RET]
 l_3498:
@@ -5465,10 +5469,10 @@ l_349b:
 	move.l	a0,-(sp)                        	| [$349b: PUSH    HL]
 	jbsr	l_35b0                            	| [$349c: CALL    $35B0]
 	move.l	(sp)+,a0                        	| [$349f: POP     HL]
-	move.b	d6,d0                           	| [$34a0: LD      A,L]
-	add.b	#0x08,d0                         	| [$34a1: ADD     $08]
-	move.b	d0,d6                           	| [$34a3: LD      L,A]
-	cmp.b	#0x90,d0                         	| [$34a4: CP      $90]
+	addq.w	#8,a0                       	| [$34a0: LD      A,L]
+	                        	| [$34a1: ADD     $08]
+	                       	| [$34a3: LD      L,A]
+	cmp.l	#bird_data_4B70+0x20,a0                         	| [$34a4: CP      $90]
 	jne	l_349b                             	| [$34a6: JP      NZ,$349B]
 	rts                                    	| [$34a9: RET]
 l_34aa:
@@ -5478,10 +5482,10 @@ l_34ad:
 	move.l	a0,-(sp)                        	| [$34ad: PUSH    HL]
 	jbsr	l_35b0                            	| [$34ae: CALL    $35B0]
 	move.l	(sp)+,a0                        	| [$34b1: POP     HL]
-	move.b	d6,d0                           	| [$34b2: LD      A,L]
-	add.b	#0x08,d0                         	| [$34b3: ADD     $08]
-	move.b	d0,d6                           	| [$34b5: LD      L,A]
-	cmp.b	#0xB0,d0                         	| [$34b6: CP      $B0]
+	addq.w	#8,a0                           	| [$34b2: LD      A,L]
+											| [$34b3: ADD     $08]
+											| [$34b5: LD      L,A]
+	cmp.l	#unknown_4B90+0x20,a0                         	| [$34b6: CP      $B0]
 	jne	l_34ad                             	| [$34b8: JP      NZ,$34AD]
 	rts                                    	| [$34bb: RET]
 
@@ -5680,7 +5684,7 @@ l_3577:
 	and.b	#0x30,d0                         	| [$3577: AND     $30]
 	ror.b	#1,d0                            	| [$3579: RRCA]
 	move.b	d0,d1                           	| [$357a: LD      B,A]
-	move.b	unknown_43BB,d0                 	| [$357b: LD      A,(unknown_43BB)]
+	move.b	nb_vultures_to_kill_before_stage_completed_43BB,d0                 	| [$357b: LD      A,(nb_vultures_to_kill_before_stage_completed_43BB)]
 	subq.b	#1,d0                           	| [$357e: DEC     A]
 	cmp.b	#0x04,d0                         	| [$357f: CP      $04]
 	jcs	l_3586                             	| [$3581: JP      C,$3586]
@@ -6238,7 +6242,7 @@ l_3844:
 	addq.w	#4,a0                           	| [$3853: INC     L]
 	move.b	(a0),d3                         	| [$3857: LD      D,(HL)]
 	move.l	(sp)+,a0                        	| [$3858: POP     HL]
-	lea	unknown_43BB,a0                	| [$3859: LD      HL,unknown_43BB]
+	lea	nb_vultures_to_kill_before_stage_completed_43BB,a0                	| [$3859: LD      HL,nb_vultures_to_kill_before_stage_completed_43BB]
 	subq.b	#1,(a0)                         	| [$385c: DEC     (HL)]
 	cmp.b	#0x0B,d0                         	| [$385d: CP      $0B]
 	jcs	l_3894                             	| [$385f: JP      C,$3894]
@@ -6513,7 +6517,7 @@ l_39f0:
 	jra	l_39db                             	| [$39fb: JP      $39DB]
 
 l_3a00:
-	move.b	unknown_43BB,d0                 	| [$3a00: LD      A,(unknown_43BB)]
+	move.b	nb_vultures_to_kill_before_stage_completed_43BB,d0                 	| [$3a00: LD      A,(nb_vultures_to_kill_before_stage_completed_43BB)]
 	sub.b	#0x0C,d0                         	| [$3a03: SUB     $0C]
 	not.b	d0                               	| [$3a05: CPL]
 	addq.b	#1,d0                           	| [$3a06: INC     A]
@@ -6679,6 +6683,7 @@ l_3ad0:
 	add.b	#0xE0,d0                         	| [$3aec: ADD     $E0]
 	move.b	d0,d4                           	| [$3aee: LD      E,A]
 	move.b	#0x3D,d3                        	| [$3aef: LD      D,$3D]
+	bsr		load_rom_in_a1_from_d3d4
 	move.b	(a1),d0                         	| [$3af1: LD      A,(DE)]
 	cmp.b	(a0),d0                          	| [$3af2: CP      (HL)]
 	bcs.b	0f                               	| [...]

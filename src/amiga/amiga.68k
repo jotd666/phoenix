@@ -46,6 +46,7 @@ OPT_ENABLE_DOUBLE_BUFFERING_FG = 0
 
 _custom = 0xDFF000
 
+REAL_VIDEO_SIZE = 0x340	
 
 NB_PLAYFIELD_PLANES = 3
 NB_BYTES_PER_ROW = 40
@@ -1041,7 +1042,7 @@ osd_write_5000:
 	
 * < D0: 0 or 1 but we'll ignore that for Amiga
 set_palette:
-	movem.l	d0-d1/a0-a1,-(a7)
+	movem.l	d0-d1/d7/a0-a1,-(a7)
 	moveq	#0,d0
 	move.b	current_stage_43B8,d0
 	beq.b	0f			| intro: palettes 0
@@ -1049,6 +1050,11 @@ set_palette:
 	* not zero: 1 => 0, 3 => 1 ..., 5 => 2
 	lsr.b	#1,d0
 0:
+	move.b	current_palette,d1
+	cmp.b	d0,d1
+	beq.b	2f
+	move.b	d0,current_palette
+	
 	add.w	d0,d0
 	add.w	d0,d0
 	lea		back_palettes,a0
@@ -1070,8 +1076,27 @@ set_palette:
 	move.w	(a0)+,(a1)+
 	addq.w	#2,a1
 	dbf		d1,1b
-		
-	movem.l	(a7)+,d0-d1/a0-a1
+	
+	* update full tilesets as palette has changed
+	* but bitmaps may be different
+	move.w	#0x4000,d7
+	lea		fg_videoram,a0
+	bsr		force_tile_redraw
+	move.w	#0x4800,d7
+	lea		bg_videoram,a0
+	bsr		force_tile_redraw
+2:		
+	movem.l	(a7)+,d0-d1/d7/a0-a1
+	rts
+	
+force_tile_redraw:
+	move.w	#REAL_VIDEO_SIZE-1,d1
+10:
+	move.b	(a0),d0
+	st		(a0)+
+	bsr		osd_w_videoram
+	addq.w	#1,d7
+	dbf		d1,10b
 	rts
 	
 osd_wait_for_vblank:
@@ -1124,7 +1149,6 @@ decode_sprite_data:
 	rts
 
 
-REAL_VIDEO_SIZE = 0x360	
 * d7=screen address (preserved), d0=tile (preserved)
 * d7 starts at 0x4000-0x43FF or 0x4800-0x4BFF
 * should preserve all registers
@@ -1665,7 +1689,8 @@ handle_keyboard:
 	bne.b	0f
 	st.b	cheat_used
 	move.w	#0x0FF,_custom+color
-	clr.b	nb_to_kill_before_stage_completed_43BA
+	clr.b	nb_birds_to_kill_before_stage_completed_43BA
+	clr.b	nb_vultures_to_kill_before_stage_completed_43BB
 0:
 	cmp.b	#0x54,d0	| F5 key
 	bne.b	0f
@@ -1791,6 +1816,8 @@ highscore_loaded:
 	.byte	0
 flip_flop:
 	.byte	0
+current_palette:
+	.byte	0xff
 	.align	2
 
 
