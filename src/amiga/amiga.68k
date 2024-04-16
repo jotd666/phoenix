@@ -1262,7 +1262,11 @@ update_tile:
 	tst.b	d0
 	jeq	11f
 
-	moveq	#0,D2	| TEMP current level
+	moveq	#0,D2
+	move.b	current_stage_43B8,d2
+	and.w	#0xf,d2
+	lsr.b	#1,d2
+	
 	add.w	d2,d2
 	add.w	d2,d2
 	move.l	(a0,d2.w),a0	| tile table

@@ -1135,7 +1135,7 @@ l_0377:
 
 clear_foreground_tiles_0380:
 	move.w	#0x433F,d7                	| [$0380: LD      HL,unknown_433F]  bottom left corner
-	move.w	#0x00,d3                      	| [$0383: LD      DE,$001F] 31
+	                      	| [$0383: LD      DE,$001F] 31
 	move.w	#0x1F,d4                      	| [$0383: LD      DE,$001F] 31
 	move.b	#3,d1
 	move.b	#0x3F,d2                   	| [$0386: LD      BC,$033F]
@@ -1454,7 +1454,7 @@ init_new_play_step_2_0515:
 	move.b	#0x03,(a0)                      	| [$051b: LD      (HL),$03] advance state machine to "playing"
 	jbsr	init_scrolling_data_0580                            	| [$051d: CALL    $0580]
 	jbsr	l_0547                            	| [$0520: CALL    $0547]
-	jbsr	l_09a0                            	| [$0523: CALL    $09A0]
+	jbsr	display_player_ship_and_shots_09a0                            	| [$0523: CALL    $09A0]
 l_0526:
 	jbsr	l_0532                            	| [$0526: CALL    $0532]
 	jbsr	draw_birds_0a6c                            	| [$0529: CALL    $0A6C]
@@ -1720,7 +1720,7 @@ l_06f0:
 	jra	l_06b0                             	| [$06f6: JP      $06B0]
 
 
-l_0700:
+display_player_ship_and_shots_0700:
 	lea	unknown_43C0,a4                	| [$0700: LD      BC,unknown_43C0]
 	lea	unknown_43E0,a1                	| [$0703: LD      DE,unknown_43E0]
 l_0706:
@@ -1781,7 +1781,7 @@ select_game_jump_routine_0720:
 	
 jump_table_0738:
 	.long	erase_shots_0763       | $763
-	.long	erase_bird_remaining_char_0779       | $779
+	.long	erase_remaining_char_0779       | $779
 	.long	-1          |
 	.long	erase_attacking_birds_079E       | $79E
 	.long	erase_remaining_char_07BE       | $7BE
@@ -1834,7 +1834,7 @@ select_game_jump_routine_0740:
 	jra	(a0)                               	| [$0758: JP      (HL)]
 
 jump_table_075B:
-	.long	display_erase_shots_076d      | $76D
+	.long	animate_appearing_birds_076d      | $76D
 	.long	animate_bird_in_swarm_0788      | $788
 	.long	0xFF        |
 	.long	display_attacking_birds_07AA      | $7AA
@@ -1861,7 +1861,8 @@ erase_shots_0763:
 	DECL_ADDRESS	76D
 * < A1:
 * < A4:
-display_erase_shots_076d:
+animate_appearing_birds_076d:
+	move.b	#1,0x200
 	exg	a1,a0                              	| [$076d: EX      DE,HL]
 	addq.w	#2,a0                           	| [$076e: INC     HL] * 2
 	move.b	(a0)+,d3                         	| [$0770: LD      D,(HL)]
@@ -1880,8 +1881,9 @@ display_erase_shots_076d:
 						
 	DECL_ADDRESS	779	
 	
-* remove remaining character of bird when needed (not all the time)
-erase_bird_remaining_char_0779:
+* remove remaining character of bird/ship when needed (not all the time)
+* (this is optimized to avoid erasing when it's not needed)
+erase_remaining_char_0779:
 	exg	a1,a0                              	| [$0779: EX      DE,HL]
 	move.b	(a0),d3                         	| [$077a: LD      D,(HL)]
 	                           	| [$077b: INC     HL]
@@ -2130,18 +2132,21 @@ select_birds_params_depending_on_phase_085a:
 	rts                                    	| [$0871: RET]
 
 
-l_0876:
-	jbsr	l_0700                            	| [$0876: CALL    $0700]
-	jbsr	l_0886                            	| [$0879: CALL    $0886]
-	jbsr	l_08a0                            	| [$087c: CALL    $08A0]
-	jbsr	l_09a0                            	| [$087f: CALL    $09A0]
-	jbsr	l_097a                            	| [$0882: CALL    $097A]
+* handle player ship and enemy shots, shared between birds and
+* vultures levels
+
+common_game_routines_0876:
+	jbsr	display_player_ship_and_shots_0700                            	| [$0876: CALL    $0700]
+	jbsr	erase_player_shots_0886                            	| [$0879: CALL    $0886]
+	jbsr	handle_player_shots_08a0                            	| [$087c: CALL    $08A0]
+	jbsr	display_player_ship_and_shots_09a0                            	| [$087f: CALL    $09A0]
+	jbsr	handle_ship_collision_and_enemy_shots_097a                            	| [$0882: CALL    $097A]
 	rts                                    	| [$0885: RET]
 	
 	DECL_ADDRESS	886
 
 * copies byte pairs 2 bytes below
-l_0886:
+erase_player_shots_0886:
 	lea	unknown_43EB,a0                	| [$0886: LD      HL,unknown_43EB]
 	move.b	#0x03,d1                        	| [$0889: LD      B,$03]
 l_088b:
@@ -2156,8 +2161,8 @@ l_088b:
 	subq.b	#1,d1                           	| [$0893: DEC     B]
 	jne	l_088b                             	| [$0894: JP      NZ,$088B]
 	rts                                    	| [$0897: RET]
-l_08a0:
-	jbsr	l_08c4                            	| [$08a0: CALL    $08C4]
+handle_player_shots_08a0:
+	jbsr	handle_player_controls_08c4                            	| [$08a0: CALL    $08C4]
 	lea	player_shot_1_structure_43C4,a0	| [$08a3: LD      HL,player_shot_1_structure_43C4]
 	jbsr	handle_player_shot_0930                            	| [$08a6: CALL    $0930]
 	move.b	current_stage_43B8,d0           	| [$08a9: LD      A,(current_stage_43B8)]
@@ -2174,7 +2179,7 @@ l_08a0:
 
 	DECL_ADDRESS	8c4
 
-l_08c4:
+handle_player_controls_08c4:
 	lea	unknown_43C0,a0                	| [$08c4: LD      HL,unknown_43C0]
 	move.b	(a0),d0                         	| [$08c7: LD      A,(HL)]
 	and.b	#0x08,d0                         	| [$08c8: AND     $08]
@@ -2298,7 +2303,10 @@ l_096e:
 	move.b	d0,(a0)                         	| [$0974: LD      (HL),A]
 	rts                                    	| [$0975: RET]
 
-l_097a:
+	DECL_ADDRESS	97a
+
+* without this routine, player is invincible, also, birds don't shoot
+handle_ship_collision_and_enemy_shots_097a:
 	move.b	  player_ship_x_43C2,d0                       	| [$097A: LD      A,(player_ship_x_43C2)]
 	move.b	d0,d1								| [$097D : LD      B,A]
 	and.w	#0x07,d0                         	| [$097e: AND     $07]
@@ -2320,7 +2328,7 @@ l_097a:
 
 	DECL_ADDRESS	9a0
 
-l_09a0:
+display_player_ship_and_shots_09a0:
 	lea	player_ship_x_43C2,a4          	| [$09a0: LD      BC,player_ship_x_43C2]
 	lea	screen_address_43E2,a1                	| [$09a3: LD      DE,screen_address_43E2]
 l_09a6:
@@ -3473,7 +3481,7 @@ l_1ee6:
 	rts                                    	| [$1efa: RET]
 
 birds_level_2000:
-	jbsr	l_0876                            	| [$2000: CALL    $0876]
+	jbsr	common_game_routines_0876                            	| [$2000: CALL    $0876]
 	jbsr	player_shots_vs_birds_collision_0DF0	| [$2003: CALL    player_shots_vs_birds_collision_0DF0]
 	jbsr	l_24a0                            	| [$2006: CALL    $24A0]
 	lea	unknown_435F,a0                	| [$2009: LD      HL,unknown_435F]
@@ -3527,6 +3535,7 @@ l_2040:
 										| [$2058: LD      L,A]
 	move.b	(a0),d1                         	| [$2059: LD      B,(HL)]
 	add.b	#0x20,d0                         	| [$205a: ADD     $20]
+	lea	game_rom+0x1E00,a0                      | [$2052: LD      HL,$1E80]
 	add.w	d0,a0                           	| [$205c: LD      L,A]
 	move.b	(a0),d3                         	| [$205d: LD      D,(HL)]
 	add.w	#0x20,a0                         	| [$205e: ADD     $20]
@@ -3614,8 +3623,11 @@ l_20b1:
 l_20b5:
 	cmp.w	#RAM_START,d6
 	bcs.b	0f
-	bsr		load_ram_in_a0_from_d6w
-	clr.b	(a0)                             	| [$20b5: LD      (HL),$00]
+	move.w	d6,d7
+	exg		d5,d0                             	| [$20b5: LD      (HL),$00]
+	moveq	#0,d0
+	jbsr	osd_w_videoram
+	exg		d5,d0
 0:
 	ror.b	#1,d0                            	| [$20b7: RRCA]
 	jcc	l_20bf                             	| [$20b8: JP      NC,$20BF]
@@ -3623,11 +3635,11 @@ l_20b5:
 	bsr		load_rom_in_a0_from_d6w
 	move.b	(a0),d2                         	| [$20bc: LD      C,(HL)]
 	exg	d3,d6                              	| [$20bd: EX      DE,HL]
-	cmp.w	#RAM_START,d6
-	bcs.b	0f
-	bsr		load_ram_in_a0_from_d6w
-	move.b	d2,(a0)                         	| [$20be: LD      (HL),C]
-0:
+	
+	move.w	d6,d7
+	move.b	d2,d0
+	jbsr	osd_w_videoram					| [$20be: LD      (HL),C]
+
 l_20bf:
 	addq.w	#1,d6                           	| [$20bf: INC     HL]
 	addq.w	#1,d3                           	| [$20c0: INC     DE]
@@ -3848,11 +3860,11 @@ transition_to_vultures_and_last_level_2230:
 	and.b	#0x3F,d0                         	| [$2237: AND     $3F]
 	cmp.b	#0x0D,d0                         	| [$2239: CP      $0D]
 	jeq	l_2292                             	| [$223b: JP      Z,$2292]
-	jcs	l_2260_1                             	| [$2240: JP      C,$2260]
+	jcs	fill_screen_2260_1                             	| [$2240: JP      C,$2260]
 	clr.b	d1                               	| [$2243: LD      B,$00]
 	sub.b	#0x0E,d0                         	| [$2245: SUB     $0E]
 	cmp.b	#0x0D,d0                         	| [$2247: CP      $0D]
-	jne	l_2260                             	| [$2249: JP      NZ,$2260]
+	jne	fill_screen_2260                             	| [$2249: JP      NZ,$2260]
 
 l_224c:
 	lea	current_stage_43B8,a0          	| [$224c: LD      HL,current_stage_43B8]
@@ -3865,10 +3877,11 @@ l_224c:
 	move.b	#0x02,(a0)                      	| [$2258: LD      (HL),$02]
 	rts                                    	| [$225a: RET]
 
-l_2260_1:
-	move.b	#0x1F,d1                        	| [$223e: LD      B,$1F]
+* used for star transitions
+fill_screen_2260_1:
+	move.b	#0x1F,d1                        	| [$223e: LD      B,$1F] with stars please
 
-l_2260:
+fill_screen_2260:
 	move.b	d0,d2                           	| [$2260: LD      C,A]
 	ror.b	#3,d0                            	| [$2261: RRCA] * 3
 	move.b	d0,d3                           	| [$2264: LD      D,A]
@@ -3879,7 +3892,7 @@ l_2260:
 	add.b	#0xB0,d0                         	| [$226b: ADD     $B0]
 	move.b	d0,d6                           	| [$226d: LD      L,A]
 	move.b	d4,d0                           	| [$226e: LD      A,E]
-	move.b	#0x41,d7                        	| [$226f: ADC     $41]
+	move.b	#0x41,d7
 	addx.b	d7,d0                           	| [$226f: ADC     $41]
 	move.b	d0,d5                           	| [$2271: LD      H,A]
 	move.b	d6,d0                           	| [$2272: LD      A,L]
@@ -3891,23 +3904,27 @@ l_2260:
 	rol.b	#1,d0                            	| [$2278: RLCA]
 	move.b	d0,d4                           	| [$2279: LD      E,A]
 l_227a:
-	move.b	d2,d3                           	| [$227a: LD      D,C]
-	moveq	#0,d7
-	bsr		load_ram_in_a0_from_d5d6
+	move.b	d2,d3                           	| [$227a: LD      D,C]	
+	LOAD_D5_16_FROM_D5D6
+	move.w	d5,d7
+	move.b	d1,d0
 l_227b:
-	move.b	d1,(a0)+                         	| [$227b: LD      (HL),B]
-	                           	| [$227c: INC     HL]
-	move.b	d1,(a0)+                         	| [$227d: LD      (HL),B]
+	jbsr	osd_w_videoram                         	| [$227b: LD      (HL),B]
+	addq.w	#1,d7                           	| [$227c: INC     HL]
+	jbsr	osd_w_videoram                         	| [$227d: LD      (HL),B]
+	addq.w	#1,d7                           	| [$227c: INC     HL]
 	                           	| [$227e: INC     HL]
-	addq	#2,d6		| followed a0 increases
 	subq.b	#1,d3                           	| [$227f: DEC     D]
 	jne	l_227b                             	| [$2280: JP      NZ,$227B]
+	move.w	d7,d5
+	LOAD_D5D6_FROM_D5_16
 	move.b	d6,d0                           	| [$2283: LD      A,L]
 	sub.b	d2,d0                            	| [$2284: SUB     C]
 	sub.b	d2,d0                            	| [$2285: SUB     C]
 	sub.b	#0x20,d0                         	| [$2286: SUB     $20]
 	move.b	d0,d6                           	| [$2288: LD      L,A]
 	move.b	d5,d0                           	| [$2289: LD      A,H]
+	clr		d7
 	subx.b	d7,d0                        	| [$228a: SBC     $00]
  	move.b	d0,d5                           	| [$228c: LD      H,A]
 	subq.b	#1,d4                           	| [$228d: DEC     E]
@@ -5369,7 +5386,7 @@ l_32b0:
 
 
 vultures_level_3400:
-	jbsr	l_0876                            	| [$3400: CALL    $0876]
+	jbsr	common_game_routines_0876                            	| [$3400: CALL    $0876]
 	jbsr	player_shots_vs_vultures_collision_3800	| [$3403: CALL    player_shots_vs_vultures_collision_3800]
 	jbsr	l_2600                            	| [$3406: CALL    $2600]
 	jbsr	player_shots_vs_vultures_collision_3800	| [$3409: CALL    player_shots_vs_vultures_collision_3800]
