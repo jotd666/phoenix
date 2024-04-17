@@ -1,6 +1,10 @@
 reverse functions of jump_table_040E
 
 - debug 35B0 vulture
+  when vultures are full:
+  * jump (no params)
+  * 370A
+  
 - see when call animate_vultures 1 or 2 (nb of remaining vultures?)
 
 - debug copy_bank (2player)
