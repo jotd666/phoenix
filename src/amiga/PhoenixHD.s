@@ -39,7 +39,7 @@ _config
 	dc.b    "C1:X:invincible:0;"
 	dc.b    "C1:X:infinite lives:1;"
 	dc.b    "C1:X:cheat keys:4;"
-	dc.b    "C5:L:start lives:default,2,3,4,5;"
+	dc.b    "C5:L:start lives:default,3,4,5,6;"
 	dc.b	0
 
 	IFD BARFLY
@@ -47,8 +47,7 @@ _config
 	ENDC
 
 DECL_VERSION:MACRO
-	dc.b	"1.1"
-	IFD BARFLY
+	dc.b	"1.0"
 		dc.b	" "
 		INCBIN	"T:date"
 	ENDC

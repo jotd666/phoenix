@@ -6294,8 +6294,8 @@ l_3844:
 	bne.b	0f                               	| [...]
 	rts                                    	| [$384b: RET     Z] [...]
 0:
-	jbsr	l_38a1                            	| [$384c: CALL    $38A1]
 	bsr		load_ram_in_a1_from_d3d4
+	jbsr	l_38a1                            	| [$384c: CALL    $38A1]
 	exg	a1,a0                              	| [$384f: EX      DE,HL]
 	move.b	(a0),d0                         	| [$3850: LD      A,(HL)]
 	clr.b	(a0)                             	| [$3851: LD      (HL),$00]
@@ -6342,7 +6342,7 @@ l_3894:
 	jra	l_38f8                             	| [$389c: JP      $38F8]
 
 l_38a1:
-	movem.w	d3/d4,-(sp)                    	| [$38a1: PUSH    DE]
+	move.l	a1,-(sp)                    	| [$38a1: PUSH    DE]
 	move.b	#0x20,d2                        	| [$38a2: LD      C,$20]
 	exg	a1,a0                              	| [$38a4: EX      DE,HL]
 	addq.w	#1,a0                           	| [$38a5: INC     HL]
@@ -6354,7 +6354,7 @@ l_38a1:
 	move.b	d0,d6                           	| [$38ae: LD      L,A]
 	move.b	#0x17,d5                        	| [$38af: LD      H,$17]
 	jbsr	l_34de                            	| [$38b1: CALL    $34DE]
-	movem.w	(sp)+,d3/d4                    	| [$38b4: POP     DE]
+	move.l	(sp)+,a1                    	| [$38b4: POP     DE]
 	rts                                    	| [$38b5: RET]
 	
 

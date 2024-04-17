@@ -1,18 +1,18 @@
-reverse functions of jump_table_040E
-
-- see when call animate_vultures 1 or 2 (nb of remaining vultures?)
-
 - debug copy_bank (2player)
+
 
 - handle_player_shot_0930: value of a0/a1 on entering?
 - space debris when killed appear but flicker
-- vultures shot not disappearing, just stop moving
+- vultures don't shoot
+- vultures lowering all the time, should go up from time to time
 - boss: completely crashes
 - hit by missiles with shield: illegal?? reproduce??
 - special explosions (flame split) don't work, score remains on screen
+  (birds & vultures)
 - title: reinstate the light pink for the (c) sign instead
   of white
-- create a 16+16 AGA DPF version?
+- infinite lives/invincible cheat
+- create a 16+16 AGA DPF version
 
 original game bugs:
 
