@@ -1,18 +1,12 @@
 reverse functions of jump_table_040E
 
-- debug 35B0 vulture
-  when vultures are full:
-  * jump (no params)
-  * 370A
-  
 - see when call animate_vultures 1 or 2 (nb of remaining vultures?)
 
 - debug copy_bank (2player)
 
 - handle_player_shot_0930: value of a0/a1 on entering?
 - space debris when killed appear but flicker
-- vultures appear but are lost after a few seconds, can't shoot them
-  plus foreground trashed
+- vultures shot not disappearing, just stop moving
 - boss: completely crashes
 - hit by missiles with shield: illegal?? reproduce??
 - special explosions (flame split) don't work, score remains on screen

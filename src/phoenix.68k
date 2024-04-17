@@ -5815,7 +5815,7 @@ l_35be:
 	rts                                    	| [$35db: RET]
 
 * this command doesn't have any parameters
-command_35e0:	
+command_move_vultures_laterally_35e0:	
 	addq.w	#2,a0                           	| [$35e0: INC     L]*2
 	move.b	(a0),d0                         	| [$35e2: LD      A,(HL)]
 	cmp.b	#0x10,d0                         	| [$35e3: CP      $10]
@@ -5834,11 +5834,11 @@ command_35e0:
 	move.b	d0,(a0)                         	| [$35f8: LD      (HL),A]
 	                           	| [$35f9: DEC     L]
  	                         	| [$35fa: LD      A,(HL)]
-	sub.b	#0x20,-(a0)                         	| [$35fb: SUB     $20]
+	sub.b	#0x20,-(a0)        | [$35fb: SUB     $20] move vulture to the right
 	                         	| [$35fd: LD      (HL),A]
 	jcc	l_3604                             	| [$35fe: JP      NC,$3604]
 	                           	| [$3601: DEC     L]
-	subq.b	#1,(-1,a0)                         	| [$3602: DEC     (HL)]
+	subq.b	#1,(-1,a0)                         	| [$3602: DEC     (HL)] propagate carry
 	                           	| [$3603: INC     L]
 l_3604:
 	addq.w	#3,a0                           	| [$3604: INC     L]*3	                       
@@ -5852,9 +5852,10 @@ l_3604:
 	subq.b	#1,d0                           	| [$3612: DEC     A]
 	ror.b	#3,d0                            	| [$3613: RRCA] * 3
 	and.b	#0x1F,d0                         	| [$3616: AND     $1F]
+	move.b	d0,d7
+	addq.b	#1,d7                           	| [$3619: INC     A]
+	move.b	d7,(a0)								| [$361a: LD      (HL),A]
 	cmp.b	d1,d0                            	| [$3618: CP      B]
-	addq.b	#1,(a0)                           	| [$3619: INC     A]
-										| [$361a: LD      (HL),A]
 	bcc.b	0f                               	| [...]
 	rts                                    	| [$361b: RET     C] [...]
 0:
@@ -5868,6 +5869,8 @@ l_3604:
 	move.b	d1,(a0)                         	| [$3623: LD      (HL),B]
 	rts                                    	| [$3624: RET]
 
+	DECL_ADDRESS	3628
+	
 l_3628:
 	and.b	#0x0F,d0                         	| [$3628: AND     $0F]
 	jeq	l_3744                             	| [$362a: JP      Z,$3744]
@@ -5876,20 +5879,20 @@ l_3628:
 	move.b	-(a0),d0                         	| [$362f: LD      A,(HL)]
 	sub.b	d1,d0                            	| [$3630: SUB     B]
 	move.b	d0,(a0)                         	| [$3631: LD      (HL),A]
-	subq.w	#2,a0                           	| [$3632: DEC     L]
+	subq.w	#2,a0                           	| [$3632: DEC     L]*2
 	move.b	(a0),d0                         	| [$3634: LD      A,(HL)]
 	sub.b	d1,d0                            	| [$3635: SUB     B]
 	jcc	l_3695                             	| [$3637: JP      NC,$3695]
 	move.b	d0,(a0)                         	| [$3636: LD      (HL),A]
 	and.b	#0x07,d0                         	| [$363a: AND     $07]
 	move.b	d0,(a0)                         	| [$363c: LD      (HL),A]
-	subq.w	#1,a0                           	| [$363d: DEC     L]
+	                           	| [$363d: DEC     L]
 	                         	| [$363e: LD      A,(HL)]
-	add.b	#0x20,(a0)                         	| [$363f: ADD     $20]
+	add.b	#0x20,-(a0)         | [$363f: ADD     $20]  move vulture to the left
 	                         	| [$3641: LD      (HL),A]
 	jcc	l_3648                             	| [$3642: JP      NC,$3648]
 	                           	| [$3645: DEC     L]
-	addq.b	#1,(-1,a0)                         	| [$3646: INC     (HL)]
+	addq.b	#1,(-1,a0)                         	| [$3646: INC     (HL)] propagate carry
 	                           	| [$3647: INC     L]
 l_3648:
 	addq.w	#3,a0                           	| [$3648: INC     L]
@@ -6292,6 +6295,7 @@ l_3844:
 	rts                                    	| [$384b: RET     Z] [...]
 0:
 	jbsr	l_38a1                            	| [$384c: CALL    $38A1]
+	bsr		load_ram_in_a1_from_d3d4
 	exg	a1,a0                              	| [$384f: EX      DE,HL]
 	move.b	(a0),d0                         	| [$3850: LD      A,(HL)]
 	clr.b	(a0)                             	| [$3851: LD      (HL),$00]
@@ -6606,7 +6610,7 @@ l_3a2c:
 	subq.b	#1,(a0)                         	| [$3a2c: DEC     (HL)]
 	move.b	(a0),d0                         	| [$3a2d: LD      A,(HL)]
 	rol.b	#2,d0                            	| [$3a2e: RLCA] * 2
-	nop                                    	| [$3a30: NOP]
+	                                    	| [$3a30: NOP]
 	not.b	d0                               	| [$3a31: CPL]
 	and.b	#0x0E,d0                         	| [$3a32: AND     $0E]
 	lea	unknown_438D,a0                        	| [$3a34: LD      L,$8D]
@@ -6628,8 +6632,8 @@ l_3a4e:
 	subq.b	#1,(a0)                         	| [$3a4e: DEC     (HL)]
 	move.b	(a0),d0                         	| [$3a4f: LD      A,(HL)]
 	ror.b	#1,d0                            	| [$3a50: RRCA]
-	nop                                    	| [$3a51: NOP]
-	nop                                    	| [$3a52: NOP]
+	                                    	| [$3a51: NOP]
+	                                    	| [$3a52: NOP]
 	not.b	d0                               	| [$3a53: CPL]
 	and.b	#0x07,d0                         	| [$3a54: AND     $07]
 	or.b	#0x10,d0                          	| [$3a56: OR      $10]
@@ -6638,8 +6642,8 @@ l_3a4e:
 	lea	unknown_4366,a0                        	| [$3a5b: LD      L,$66]
 	clr.b	(a0)                             	| [$3a5d: LD      (HL),$00]
 	rts                                    	| [$3a5f: RET]
-	ror.b	#1,d0                            	| [$3a60: RRCA]
-	nop                                    	| [$3a61: NOP]
+	                            	| [$3a60: RRCA]
+	                                    	| [$3a61: NOP]
 l_3a62:
 	lea	unknown_4366,a0                        	| [$3a62: LD      L,$66]
 	move.b	(a0),d0                         	| [$3a64: LD      A,(HL)]
@@ -6778,7 +6782,7 @@ l_3b02:
 	add.b	#0x1C,d0                         	| [$3b16: ADD     $1C]
 	move.b	d0,(a0)                         	| [$3b18: LD      (HL),A]
 	rts                                    	| [$3b19: RET]
-	move.b	d1,d0                           	| [$3b1a: LD      A,B]
+	                           	| [$3b1a: LD      A,B]
 l_3b1b:
 	lea	unknown_4362,a0                	| [$3b1b: LD      HL,unknown_4362]
 	move.b	(a0),d0                         	| [$3b1e: LD      A,(HL)]
@@ -6841,17 +6845,17 @@ jump_table_chain_3F00:
 	.long	0x20FF 		| slot 2
 	.long	0x03FF 
 	.long	command_36d2 
-	.long	command_35e0 
+	.long	command_move_vultures_laterally_35e0 
 
 	.long	0x30FF 		| slot 3 
 	.long	0x04FF 
 	.long	command_36d2 
-	.long	command_35e0
+	.long	command_move_vultures_laterally_35e0
 
 	.long	0x10FF  		| slot 4
 	.long	0x05FF 
 	.long	command_36ea
-	.long	command_35e0
+	.long	command_move_vultures_laterally_35e0
 
 	.long	0x10FF 		| slot 5
 	.long	0x06FF
@@ -6886,24 +6890,24 @@ jump_table_chain_3F00:
 	.long	0x10FF 		| slot 11
 	.long	0x0AFF
 	.long	command_36ea
-	.long	command_35e0 
+	.long	command_move_vultures_laterally_35e0 
 
 	.long	0xFFFF 		| slot 12
 	.long	0xFFFF
 	.long	end_chained_calls_36cc
-	.long	command_35e0
+	.long	command_move_vultures_laterally_35e0
 
 	.long	0xFFFF 		| slot 14
 	.long	0xFFFF
 	.long	end_chained_calls_36cc
-	.long	command_35e0
+	.long	command_move_vultures_laterally_35e0
 
 	.long	0x10FF  		| slot 15
 	.long	0x06FF 
 	.long	command_36ea 
-	.long	command_35e0
+	.long	command_move_vultures_laterally_35e0
 
 	.long	0x1010 		| slot 16
 	.long	0x0779
 	.long	command_370a 
-	.long	command_35e0
+	.long	command_move_vultures_laterally_35e0
