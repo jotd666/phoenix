@@ -108,7 +108,7 @@
 	.global	unknown_4BB3
 	.global	unknown_4BC0
 	.global	unknown_4BD1
-	.global	unknown_4BD2
+	.global	current_char_scroll_value_4BD2
 	.global	unknown_4BD3
 	.global	unknown_4BD5
 	.global	unknown_4BD6
@@ -346,7 +346,7 @@ unknown_4BC0:
 	.skip	17
 unknown_4BD1:
 	.skip	1
-unknown_4BD2:
+current_char_scroll_value_4BD2:
 	.skip	1
 unknown_4BD3:
 	.skip	2

@@ -2778,7 +2778,7 @@ l_0cb4:
 	bcs.b	0f                               	| [...]
 	rts                                    	| [$0cc3: RET     NC] [...]
 0:
-l_0cc4:
+player_hit_0cc4:
 	move.b	#0x04,d0                        	| [$0cc4: LD      A,$04]
 	move.b	d0,game_state_43A4              	| [$0cc6: LD      (game_state_43A4),A]
 	move.b	#0x60,d0                        	| [$0cc9: LD      A,$60]
@@ -3287,7 +3287,7 @@ l_0f38:
 	bcc.b	0f                               	| [...]
 	rts                                    	| [$0f45: RET     C] [...]
 0:
-	jbsr	l_0cc4                            	| [$0f46: CALL    $0CC4]
+	jbsr	player_hit_0cc4                            	| [$0f46: CALL    $0CC4]
 	move.b	#0x0D,d3
 	move.b	#0x04,d4                      	| [$0f49: LD      DE,$0D04]
 	subq.w	#2,a0                           	| [$0f4c: DEC     HL] * 2
@@ -4236,12 +4236,12 @@ end_of_level_transition_244C:
 	move.b	(a0),d0                         	| [$2450: LD      A,(HL)]
 	ror.b	#1,d0                            	| [$2451: RRCA]
 	jcs	l_06f0                             	| [$2452: JP      C,$06F0]
-	tst.b	d0                               	| [$2455: AND     A]
+	                               	| [$2455: AND     A]
 	beq.b	0f                               	| [...]
 	rts                                    	| [$2456: RET     NZ] [...]
 0:
-	subq.w	#1,a0                           	| [$2457: DEC     L]
- 	move.b	#0x02,(a0)                      	| [$2458: LD      (HL),$02] sets 43A4 to 2 (restart game state)
+	                           	| [$2457: DEC     L]
+ 	move.b	#0x02,-(a0)                      	| [$2458: LD      (HL),$02] sets 43A4 to 2 (restart game state)
 	lea	current_stage_43B8,a0                        	| [$245a: LD      L,$B8]
 	move.b	(a0),d0                         	| [$245c: LD      A,(HL)]
 	and.b	#0xF0,d0                         	| [$245d: AND     $F0]
@@ -4318,8 +4318,8 @@ mothership_shot_collision_24a0:
 	rts                                    	| [$24b8: RET     NZ] [...]
 0:
 	jra	l_24f2                             	| [$24b9: JP      $24F2]
-	jbsr	l_2351                            	| [$24bc: CALL    $2351]
-	rts                                    	| [$24bf: RET]
+	                           	| [$24bc: CALL    $2351]
+	                                    	| [$24bf: RET]
 
 	DECL_ADDRESS	24c4
 	
@@ -4336,8 +4336,8 @@ animate_mothership_24c4:
 	and.b	#0x03,d0                         	| [$24d6: AND     $03]
 	jeq	l_22fa                             	| [$24d8: JP      Z,$22FA]
 	jra	l_2322                             	| [$24db: JP      $2322]
-	addq.b	#1,d5                           	| [$24de: INC     H]
-	cmp.b	d0,d0                            	| [$24df: CP      A]
+	                           	| [$24de: INC     H]
+	                            	| [$24df: CP      A]
 l_24e0:
 	move.b	unknown_43AA,d0                 	| [$24e0: LD      A,(unknown_43AA)]
 	and.b	#0x0F,d0                         	| [$24e3: AND     $0F]
@@ -4561,12 +4561,16 @@ l_25e0:
 
 	DECL_ADDRESS	2600
 	
-l_2600:
+* the game uses hardware scroll to move vultures vertically, allowing smooth
+* y positionning that can't be achieved with chars only, or we'd need a lot more
+* chars
+
+handle_vultures_y_2600:
 	move.b	current_scroll_value_43B9,d0    	| [$2605: LD      A,(current_scroll_value_43B9)]
-	not.b	d0                               	| [$2608: CPL]
-	ror.b	#3,d0                            	| [$2609: RRCA] * 3
-	and.b	#0x1F,d0                         	| [$260c: AND     $1F]
-	lea	unknown_4BD2,a0                	| [$260e: LD      HL,unknown_4BD2]
+	not.b	d0                               	| [$2608: CPL]    256-value
+	ror.b	#3,d0                            	| [$2609: RRCA] * 3  divide by 8
+	and.b	#0x1F,d0                         	| [$260c: AND     $1F]  to get 0-31 scroll (for chars)
+	lea	current_char_scroll_value_4BD2,a0                	| [$260e: LD      HL,current_char_scroll_value_4BD2]
 	move.b	d0,(a0)+                         	| [$2611: LD      (HL),A]
 	                           	| [$2612: INC     L]
  	move.b	unknown_4BD1,d0                 	| [$2613: LD      A,(unknown_4BD1)]
@@ -4607,7 +4611,7 @@ l_2650:
 	move.b	current_scroll_value_43B9,d0    	| [$2651: LD      A,(current_scroll_value_43B9)]
 	rol.b	#2,d0                            	| [$2654: RLCA] * 2
 	and.b	#0x0C,d0                         	| [$2656: AND     $0C]
-	add.b	(a0),d0                          	| [$2658: ADD     A,(HL)]
+	add.b	(a0),d0                          	| [$2658: ADD     A,(HL)] add unknown_4BD4
 	add.b	#0xD0,d0                         	| [$2659: ADD     $D0]
 	move.b	d0,d6                           	| [$265b: LD      L,A]
 	move.b	#0x3E,d5                        	| [$265c: LD      H,$3E]
@@ -4615,10 +4619,10 @@ l_2650:
 	bsr		load_rom_in_a0_from_d5d6
 	add.b	(a0),d0                          	| [$2661: ADD     A,(HL)]
 	jra	l_2639                             	| [$2662: JP      $2639]
-	jcc	l_26ae                             	| [$2665: JP      NC,$26AE]
+	                             	| [$2665: JP      NC,$26AE]
 l_2668:
 	move.b	unknown_436E,d0                 	| [$2668: LD      A,(unknown_436E)]
-	nop                                    	| [$266b: NOP]
+	                                    	| [$266b: NOP]
 	move.b	d0,d1                           	| [$266c: LD      B,A]
 	move.b	counter_439A,d0                      	| [$266d: LD      A,(counter_439A)]
 	cmp.b	#0x18,d0                         	| [$2670: CP      $18]
@@ -4662,7 +4666,6 @@ l_26a3:
 l_26aa:
 	lea	unknown_4BD3,a0                	| [$26aa: LD      HL,unknown_4BD3]
 	move.b	(a0),d0                         	| [$26ad: LD      A,(HL)]
-l_26ae:
 	subq.b	#1,(a0)                         	| [$26ae: DEC     (HL)]
 	tst.b	d0                               	| [$26af: AND     A]
 	beq.b	0f                               	| [...]
@@ -4692,7 +4695,7 @@ l_26ae:
 	addq.b	#1,d0                           	| [$26ca: INC     A]
 	move.b	d0,d2                           	| [$26cb: LD      C,A]
 	jra	l_2476                             	| [$26cc: JP      $2476]
-	rts                                    	| [$26cf: RET]
+	                                    	| [$26cf: RET]
 	
 	DECL_ADDRESS	26d0
 	
@@ -4719,7 +4722,7 @@ l_26e5:
 	                           	| [$26e8: LD      L,A]
 	cmp.l	#unknown_4BA8-0x40,a0                         	| [$26e9: CP      $68]
 	jne	l_26d9                             	| [$26eb: JP      NZ,$26D9]
-	move.b	unknown_4BD2,d0                 	| [$26ee: LD      A,(unknown_4BD2)]
+	move.b	current_char_scroll_value_4BD2,d0                 	| [$26ee: LD      A,(current_char_scroll_value_4BD2)]
 	add.b	d3,d0                            	| [$26f1: ADD     A,D]
 	add.b	d4,d0                            	| [$26f2: ADD     A,E]
 	and.b	#0x1F,d0                         	| [$26f3: AND     $1F]
@@ -5440,7 +5443,7 @@ l_32b0:
 vultures_level_3400:
 	jbsr	common_game_routines_0876                            	| [$3400: CALL    $0876]
 	jbsr	player_shots_vs_vultures_collision_3800	| [$3403: CALL    player_shots_vs_vultures_collision_3800]
-	jbsr	l_2600                            	| [$3406: CALL    $2600]
+	jbsr	handle_vultures_y_2600                            	| [$3406: CALL    $2600]
 	jbsr	player_shots_vs_vultures_collision_3800	| [$3409: CALL    player_shots_vs_vultures_collision_3800]
 	jbsr	l_3980                            	| [$340c: CALL    $3980]
 	move.b	nb_vultures_to_kill_before_stage_completed_43BB,d0                 	| [$340f: LD      A,(nb_vultures_to_kill_before_stage_completed_43BB)]
@@ -6245,7 +6248,7 @@ player_shots_vs_vultures_collision_3800:
 	move.b	ram_pointer_on_flying_enemies_table_43E6,d0	| [$3806: LD      A,(ram_pointer_on_flying_enemies_table_43E6)]
 	add.b	#0x08,d0                         	| [$3809: ADD     $08]
 	move.b	d0,d3                           	| [$380b: LD      D,A]
-	move.b	unknown_4BD2,d0                 	| [$380c: LD      A,(unknown_4BD2)]
+	move.b	current_char_scroll_value_4BD2,d0                 	| [$380c: LD      A,(current_char_scroll_value_4BD2)]
 	move.b	d0,d4                           	| [$380f: LD      E,A]
 	move.b	unknown_43E7,d0                 	| [$3810: LD      A,(unknown_43E7)]
 	and.b	#0xE0,d0                         	| [$3813: AND     $E0]
@@ -6448,7 +6451,7 @@ l_3923:
 	rts                                    	| [$392e: RET]
 
 l_3930:
-	move.b	unknown_4BD2,d0                 	| [$3930: LD      A,(unknown_4BD2)]
+	move.b	current_char_scroll_value_4BD2,d0                 	| [$3930: LD      A,(current_char_scroll_value_4BD2)]
 	and.w	#0x1E,d0                         	| [$3933: AND     $1E]
 	add.b	#0xC0,d0                         	| [$3935: ADD     $C0]
 	lea		game_rom+0x3D00,a0
@@ -6499,7 +6502,7 @@ l_395c:
 	subq.b	#0x04,d0                        	| [$3969: SUB     $04]
 	move.b	d0,d1                           	| [$396b: LD      B,A]
 	subq.w	#3,a0                           	| [$396c: DEC     L]
-	move.b	unknown_4BD2,d0                 	| [$396f: LD      A,(unknown_4BD2)]
+	move.b	current_char_scroll_value_4BD2,d0                 	| [$396f: LD      A,(current_char_scroll_value_4BD2)]
 	add.b	(a0),d0                          	| [$3972: ADD     A,(HL)]
 	and.b	#0x1F,d0                         	| [$3973: AND     $1F]
 	rol.b	#3,d0                            	| [$3975: RLCA] * 3
@@ -6508,7 +6511,7 @@ l_395c:
 	jra	l_25b7                             	| [$397b: JP      $25B7]
 
 l_3980:
-	move.b	unknown_4BD2,d0                 	| [$3980: LD      A,(unknown_4BD2)]
+	move.b	current_char_scroll_value_4BD2,d0                 	| [$3980: LD      A,(current_char_scroll_value_4BD2)]
 	sub.b	#0x0C,d0                         	| [$3983: SUB     $0C]
 	bcc.b	0f                               	| [...]
 	rts                                    	| [$3985: RET     C] [...]
@@ -6572,7 +6575,7 @@ l_39f0:
 	lea	unknown_43A6,a0                        	| [$39f0: LD      L,$A6]
 	move.b	(a0),d0                         	| [$39f2: LD      A,(HL)]
 	cmp.b	#0xC0,d0                         	| [$39f3: CP      $C0]
-	jcs	l_0cc4                             	| [$39f5: JP      C,$0CC4]
+	jcs	player_hit_0cc4                             	| [$39f5: JP      C,$0CC4]
 	subq.b	#0x01,d0                        	| [$39f8: SUB     $01]
 	move.b	d0,(a0)                         	| [$39fa: LD      (HL),A]
 	jra	l_39db                             	| [$39fb: JP      $39DB]
