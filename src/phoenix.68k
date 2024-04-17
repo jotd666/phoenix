@@ -1536,11 +1536,11 @@ l_05ec:
 	move.b	(a0)+,d3                         	| [$05f7: LD      D,(HL)]
 	                           	| [$05f8: INC     HL]
 	move.b	(a0),d4                         	| [$05f9: LD      E,(HL)]
-l_05fa:
+set_birds_params_05fa:
 	lea	bird_data_4B70,a0                	| [$05fa: LD      HL,bird_data_4B70]
 	move.b	nb_birds_to_kill_before_stage_completed_43BA,d0	| [$05fd: LD      A,(nb_birds_to_kill_before_stage_completed_43BA)]
 	move.b	d0,d1                           	| [$0600: LD      B,A]
-	tst.b	d0                               	| [$0601: AND     A]
+												| [$0601: AND     A]
 	bne.b	0f                               	| [...]
 	rts                                    	| [$0602: RET     Z] [...]
 0:
@@ -1548,7 +1548,7 @@ l_0603:
 	move.b	d3,(a0)+                         	| [$0603: LD      (HL),D]
 	                           	| [$0604: INC     L]
 	move.b	d4,(a0)                         	| [$0605: LD      (HL),E]
-	addq.w	#3,a0                           	| [$0606: INC     L]
+	addq.w	#3,a0                           	| [$0606: INC     L] * 3
 	subq.b	#1,d1                           	| [$0609: DEC     B]
 	jne	l_0603                             	| [$060a: JP      NZ,$0603]
 	rts                                    	| [$060d: RET]
@@ -1859,8 +1859,10 @@ erase_shots_0763:
 	rts                                    	| [$076b: RET]
 
 	DECL_ADDRESS	76D
-* < A1:
-* < A4:
+* a bird appears from the void
+* < A1: contains screen address to plot to
+* < A4: points on character to be plotted
+* ex: first level first call writes 6C to DE=41A9 from BC=4B71
 animate_appearing_birds_076d:
 	move.b	#1,0x200
 	exg	a1,a0                              	| [$076d: EX      DE,HL]
@@ -2089,8 +2091,8 @@ transition_to_birds_level_0834:
 	bcs.b	0f                               	| [...]
 	rts                                    	| [$083e: RET     NC] [...]
 0:
-	jbsr	select_birds_params_depending_on_phase_085a                            	| [$083f: CALL    $085A]
-	jbsr	l_05fa                            	| [$0842: CALL    $05FA]
+	jbsr	select_birds_params_depending_on_phase_085a       	| [$083f: CALL    $085A]
+	jbsr	set_birds_params_05fa                            	| [$0842: CALL    $05FA]
 	jbsr	birds_stuff_0a50                            	| [$0845: CALL    $0A50]
 l_0848:
 	lea	unknown_43B4,a0                	| [$0848: LD      HL,unknown_43B4]
@@ -2107,8 +2109,12 @@ l_0848:
 
 	DECL_ADDRESS	85a
 
+* > D4: bird starting char
+* > D0: ?
+* > D3: ?
 select_birds_params_depending_on_phase_085a:
 	move.b	#8,d3                      	| [$085a: LD      DE,$086C]
+	move.b	#0x6C,d4                      	| [$085a: LD      DE,$086C]
 	cmp.b	#0x11,d0                         	| [$085d: CP      $11]
 	bcs.b	0f                               	| [...]
 	rts                                    	| [$085f: RET     NC] [...]
@@ -2496,8 +2502,9 @@ player_hit_0AEA:
 	jra	l_0bba                             	| [$0b0d: JP      $0BBA]
 	
 l_0b15:
-	move.b	#0x05,-(a0)                      	| [$0b16: LD      (HL),$05] (b15: dec l)
-	subq.w	#1,a0                           	| [$0b18: DEC     L]
+	                         	| [$0b15: DEC     L]
+	move.b	#0x05,-(a0)                      	| [$0b16: LD      (HL),$05]
+	                           	| [$0b18: DEC     L]		not useful!
 	add.b	#0x90,d0                         	| [$0b1a: ADD     $90]
 	lea		timer_43A5-0xA5,a0
 	and.w	#0xFF,d0
@@ -2598,6 +2605,8 @@ l_0ba0:
 	jbsr	osd_set_scroll_value                       	| [$0baf: LD      ($5800),A] 58xx scroll register
 	jra	clear_background_tiles_03a0                             	| [$0bb2: JP      $03A0]
 
+	DECL_ADDRESS	bba
+	
 l_0bba:
 	move.b	d0,d1                           	| [$0bba: LD      B,A]
 	ror.b	#1,d0                            	| [$0bbb: RRCA]
@@ -3195,7 +3204,7 @@ l_0ed5:
 	                           	| [$0eda: INC     L]
  	move.b	d2,(a0)                         	| [$0edb: LD      (HL),C]
 	lea	killed_sfx_flag_4364,a0                        	| [$0edc: LD      L,$64]
-	move.b	#0xFF,(a0)                      	| [$0ede: LD      (HL),$FF] sets 4364 to $FF: triggers "killed" sfx
+	st		(a0)                      	| [$0ede: LD      (HL),$FF] sets 4364 to $FF: triggers "killed" sfx
 	lea	nb_birds_to_kill_before_stage_completed_43BA,a0                        	| [$0ee0: LD      L,$BA]
 	subq.b	#1,(a0)                         	| [$0ee2: DEC     (HL)] one less enemy to kill (43BA)
 * pops stack and jumps
@@ -3326,9 +3335,9 @@ l_0f92:
 	jne	l_0f92                             	| [$0f9f: JP      NZ,$0F92]
 	rts                                    	| [$0fa2: RET]
 l_0fa6:
-	addq.w	#1,a0                           	| [$0fa6: INC     L]
-	move.b	(a0),d0                         	| [$0fa7: LD      A,(HL)]
-	subq.w	#1,a0                           	| [$0fa8: DEC     L]
+	                           	| [$0fa6: INC     L]
+	move.b	(1,a0),d0                         	| [$0fa7: LD      A,(HL)]
+	                           	| [$0fa8: DEC     L]
 	cmp.b	#0xCA,d0                         	| [$0fa9: CP      $CA]
 	bcc.b	0f                               	| [...]
 	rts                                    	| [$0fab: RET     C] [...]
@@ -3498,7 +3507,7 @@ birds_level_2000:
 	move.b	d1,d0                           	| [$201e: LD      A,B]
 	                               	| [$201f: AND     A]
 	jne	l_2025                             	| [$2020: JP      NZ,$2025]
-	move.b	#0xFF,(a0)                      	| [$2023: LD      (HL),$FF]
+	st	(a0)                      	| [$2023: LD      (HL),$FF]
 l_2025:
 	move.b	(a0),d0                         	| [$2025: LD      A,(HL)]
 	                               	| [$2026: AND     A]
@@ -3509,8 +3518,8 @@ l_2025:
 l_2030:
 	move.b	d1,d0                           	| [$23a1: LD      A,B]
 	and.b	#0x03,d0                         	| [$2030: AND     $03]
-	cmp.b	#0x01,d0                         	| [$2032: CP      $01]
 	lea	game_rom+0x1B50,a1                      	| [$2034: LD      DE,$1B50]
+	cmp.b	#0x01,d0                         	| [$2032: CP      $01]
 	jra	l_23ac                             	| [$2037: JP      $23AC]
 
 l_2040:
@@ -4101,8 +4110,8 @@ l_2398:
 	jne	l_2030                             	| [$23a2: JP      NZ,$2030]
 	move.b	d1,d0                           	| [$23a1: LD      A,B]
 	and.b	#0x0C,d0                         	| [$23a5: AND     $0C]
-	cmp.b	#0x04,d0                         	| [$23a7: CP      $04]
 	lea	game_rom+0x1B40,a1                      	| [$23a9: LD      DE,$1B40]
+	cmp.b	#0x04,d0                         	| [$23a7: CP      $04]
 l_23ac:
 	jeq	l_23c0                             	| [$23ac: JP      Z,$23C0]
 	move.b	d1,d0                           	| [$23af: LD      A,B]
@@ -5857,8 +5866,8 @@ l_3663:
 	or.b	#0x10,d0                          	| [$3663: OR      $10]
 	move.b	d0,(a0)                         	| [$3665: LD      (HL),A]
 	rts                                    	| [$3666: RET]
-	move.b	d0,(a0)                         	| [$3667: LD      (HL),A]
-	rts                                    	| [$3668: RET]
+	                         	| [$3667: LD      (HL),A]
+	                        	| [$3668: RET]
 
 l_366a:
 	move.b	d1,d0                           	| [$366a: LD      A,B]
@@ -6078,10 +6087,8 @@ l_3758:
 	move.b	(a0),d4                         	| [$3771: LD      E,(HL)]
 	move.w	d0,-(sp)                        	| [$3772: PUSH    AF]
 	movem.w	d3/d4,-(sp)                    	| [$3773: PUSH    DE]
-	move.l	a1,-(sp)                        	| [$3773: PUSH    DE]
 	move.w	#0xFFDf,d1                      	| [$3774: LD      BC,$FFDF]
 	jbsr	screen_address_computation_3796                            	| [$3777: CALL    $3796]
-	move.l	(sp)+,a1                        	| [$377a: POP     DE]
 	movem.w	(sp)+,d3/d4                    	| [$377a: POP     DE]
 	move.w	(sp)+,d0                        	| [$377b: POP     AF]
 	* weird screen address computation
