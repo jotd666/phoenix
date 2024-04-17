@@ -1100,6 +1100,20 @@ force_tile_redraw:
 	rts
 	
 osd_wait_for_vblank:
+	.ifndef	RELEASE
+	tst.b	fast_forward_flag
+	beq.b	1f
+	* fast forward: only wait for VBL once in a while
+	* which makes game potentially 1600% faster
+	add.b	#1,fast_forward_counter
+	cmp.b	#0x10,fast_forward_counter
+	beq.b	0f
+	rts
+0:
+	clr.b	fast_forward_counter
+1:
+	.endif
+	
 	clr.b	vblank_flag
 0:
 	tst.b	vblank_flag
@@ -1708,6 +1722,10 @@ handle_keyboard:
 	cmp.b	#0x58,d0	| F9 key crashes game (restarts whdload)
 	bne.b	0f
 	illegal
+0:
+	cmp.b	#0x59,d0	| F10 key accelerates game
+	bne.b	0f
+	eor.b	#1,fast_forward_flag
 	.endif
 0:
 

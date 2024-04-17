@@ -10,6 +10,8 @@
 	.global infinite_lives_flag
 	.global last_played_sound_timer_table
 	.global	sound_timer
+	.global fast_forward_flag
+	.global fast_forward_counter
 	.ifdef	__amiga__
 	
 	.ascii	"RAM_STRT"
@@ -48,7 +50,10 @@ invincible_flag:
 	.byte	0
 infinite_lives_flag:
 	.byte	0
-
+fast_forward_flag:
+	.byte	0
+fast_forward_counter:
+	.byte	0
 start_level:
 	.byte	0
 highscores_need_saving:
