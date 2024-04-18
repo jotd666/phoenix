@@ -555,8 +555,8 @@ WaitVBlankCoin_0080:
 	move.b	d0,(a0)+                         	| [$0095: LD      (HL),A] Store new value
 	                           	| [$0096: INC     L] To 43A1
 	move.b	d1,(a0)                         	| [$0097: LD      (HL),B] Store old value
-	lea	unknown_439B,a0                        	| [$0098: LD      L,$9B] Bump the ...
-	jbsr	AddOneToMem_0200                  	| [$009a: CALL    AddOneToMem_0200] ... ?? counter
+	lea	random_seed_counter_value_439B,a0                        	| [$0098: LD      L,$9B] Bump the ...
+	jbsr	AddOneToMem_0200                  	| [$009a: CALL    AddOneToMem_0200] ... ?? counter, probably used for random
 	lea	CoinCount_438F,a0                        	| [$009d: LD      L,$8F] Get number ...
 	move.b	(a0),d0                         	| [$009f: LD      A,(HL)] ... of coins
 *
@@ -672,8 +672,8 @@ init_new_play_0140:
 	jbsr	WaitVBlankCoin_0080               	| [$0143: CALL    WaitVBlankCoin_0080]
 	jbsr	clear_foreground_tiles_0380                            	| [$0146: CALL    $0380]
 	lea	current_player_is_p2_43A3,a0                	| [$0149: LD      HL,current_player_is_p2_43A3]
-	move.b	#0x02,(a0)                      	| [$014c: LD      (HL),$02]
-	addq.w	#1,a0                           	| [$014e: INC     L]
+	move.b	#0x02,(a0)+                      	| [$014c: LD      (HL),$02]
+	                           	| [$014e: INC     L]
 	clr.b	(a0)                             	| [$014f: LD      (HL),$00]
 	                                    	| [$0151: NOP]
 	                                    	| [$0152: NOP]
@@ -4259,11 +4259,14 @@ l_246a:
 	move.w	#0x4AC6,d3                	| [$246d: LD      DE,unknown_4AC6]
 	lea	game_rom+0x1C00,a0                      	| [$2470: LD      HL,$1C00]
 	jra	copy_block_to_screen_0ad6                             	| [$2473: JP      $0AD6]
+	
+	DECL_ADDRESS	2476
+	* enters here called from l_26aa where H=$4B
 l_2476:
 	move.b	d1,d0                           	| [$2476: LD      A,B]
 	add.b	d2,d0                            	| [$2477: ADD     A,C]
 	jbsr	l_2495                            	| [$2478: CALL    $2495]
-	lea	unknown_43D3,a0                        	| [$247b: LD      L,$D3]
+	lea	unknown_4BD3,a0                        	| [$247b: LD      L,$D3]
 	move.b	d0,(a0)                         	| [$247d: LD      (HL),A]
 	lea	nb_vultures_to_kill_before_stage_completed_43BB,a0                	| [$247e: LD      HL,nb_vultures_to_kill_before_stage_completed_43BB]
 	move.b	#0x08,d0                        	| [$2481: LD      A,$08]
@@ -4311,7 +4314,7 @@ mothership_shot_collision_24a0:
 	lea	player_shot_1_structure_43C4,a1	| [$24a8: LD      DE,player_shot_1_structure_43C4]
 	lea	ram_pointer_on_flying_enemies_table_43E6,a0	| [$24ab: LD      HL,ram_pointer_on_flying_enemies_table_43E6]
 	jbsr	l_2351                            	| [$24ae: CALL    $2351]
-	move.b	counter_439A+1,d0                    	| [$24b1: LD      A,(counter_439A+1)]
+	move.b	random_seed_counter_value_439B,d0                    	| [$24b1: LD      A,(random_seed_counter_value_439B)]
 	and.b	#0x03,d0                         	| [$24b4: AND     $03]
 	cmp.b	#0x03,d0                         	| [$24b6: CP      $03]
 	beq.b	0f                               	| [...]
@@ -4351,11 +4354,11 @@ l_24e0:
 0:
 	jra	update_scrolling_067A              	| [$24ec: JP      update_scrolling_067A]
 l_24f2:
-	jbsr	l_30aa                            	| [$24f2: CALL    $30AA]
+	jbsr	get_random_value_30aa                            	| [$24f2: CALL    $30AA]
 	add.b	#0x60,d0                         	| [$24f5: ADD     $60]
 	                                    	| [$24f7: NOP]
 	move.b	d0,d1                           	| [$24f8: LD      B,A]
-	lea	unknown_439B,a0                	| [$24f9: LD      HL,unknown_439B]
+	lea	random_seed_counter_value_439B,a0                	| [$24f9: LD      HL,random_seed_counter_value_439B]
 	and.b	#0x0E,d0                         	| [$24fc: AND     $0E]
 	and.b	(a0),d0                          	| [$24fe: AND     (HL)]
 	beq.b	0f                               	| [...]
@@ -4568,19 +4571,20 @@ l_25e0:
 handle_vultures_y_2600:
 	move.b	current_scroll_value_43B9,d0    	| [$2605: LD      A,(current_scroll_value_43B9)]
 	not.b	d0                               	| [$2608: CPL]    256-value
-	ror.b	#3,d0                            	| [$2609: RRCA] * 3  divide by 8
-	and.b	#0x1F,d0                         	| [$260c: AND     $1F]  to get 0-31 scroll (for chars)
+	lsr.b	#3,d0                            	| [$2609: RRCA] * 3  divide by 8
+												| [$260c: AND     $1F]  to get 0-31 scroll (for chars)
 	lea	current_char_scroll_value_4BD2,a0                	| [$260e: LD      HL,current_char_scroll_value_4BD2]
 	move.b	d0,(a0)+                         	| [$2611: LD      (HL),A]
 	                           	| [$2612: INC     L]
  	move.b	unknown_4BD1,d0                 	| [$2613: LD      A,(unknown_4BD1)]
 	cmp.b	(a0),d0                          	| [$2616: CP      (HL)]
-	jcs	l_2650                             	| [$2617: JP      C,$2650]
+	jcs	vultures_go_up_2650                             	| [$2617: JP      C,$2650]
+	* vultures go down
 	move.b	unknown_4BD5,d0                 	| [$261a: LD      A,(unknown_4BD5)]
 	move.b	d0,d3                           	| [$261d: LD      D,A]
 	and.b	#0x03,d0                         	| [$261e: AND     $03]
 	move.b	d0,d4                           	| [$2620: LD      E,A]
-	move.b	counter_439A+1,d0                    	| [$2621: LD      A,(counter_439A+1)]
+	move.b	random_seed_counter_value_439B,d0                    	| [$2621: LD      A,(random_seed_counter_value_439B)]
 	rol.b	#2,d0                            	| [$2624: RLCA] * 2
 	and.b	#0x0C,d0                         	| [$2626: AND     $0C]
 	add.b	d4,d0                            	| [$2628: ADD     A,E]
@@ -4595,10 +4599,10 @@ handle_vultures_y_2600:
 	move.b	d0,d3                           	| [$2634: LD      D,A]
 	move.b	current_scroll_value_43B9,d0    	| [$2635: LD      A,(current_scroll_value_43B9)]
 	sub.b	d3,d0                            	| [$2638: SUB     D]
-l_2639:
+set_vultures_scroll_value_2639:
 	move.b	d0,current_scroll_value_43B9    	| [$2639: LD      (current_scroll_value_43B9),A]
 	jbsr	osd_set_scroll_value                       	| [$263c: LD      ($5800),A] 58xx scroll register
-	move.b	counter_439A+1,d0                    	| [$263f: LD      A,(counter_439A+1)]
+	move.b	random_seed_counter_value_439B,d0                    	| [$263f: LD      A,(random_seed_counter_value_439B)]
 	ror.b	#1,d0                            	| [$2642: RRCA]
 	jcc	l_26d0                             	| [$2643: JP      NC,$26D0]
 	jbsr	l_2668                            	| [$2646: CALL    $2668]
@@ -4606,7 +4610,8 @@ l_2639:
 
 	DECL_ADDRESS	2650
 	
-l_2650:
+vultures_go_up_2650:
+	move.w	#0xF00,0xDFF180
 	addq.w	#1,a0                           	| [$2650: INC     L]
 	move.b	current_scroll_value_43B9,d0    	| [$2651: LD      A,(current_scroll_value_43B9)]
 	rol.b	#2,d0                            	| [$2654: RLCA] * 2
@@ -4618,7 +4623,7 @@ l_2650:
 	move.b	current_scroll_value_43B9,d0    	| [$265e: LD      A,(current_scroll_value_43B9)]
 	bsr		load_rom_in_a0_from_d5d6
 	add.b	(a0),d0                          	| [$2661: ADD     A,(HL)]
-	jra	l_2639                             	| [$2662: JP      $2639]
+	jra	set_vultures_scroll_value_2639                             	| [$2662: JP      $2639]
 	                             	| [$2665: JP      NC,$26AE]
 l_2668:
 	move.b	unknown_436E,d0                 	| [$2668: LD      A,(unknown_436E)]
@@ -4672,7 +4677,7 @@ l_26aa:
 	rts                                    	| [$26b0: RET     NZ] [...]
 0:
 	addq.b	#1,(a0)                         	| [$26b1: INC     (HL)]
-	lea	unknown_43D6,a0                        	| [$26b2: LD      L,$D6]
+	lea	unknown_4BD6,a0                        	| [$26b2: LD      L,$D6]
 	move.b	(a0),d0                         	| [$26b4: LD      A,(HL)]
 	cmp.b	#0x16,d0                         	| [$26b5: CP      $16]
 	bcs.b	0f                               	| [...]
@@ -4688,7 +4693,7 @@ l_26aa:
 	move.b	d0,d1                           	| [$26be: LD      B,A]
 	move.b	unknown_436F,d0                 	| [$26bf: LD      A,(unknown_436F)]
 	and.b	#0x03,d0                         	| [$26c2: AND     $03]
-	lea	unknown_43D4,a0                        	| [$26c4: LD      L,$D4]
+	lea	unknown_4BD4,a0                        	| [$26c4: LD      L,$D4]
 	move.b	d0,(a0)                         	| [$26c6: LD      (HL),A]
 	not.b	d0                               	| [$26c7: CPL]
 	and.b	#0x03,d0                         	| [$26c8: AND     $03]
@@ -4879,7 +4884,7 @@ l_27bd:
 	or.b	#0x40,d0                          	| [$27d3: OR      $40]
 	move.b	d0,(a0)                         	| [$27d5: LD      (HL),A]
 	rts                                    	| [$27d6: RET]
-	move.b	d0,(a0)                         	| [$27d7: LD      (HL),A]
+	                         	| [$27d7: LD      (HL),A]
 l_27d8:
 	move.b	#0x18,(a0)                      	| [$27d8: LD      (HL),$18]
 	lea	unknown_438C,a0                        	| [$27da: LD      L,$8C]
@@ -5011,13 +5016,15 @@ l_3089:
 l_309f:
 	add.b	d2,d0                            	| [$309f: ADD     A,C]
 	move.b	d0,d2                           	| [$30a0: LD      C,A]
-	jbsr	l_30aa                            	| [$30a1: CALL    $30AA]
+	jbsr	get_random_value_30aa                            	| [$30a1: CALL    $30AA]
 	and.b	#0x07,d0                         	| [$30a4: AND     $07]
 	add.b	d2,d0                            	| [$30a6: ADD     A,C]
 	move.b	d0,d2                           	| [$30a7: LD      C,A]
 	rts                                    	| [$30a8: RET]
-l_30aa:
-	lea	unknown_439B,a0                	| [$30aa: LD      HL,unknown_439B]
+	
+* random value influenced by player ship X
+get_random_value_30aa:
+	lea	random_seed_counter_value_439B,a0                	| [$30aa: LD      HL,random_seed_counter_value_439B] counter
 	move.b	(a0),d0                         	| [$30ad: LD      A,(HL)]
 	rol.b	#3,d0                            	| [$30ae: RLCA] * 3
 	and.b	#0x07,d0                         	| [$30b1: AND     $07]
@@ -5130,7 +5137,7 @@ l_313d:
 	lea	unknown_4357,a0                        	| [$313d: LD      L,$57]
 	sub.b	(a0),d0                          	| [$313f: SUB     (HL)]
 	move.b	d0,d1                           	| [$3140: LD      B,A]
-	jbsr	l_30aa                            	| [$3141: CALL    $30AA]
+	jbsr	get_random_value_30aa                            	| [$3141: CALL    $30AA]
 	addq.b	#1,d0                           	| [$3144: INC     A]
 	cmp.b	d1,d0                            	| [$3145: CP      B]
 	jcs	l_314b                             	| [$3146: JP      C,$314B]
@@ -5147,7 +5154,7 @@ l_315a:
 	beq.b	0f                               	| [...]
 	rts                                    	| [$3160: RET     NZ] [...]
 0:
-	jbsr	l_30aa                            	| [$3161: CALL    $30AA]
+	jbsr	get_random_value_30aa                            	| [$3161: CALL    $30AA]
 	                                    	| [$3164: NOP]
 	move.b	d0,d1                           	| [$3165: LD      B,A]
 	rol.b	#1,d0                            	| [$3166: RLCA]
@@ -5171,9 +5178,8 @@ l_3179:
 	addq.w	#2,a0                           	| [$3180: INC     HL] * 2
 	subq.b	#1,d1                           	| [$3182: DEC     B]
 	jne	l_318a                             	| [$3183: JP      NZ,$318A]
-	move.b	#0x70,d4                        	| [$3186: LD      E,$70]
-	bsr		load_ram_in_a1_from_d3d4
-	lea	unknown_4350,a0                        	| [$3188: LD      L,$50]
+	lea 	bird_data_4B70,a1                        	| [$3186: LD      E,$70] D3=$4B above
+	lea		unknown_4B50,a0                        	| [$3188: LD      L,$50] D5=$4B above
 l_318a:
 	subq.b	#1,d2                           	| [$318a: DEC     C]
 	jne	l_3179                             	| [$318b: JP      NZ,$3179]
@@ -5256,7 +5262,7 @@ l_31d6:
 	move.b	#0x33,d5                        	| [$31f5: LD      H,$33]
 	bsr		load_rom_in_a0_from_d5d6
 	move.b	(a0),d2                         	| [$31f7: LD      C,(HL)]
-	jbsr	l_30aa                            	| [$31f8: CALL    $30AA]
+	jbsr	get_random_value_30aa                            	| [$31f8: CALL    $30AA]
 	and.b	#0x06,d0                         	| [$31fb: AND     $06]
 	add.b	d2,d0                            	| [$31fd: ADD     A,C]
 	move.b	d0,d6                           	| [$31fe: LD      L,A]
@@ -5456,13 +5462,13 @@ vultures_level_3400:
 	jbsr	animate_vulture_wings_3560                            	| [$3421: CALL    $3560]
 	jbsr	l_3498                            	| [$3424: CALL    $3498]
 	jbsr	l_34aa                            	| [$3427: CALL    $34AA]
-	move.b	counter_439A+1,d0                    	| [$342a: LD      A,(counter_439A+1)]
+	move.b	random_seed_counter_value_439B,d0                    	| [$342a: LD      A,(random_seed_counter_value_439B)]
 	ror.b	#1,d0                            	| [$342d: RRCA]
 	jcs	l_0fc0                             	| [$342e: JP      C,$0FC0]
 	jbsr	l_3930                            	| [$3431: CALL    $3930]
 	jra	l_0c40                             	| [$3434: JP      $0C40]
 l_3438:
-	move.b	counter_439A+1,d0                    	| [$3438: LD      A,(counter_439A+1)]
+	move.b	random_seed_counter_value_439B,d0                    	| [$3438: LD      A,(random_seed_counter_value_439B)]
 	ror.b	#1,d0                            	| [$343b: RRCA]
 	jcs	l_3452                             	| [$343c: JP      C,$3452]
 	jbsr	animate_vultures_3474                            	| [$343f: CALL    $3474]
@@ -5478,7 +5484,7 @@ l_3452:
 	jra	l_0fc0                             	| [$345b: JP      $0FC0]
 
 l_3462:
-	move.b	counter_439A+1,d0                    	| [$3462: LD      A,(counter_439A+1)]
+	move.b	random_seed_counter_value_439B,d0                    	| [$3462: LD      A,(random_seed_counter_value_439B)]
 	ror.b	#1,d0                            	| [$3465: RRCA]
 	bcc.b	0f                               	| [...]
 	rts                                    	| [$3466: RET     C] [...]
@@ -5723,7 +5729,7 @@ l_3558:
 	DECL_ADDRESS	3560
 	
 animate_vulture_wings_3560:
-	jbsr	l_30aa                            	| [$3560: CALL    $30AA]
+	jbsr	get_random_value_30aa                            	| [$3560: CALL    $30AA]
 	move.b	d0,d1                           	| [$3563: LD      B,A]
 	rol.b	#2,d0                            	| [$3564: RLCA] * 2
 	move.b	d0,d2                           	| [$3566: LD      C,A]
@@ -5771,7 +5777,6 @@ l_3586:
 * this routine allows to make vultures grow, then move
 
 evolve_vultures_35b0:
-	move.b	#1,0x200
 	move.b	(a0),d0                         	| [$35b0: LD      A,(HL)]
 	                               	| [$35b1: AND     A]
 	bne.b	0f                               	| [...]
@@ -6432,6 +6437,11 @@ l_3906:
 	and.b	#0xF7,d0                         	| [$3916: AND     $F7]
 	move.b	d0,player_shot_1_structure_43C4 	| [$3918: LD      (player_shot_1_structure_43C4),A]
 	rts                                    	| [$391b: RET]
+	
+	* called when boss is killed
+	
+	DECL_ADDRESS	391c
+	
 l_391c:
 	move.b	d1,d0                           	| [$391c: LD      A,B]
 	cmp.b	#0x20,d0                         	| [$391d: CP      $20]
@@ -6534,7 +6544,7 @@ l_3980:
 	lea	player_shot_1_structure_43C4,a0                        	| [$39a5: LD      L,$C4]
 	move.b	#0x08,(a0)                      	| [$39a7: LD      (HL),$08]
 	lea	unknown_439E,a1                	| [$39a9: LD      DE,unknown_439E]
-	move.b	counter_439A+1,d0                    	| [$39ac: LD      A,(counter_439A+1)]
+	move.b	random_seed_counter_value_439B,d0                    	| [$39ac: LD      A,(random_seed_counter_value_439B)]
 	ror.b	#1,d0                            	| [$39af: RRCA]
 	jcs	l_39bf                             	| [$39b0: JP      C,$39BF]
 	addq.w	#1,a1                           	| [$39b3: INC     E]
@@ -6586,7 +6596,7 @@ l_3a00:
 	not.b	d0                               	| [$3a05: CPL]
 	addq.b	#1,d0                           	| [$3a06: INC     A]
 	move.b	d0,d3                           	| [$3a07: LD      D,A]
-	move.b	counter_439A+1,d0                    	| [$3a08: LD      A,(counter_439A+1)]
+	move.b	random_seed_counter_value_439B,d0                    	| [$3a08: LD      A,(random_seed_counter_value_439B)]
 	ror.b	#2,d0                            	| [$3a0b: RRCA] * 2
 	bcc.b	0f                               	| [...]
 	rts                                    	| [$3a0d: RET     C] [...]

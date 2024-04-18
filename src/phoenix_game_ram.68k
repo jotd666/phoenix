@@ -59,7 +59,7 @@
 	.global	unknown_4398
 	.global	sequence_timer_16bit_lsb_4399
 	.global	counter_439A
-	.global	unknown_439B
+	.global	random_seed_counter_value_439B
 	.global	unknown_439C
 	.global	unknown_439D
 	.global	unknown_439E
@@ -110,6 +110,7 @@
 	.global	unknown_4BD1
 	.global	current_char_scroll_value_4BD2
 	.global	unknown_4BD3
+	.global	unknown_4BD4
 	.global	unknown_4BD5
 	.global	unknown_4BD6
 	.global	unknown_4BD7
@@ -223,7 +224,7 @@ sequence_timer_16bit_lsb_4399:
 	.skip	1
 counter_439A:
 	.skip	1
-unknown_439B:
+random_seed_counter_value_439B:
 	.skip	1
 unknown_439C:
 	.skip	1
@@ -349,7 +350,9 @@ unknown_4BD1:
 current_char_scroll_value_4BD2:
 	.skip	1
 unknown_4BD3:
-	.skip	2
+	.skip	1
+unknown_4BD4:
+	.skip	1
 unknown_4BD5:
 	.skip	1
 unknown_4BD6:

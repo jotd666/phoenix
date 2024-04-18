@@ -3445,7 +3445,7 @@ end_of_level_transition_244C:
 24A8: 11 C4 43        LD      DE,player_shot_1_structure_43C4
 24AB: 21 E6 43        LD      HL,ram_pointer_on_flying_enemies_table_43E6
 24AE: CD 51 23        CALL    $2351               ;
-24B1: 3A 9B 43        LD      A,(counter_439A+1)       ;
+24B1: 3A 9B 43        LD      A,(random_seed_counter_value_439B)       ;
 24B4: E6 03           AND     $03
 24B6: FE 03           CP      $03
 24B8: C0              RET     NZ
@@ -3478,7 +3478,7 @@ end_of_level_transition_244C:
 24F5: C6 60           ADD     $60
 24F7: 00              NOP
 24F8: 47              LD      B,A
-24F9: 21 9B 43        LD      HL,unknown_439B
+24F9: 21 9B 43        LD      HL,random_seed_counter_value_439B
 24FC: E6 0E           AND     $0E
 24FE: A6              AND     (HL)
 24FF: C0              RET     NZ
@@ -3646,6 +3646,10 @@ end_of_level_transition_244C:
 25FC: E1              POP     HL
 25FD: C9              RET
 
+; the game uses hardware scroll to move vultures vertically, allowing smooth
+; y positionning that can't be achieved with chars only, or we'd need a lot more
+; chars
+
 2600: 00              NOP
 2601: 00              NOP
 2602: 00              NOP
@@ -3667,7 +3671,7 @@ end_of_level_transition_244C:
 261D: 57              LD      D,A
 261E: E6 03           AND     $03
 2620: 5F              LD      E,A
-2621: 3A 9B 43        LD      A,(counter_439A+1)       ;
+2621: 3A 9B 43        LD      A,(random_seed_counter_value_439B)       ;
 2624: 07              RLCA
 2625: 07              RLCA
 2626: E6 0C           AND     $0C
@@ -3685,7 +3689,7 @@ end_of_level_transition_244C:
 2638: 92              SUB     D
 2639: 32 B9 43        LD      (current_scroll_value_43B9),A
 263C: 32 00 58        LD      ($5800),A           ; 58xx scroll register
-263F: 3A 9B 43        LD      A,(counter_439A+1)       ;
+263F: 3A 9B 43        LD      A,(random_seed_counter_value_439B)       ;
 2642: 0F              RRCA
 2643: D2 D0 26        JP      NC,$26D0            ;
 2646: CD 68 26        CALL    $2668               ;
@@ -3703,7 +3707,9 @@ end_of_level_transition_244C:
 265E: 3A B9 43        LD      A,(current_scroll_value_43B9)
 2661: 86              ADD     A,(HL)
 2662: C3 39 26        JP      $2639               ;
-2665: D2 AE 26        JP      NC,$26AE            ;
+
+2665: D2 AE 26        JP      NC,$26AE            ; not reachable
+
 2668: 3A 6E 43        LD      A,(unknown_436E)
 266B: 00              NOP
 266C: 47              LD      B,A
@@ -4054,7 +4060,7 @@ jump_table_3018:
 30A7: 4F              LD      C,A
 30A8: C9              RET
 30A9: FF              RST     0X38
-30AA: 21 9B 43        LD      HL,unknown_439B
+30AA: 21 9B 43        LD      HL,random_seed_counter_value_439B
 30AD: 7E              LD      A,(HL)
 30AE: 07              RLCA
 30AF: 07              RLCA
@@ -4449,13 +4455,13 @@ vultures_level_3400:
 3421: CD 60 35        CALL    $3560               ;
 3424: CD 98 34        CALL    $3498               ;
 3427: CD AA 34        CALL    $34AA               ;
-342A: 3A 9B 43        LD      A,(counter_439A+1)       ;
+342A: 3A 9B 43        LD      A,(random_seed_counter_value_439B)       ;
 342D: 0F              RRCA
 342E: DA C0 0F        JP      C,$0FC0             ;
 3431: CD 30 39        CALL    $3930               ;
 3434: C3 40 0C        JP      $0C40               ;
 3437: FF              RST     0X38
-3438: 3A 9B 43        LD      A,(counter_439A+1)       ;
+3438: 3A 9B 43        LD      A,(random_seed_counter_value_439B)       ;
 343B: 0F              RRCA
 343C: DA 52 34        JP      C,$3452             ;
 343F: CD 74 34        CALL    $3474               ;
@@ -4469,7 +4475,7 @@ vultures_level_3400:
 3458: CD AA 34        CALL    $34AA               ;
 345B: C3 C0 0F        JP      $0FC0               ;
 
-3462: 3A 9B 43        LD      A,(counter_439A+1)       ;
+3462: 3A 9B 43        LD      A,(random_seed_counter_value_439B)       ;
 3465: 0F              RRCA
 3466: D8              RET     C
 3467: CD 40 0C        CALL    $0C40               ;
@@ -5351,7 +5357,7 @@ player_shots_vs_vultures_collision_3800:
 39A5: 2E C4           LD      L,$C4
 39A7: 36 08           LD      (HL),$08
 39A9: 11 9E 43        LD      DE,unknown_439E
-39AC: 3A 9B 43        LD      A,(counter_439A+1)       ;
+39AC: 3A 9B 43        LD      A,(random_seed_counter_value_439B)       ;
 39AF: 0F              RRCA
 39B0: DA BF 39        JP      C,$39BF             ;
 39B3: 1C              INC     E
@@ -5397,7 +5403,7 @@ player_shots_vs_vultures_collision_3800:
 3A05: 2F              CPL
 3A06: 3C              INC     A
 3A07: 57              LD      D,A
-3A08: 3A 9B 43        LD      A,(counter_439A+1)       ;
+3A08: 3A 9B 43        LD      A,(random_seed_counter_value_439B)       ;
 3A0B: 0F              RRCA
 3A0C: 0F              RRCA
 3A0D: D8              RET     C
