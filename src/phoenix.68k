@@ -2352,7 +2352,7 @@ disable_player_shot_096e:
 
 	DECL_ADDRESS	97a
 
-* without this routine, player is invincible, also, birds don't shoot
+* without this routine, player is invincible, also, birds/vultures don't shoot
 handle_ship_collision_and_enemy_shots_097a:
 	move.b	  player_ship_x_43C2,d0                       	| [$097A: LD      A,(player_ship_x_43C2)]
 	move.b	d0,d1								| [$097D : LD      B,A]
@@ -6006,12 +6006,13 @@ l_366a:
 	addq.w	#3,a0                           	| [$366d: INC     L]
 	addq.b	#1,(a0)                         	| [$3670: INC     (HL)]
 	rts                                    	| [$3671: RET]
+	
 l_3672:
 	                           	| [$3672: DEC     L]
 	move.b	-(a0),d1                         	| [$3673: LD      B,(HL)]
 	addq.w	#2,a0                           	| [$3674: INC     L]
 	move.b	player_ship_x_43C2,d0           	| [$3676: LD      A,(player_ship_x_43C2)]
-	and.b	#0xF8,d0                         	| [$3679: AND     $F8]
+	and.b	#0xF8,d0                         	| [$3679: AND     $F8] align
 	cmp.b	d1,d0                            	| [$367b: CP      B]
 	jcc	l_3680                             	| [$367c: JP      NC,$3680]
 	move.b	d0,d1                           	| [$367f: LD      B,A]

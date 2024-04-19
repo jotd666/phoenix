@@ -3,8 +3,8 @@ logic:
 - debug copy_bank (2player)
 
 - handle_player_shot_0930: value of a0/a1 on entering?
-- space debris when killed appear but flicker
-- vultures don't shoot
+- space debris when killed app: appear but flicker
+- vultures don't shoot: check unknown_439E/unknown_439F 
 - vultures lowering all the time, should go up from time to time: check handle_vultures_y_2600
   when going up, often locked by random +0 values!!
 - boss: crashes after scrolling the boss: character update issue
