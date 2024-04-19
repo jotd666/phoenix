@@ -1291,13 +1291,11 @@ update_tile:
 	moveq	#0,D2
 	move.b	current_stage_43B8,d2
 	and.w	#0xf,d2
-	
-	.ifndef	RELEASE
+	* boss stage has several sub-states 8,9,A,B
 	cmp.b	#0xA,d2
 	bcs.b	20f
-	illegal
+	move.b	#9,d2
 20:
-	.endif
 	
 	lsr.b	#1,d2
 	

@@ -3026,7 +3026,7 @@ birds_level_2000:
 21DC: 7E              LD      A,(HL)
 21DD: 00              NOP
 21DE: 47              LD      B,A
-21DF: 21 73 4B        LD      HL,unknown_4B73
+21DF: 21 73 4B        LD      HL,title_vulture_struct_4B73
 21E2: E6 07           AND     $07
 21E4: 77              LD      (HL),A
 21E5: 2D              DEC     L

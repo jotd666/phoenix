@@ -24,6 +24,21 @@
 *4BD6: average_vulture_y_pos_in_chars_4BD6 cooked from vulture positions & alive state.
 * all vultures alive + swarm on top: value is $A
 * all vultures alive + lower vulture just above the player: value is $11
+*4B70-...: vulture structures. Each structure is 8 bytes
+*
+* offset 0: vulture state: a few states:
+*  - 0: dead
+*  - 1/2: star (for intro)
+*  - 3: small egg
+*  - 7: full
+*  - 8: hatching
+*  - 0xC: missing right wing
+*  - 0xD: missing left wing
+*  - 0xE: missing both wings
+* offset 1-2: screen address
+* offset 3: animation frame for current state
+	
+	
 
 * to skip a level, MAME cheat sets 43BA or 43BB depending on stage, and on final stage
 * just changes game_state_43A4 to 6 to set boss explode sequence
@@ -2192,6 +2207,7 @@ l_088b:
 	subq.b	#1,d1                           	| [$0893: DEC     B]
 	jne	l_088b                             	| [$0894: JP      NZ,$088B]
 	rts                                    	| [$0897: RET]
+	
 handle_player_shots_08a0:
 	jbsr	handle_player_controls_08c4                            	| [$08a0: CALL    $08C4]
 	lea	player_shot_1_structure_43C4,a0	| [$08a3: LD      HL,player_shot_1_structure_43C4]
@@ -2327,7 +2343,7 @@ l_0964:
 	bcs.b	0f                               	| [...]
 	rts                                    	| [$096d: RET     NC] [...]
 0:
-l_096e:
+disable_player_shot_096e:
 	subq.w	#3,a0                           	| [$096e: DEC     L]
  	move.b	(a0),d0                         	| [$0971: LD      A,(HL)]
 	and.b	#0xF7,d0                         	| [$0972: AND     $F7]
@@ -2654,13 +2670,13 @@ draw_bird_extended_winds_0bca:
 	jbsr	osd_w_videoram
 	move.w	#0x42F2,d7                	| [$0bd6: LD      HL,unknown_42F2]
 	lea	game_rom+0x0A40,a1                      	| [$0bd9: LD      DE,$0A40]
-	jbsr	l_3538                            	| [$0bdc: CALL    $3538]
+	jbsr	copy_4_columns_to_screen_3538                            	| [$0bdc: CALL    $3538]
 	move.w	#0x4B15,d7                	| [$0bdf: LD      HL,unknown_4B15]
 	lea	game_rom+0x3C00,a1                      	| [$0be2: LD      DE,$3C00]
-	jbsr	l_3528                            	| [$0be5: CALL    $3528]
+	jbsr	copy_6_columns_to_screen_3528                            	| [$0be5: CALL    $3528]
 	move.w	#0x4AD8,d7                	| [$0be8: LD      HL,unknown_4AD8]
 	lea	game_rom+0x0A48,a1                      	| [$0beb: LD      DE,$0A48]
-	jbsr	l_3548                            	| [$0bee: CALL    $3548]
+	jbsr	copy_2_columns_to_screen_3548                            	| [$0bee: CALL    $3548]
 	rts                                    	| [$0bf1: RET]
 
 moving_bird_shot_0C00:
@@ -2749,7 +2765,7 @@ l_0c84:
 	addq.b	#0x04,d0                        	| [$0c92: ADD     $04]
 	move.b	d0,(a0)                         	| [$0c94: LD      (HL),A]
 	cmp.b	#0xF9,d0                         	| [$0c95: CP      $F9]
-	jcc	l_096e                             	| [$0c97: JP      NC,$096E]
+	jcc	disable_player_shot_096e                             	| [$0c97: JP      NC,$096E]
 	subq.w	#1,a0                           	| [$0c9a: DEC     L]
 	jbsr	l_0cb4                            	| [$0c9b: CALL    $0CB4]
 	
@@ -2767,7 +2783,7 @@ l_0c84:
 	exg	a1,a0                              	| [$0ca8: EX      DE,HL]
 	addq.w	#1,a0                           	| [$0ca9: INC     L]
 	cmp.b	#0xE8,d0                         	| [$0caa: CP      $E8]
-	jcc	l_096e                             	| [$0cac: JP      NC,$096E]
+	jcc	disable_player_shot_096e                             	| [$0cac: JP      NC,$096E]
 	rts                                    	| [$0caf: RET]
 
 l_0cb4:
@@ -3836,13 +3852,16 @@ l_21ba:
 	
 	* vulture appearing from a star, flying and disappearing into a star
 	* during title sequence
+	*
+
 animate_title_vulture_21dc:
 	move.b	(a0),d0                         	| [$21dc: LD      A,(HL)]
 	                                    	| [$21dd: NOP]
 	move.b	d0,d1                           	| [$21de: LD      B,A]
-	lea	unknown_4B73,a0                	| [$21df: LD      HL,unknown_4B73]
+	lea	title_vulture_struct_4B73,a0                	| [$21df: LD      HL,title_vulture_struct_4B73]
 	and.b	#0x07,d0                         	| [$21e2: AND     $07]
-	move.b	d0,(a0)                         	| [$21e4: LD      (HL),A]
+	move.b	d0,(a0)                         	| [$21e4: LD      (HL),A] animation frame
+	* push coordinates
 	                           	| [$21e5: DEC     L]
 	move.b	#0xEF,-(a0)                      	| [$21e6: LD      (HL),$EF]
 	                           	| [$21e8: DEC     L]
@@ -3856,6 +3875,7 @@ animate_title_vulture_21dc:
 	move.b	#0x23,d3                        	| [$21f5: LD      D,$23]
 	bsr		load_rom_in_a1_from_d3d4
 	move.b	(a1),d0                         	| [$21f7: LD      A,(DE)]
+	* push current state: 7: full blown vulture
 	move.b	d0,-(a0)                         	| [$21f8: LD      (HL),A]
 	jbsr	animate_vulture_34c0                            	| [$21f9: CALL    $34C0]
 	jra	l_1ee0                             	| [$21fc: JP      $1EE0]
@@ -4081,12 +4101,16 @@ l_2322:
 	move.w	#0x02,d2                      	| [$2334: LD      BC,$0402]
 	jra	copy_block_to_screen_0ad6                             	| [$2337: JP      $0AD6]
 
-l_2351:
+* < A1: shot structure
+* < A0: ??
+
+handle_player_shot_vs_mothership_2351:
 	move.b	(a1),d0                             | [$2351: LD      A,(DE)]
 	and.b	#0x08,d0                         	| [$2352: AND     $08]
 	bne.b	0f                               	| [...]
 	rts                                    	| [$2354: RET     Z] [...]
 0:
+	* shot active
 	move.b	(a0)+,d0                         	| [$2355: LD      A,(HL)]
 	                           	| [$2356: INC     L]
 	move.b	(a0),d6                         	| [$2357: LD      L,(HL)]
@@ -4334,7 +4358,7 @@ mothership_shot_collision_24a0:
 0:
 	lea	player_shot_1_structure_43C4,a1	| [$24a8: LD      DE,player_shot_1_structure_43C4]
 	lea	ram_pointer_on_flying_enemies_table_43E6,a0	| [$24ab: LD      HL,ram_pointer_on_flying_enemies_table_43E6]
-	jbsr	l_2351                            	| [$24ae: CALL    $2351]
+	jbsr	handle_player_shot_vs_mothership_2351                            	| [$24ae: CALL    $2351]
 	move.b	random_seed_counter_value_439B,d0                    	| [$24b1: LD      A,(random_seed_counter_value_439B)]
 	and.b	#0x03,d0                         	| [$24b4: AND     $03]
 	cmp.b	#0x03,d0                         	| [$24b6: CP      $03]
@@ -5586,20 +5610,25 @@ l_34ad:
 	rts                                    	| [$34bb: RET]
 
 * used in title & in game
+* < A0: vulture structure
+
 animate_vulture_34c0:
 	move.b	(a0),d0                         	| [$34c0: LD      A,(HL)]
 	                               	| [$34c1: AND     A]
 	bne.b	0f                               	| [...]
 	rts                                    	| [$34c2: RET     Z] [...]
 0:
+	* state is not 0: alive
 	move.b	d0,d1                           	| [$34c3: LD      B,A]
 	add.b	#0xC0,d0                         	| [$34c4: ADD     $C0]
 	move.b	d0,d4                           	| [$34c6: LD      E,A]
 	move.b	#0x3E,d3                        	| [$34c7: LD      D,$3E]
+	* this table contains base number of columns to draw according to state
 	bsr		load_rom_in_a1_from_d3d4
-	move.b	(a1),d0                         	| [$34c9: LD      A,(DE)]
-	move.b	d0,d2                           	| [$34ca: LD      C,A]
-	addq.w	#1,a0                           	| [$34cb: INC     L]
+	move.b	(a1),d2                         	| [$34c9: LD      A,(DE)]
+	                           	| [$34ca: LD      C,A]
+	addq.w	#1,a0                           	| [$34cb: INC     L] skip alive status
+	* screen address of the vulture
 	move.b	(a0)+,d3                         	| [$34cc: LD      D,(HL)]
 	                           	| [$34cd: INC     L]
  	move.b	(a0)+,d4                         	| [$34ce: LD      E,(HL)]
@@ -5617,6 +5646,8 @@ animate_vulture_34c0:
 	move.b	d0,d5                           	| [$34dd: LD      H,A]
 l_34de:
 	bsr		load_rom_in_a0_from_d5d6
+	* now we have to clip display on the borders, set d1 to a value that allows
+	* to select the proper drawing routine
 	move.b	d3,d0                           	| [$34de: LD      A,D]
 	cmp.b	#0x4B,d0                         	| [$34df: CP      $4B]
 	jne	l_350c                             	| [$34e1: JP      NZ,$350C]
@@ -5640,16 +5671,16 @@ l_34de:
 	sub.b	#0x20,d0                         	| [$3506: SUB     $20]
 	move.b	d0,d4                           	| [$3508: LD      E,A]
 l_3509:
-	move.b	d2,d0                           	| [$3509: LD      A,C]
-	add.b	d1,d0                            	| [$350a: ADD     A,B]
-	move.b	d0,d2                           	| [$350b: LD      C,A]
+	                           	| [$3509: LD      A,C]
+	add.b	d1,d2                            	| [$350a: ADD     A,B]
+	                           	| [$350b: LD      C,A]
 l_350c:
 	LOAD_D3_16_FROM_D3D4
 	move.w	d3,d7
 	                     	| [$350c: LD      B,$35]
 	                    	| [$350e: PUSH    BC]
 	move.w	#0xFFDF,d1                      	| [$350f: LD      BC,$FFDF]
-	move.l	a0,a1                              	| [$3512: EX      DE,HL] source
+	move.l	a0,a1                              	| [$3512: EX      DE,HL] source for params
 	moveq	#0,d0                             	| [$3513: LD      (HL),$00]
 	jbsr	osd_w_videoram									| [$3515: INC     HL]
 	addq	#1,d7
@@ -5657,7 +5688,7 @@ l_350c:
 	add.w	d1,d7                            	| [$3518: ADD     HL,BC]
 	
 	* d2 contains the LSB of $35xx address to jump to
-	* it can only be 3520, 28...
+	* it can only be 3520, 28... to draw one or more strips
 	sub.w	#0x20,d2
 	lsr.w	#3,d2
 	and.w	#0x07,d2
@@ -5668,21 +5699,21 @@ l_350c:
 	jmp	(a0)
 	
 jump_table_35xx:
-	.long	l_3520
-	.long	l_3528
-	.long	l_3530
-	.long	l_3538
+	.long	copy_7_columns_to_screen_3520
+	.long	copy_6_columns_to_screen_3528
+	.long	copy_5_columns_to_screen_3530
+	.long	copy_4_columns_to_screen_3538
 	.long	copy_3_columns_to_screen_3540
-	.long	l_3548
-	.long	l_3550
-	.long	l_3558
+	.long	copy_2_columns_to_screen_3548
+	.long	copy_1_column_to_screen_3550
+	.long	clear_1_column_from_screen_3558
 	
 * kind of Duff's device/switch case
 	DECL_ADDRESS	3520
 	
 * < A1: char data
 * < D7: screen address
-l_3520:
+copy_7_columns_to_screen_3520:
 	bsr		copy_2_byte_column_to_screen
 						| [$3520: LD      A,(DE)]
 						| [$3521: LD      (HL),A]
@@ -5693,7 +5724,7 @@ l_3520:
 						| [$3526: INC     DE]
 							| [$3527: ADD     HL,BC]
 	
-l_3528:
+copy_6_columns_to_screen_3528:
 	bsr		copy_2_byte_column_to_screen
 
 	                       	| [$3528: LD      A,(DE)]
@@ -5704,7 +5735,7 @@ l_3528:
 	                      	| [$352d: LD      (HL),A]
 	         	| [$352e: INC     DE]
 	                       	| [$352f: ADD     HL,BC]
-l_3530:
+copy_5_columns_to_screen_3530:
 	bsr		copy_2_byte_column_to_screen
 	                       	| [$3530: LD      A,(DE)]
 	                       	| [$3531: LD      (HL),A]
@@ -5714,7 +5745,7 @@ l_3530:
 	                      	| [$3535: LD      (HL),A]
 	        	| [$3536: INC     DE]
 	                       	| [$3537: ADD     HL,BC]
-l_3538:
+copy_4_columns_to_screen_3538:
 	bsr		copy_2_byte_column_to_screen                        	| [$3538: LD      A,(DE)]
 	                        	| [$3539: LD      (HL),A]
 	          	| [$353a: INC     DE]
@@ -5734,7 +5765,7 @@ copy_3_columns_to_screen_3540:
     	| [$3546: INC     DE]
      	| [$3547: ADD     HL,BC]
   
-l_3548:
+copy_2_columns_to_screen_3548:
 	bsr		copy_2_byte_column_to_screen
 	  	| [$3548: LD      A,(DE)]
 	  	| [$3549: LD      (HL),A]
@@ -5744,7 +5775,7 @@ l_3548:
 	  	| [$354d: LD      (HL),A]
 	  	| [$354e: INC     DE]
 	   	| [$354f: ADD     HL,BC]
-l_3550:
+copy_1_column_to_screen_3550:
 	bsr		copy_2_byte_column_to_screen
 	  	| [$3550: LD      A,(DE)]
 	  	| [$3551: LD      (HL),A]
@@ -5754,7 +5785,7 @@ l_3550:
 	  	| [$3555: LD      (HL),A]
 	  	| [$3556: INC     DE]
 	   	| [$3557: ADD     HL,BC]
-l_3558:
+clear_1_column_from_screen_3558:
 	moveq	#0,d0
 	jbsr	osd_w_videoram
 	addq	#1,d7
@@ -6288,11 +6319,11 @@ player_shots_vs_vultures_collision_3800:
 	bne.b	0f                               	| [...]
 	rts                                    	| [$3805: RET     Z] [...]
 0:
-	move.b	ram_pointer_on_flying_enemies_table_43E6,d0	| [$3806: LD      A,(ram_pointer_on_flying_enemies_table_43E6)]
-	add.b	#0x08,d0                         	| [$3809: ADD     $08]
-	move.b	d0,d3                           	| [$380b: LD      D,A]
-	move.b	current_char_scroll_value_4BD2,d0                 	| [$380c: LD      A,(current_char_scroll_value_4BD2)]
-	move.b	d0,d4                           	| [$380f: LD      E,A]
+	move.b	ram_pointer_on_flying_enemies_table_43E6,d3	| [$3806: LD      A,(ram_pointer_on_flying_enemies_table_43E6)]
+	add.b	#0x08,d3                         	| [$3809: ADD     $08]
+	                           	| [$380b: LD      D,A]
+	move.b	current_char_scroll_value_4BD2,d4                 	| [$380c: LD      A,(current_char_scroll_value_4BD2)]
+	                           	| [$380f: LD      E,A]
 	move.b	unknown_43E7,d0                 	| [$3810: LD      A,(unknown_43E7)]
 	and.b	#0xE0,d0                         	| [$3813: AND     $E0]
 	move.b	d0,d1                           	| [$3815: LD      B,A]
@@ -6325,6 +6356,7 @@ player_shots_vs_vultures_collision_3800:
 	move.b	d0,d4                           	| [$3838: LD      E,A]
 	move.b	#0x4B,d3                        	| [$3839: LD      D,$4B]
 	move.b	d1,d0                           	| [$383b: LD      A,B]
+	bsr		load_ram_in_a1_from_d3d4
 	cmp.b	#0x50,d0                         	| [$383c: CP      $50]
 	bcc.b	0f                               	| [...]
 	jbsr	l_3844                            	| [$383e: CALL    C,$3844]
@@ -6340,7 +6372,6 @@ l_3844:
 	bne.b	0f                               	| [...]
 	rts                                    	| [$384b: RET     Z] [...]
 0:
-	bsr		load_ram_in_a1_from_d3d4
 	jbsr	l_38a1                            	| [$384c: CALL    $38A1]
 	exg	a1,a0                              	| [$384f: EX      DE,HL]
 	move.b	(a0),d0                         	| [$3850: LD      A,(HL)]
@@ -6403,7 +6434,9 @@ l_38a1:
 	move.l	(sp)+,a1                    	| [$38b4: POP     DE]
 	rts                                    	| [$38b5: RET]
 	
-
+* < D0: offset
+* < D2 ???
+* < A1: enemy structure
 l_38bc:
 	add.b	#0xB0,d0                         	| [$38bc: ADD     $B0]
 	move.b	d0,d6                           	| [$38be: LD      L,A]
@@ -6415,6 +6448,7 @@ l_38bc:
 	rts                                    	| [$38c3: RET     Z] [...]
 0:
 	jbsr	l_38a1                            	| [$38c4: CALL    $38A1]
+	* get vulture state
 	move.b	(a1),d0                         	| [$38c7: LD      A,(DE)]
 	sub.b	#0x0B,d0                         	| [$38c8: SUB     $0B]
 	jcs	l_38e9                             	| [$38ca: JP      C,$38E9]
@@ -6442,6 +6476,7 @@ l_38bc:
 	move.b	#0x3D,d5                        	| [$38e5: LD      H,$3D]
 	bsr		load_rom_in_a0_from_d5d6
 	move.b	(a0),d0                         	| [$38e7: LD      A,(HL)]
+	* change vulture state (ex: wing shot)
 	move.b	d0,(a1)                         	| [$38e8: LD      (DE),A]
 l_38e9:
 	st.b	d0                                	| [$38e9: LD      A,$FF]
@@ -6453,11 +6488,11 @@ l_38e9:
 l_38f8:
 	lea	slot_for_regular_animation_4370,a0                	| [$38f8: LD      HL,slot_for_regular_animation_4370]
 l_38fb:
-	clr.b	d0                               	| [$38fb: XOR     A]
-	cmp.b	(a0),d0                          	| [$38fc: CP      (HL)]
+	                              	| [$38fb: XOR     A]
+	tst.b	(a0)                          	| [$38fc: CP      (HL)]
 	jeq	l_3906                             	| [$38fd: JP      Z,$3906]
 	addq.w	#4,a0                           	| [$3900: INC     L]
-	cmp.b	(a0),d0                          	| [$3904: CP      (HL)]
+	tst.b	(a0)                          	| [$3904: CP      (HL)]
 	beq.b	0f                               	| [...]
 	rts                                    	| [$3905: RET     NZ] [...]
 0:
@@ -6471,15 +6506,19 @@ l_3906:
 	                           	| [$390e: INC     L]
 	move.b	unknown_43E7,d0                 	| [$390f: LD      A,(unknown_43E7)]
 	move.b	d0,(a0)                         	| [$3912: LD      (HL),A]
+	* enemy shot (or just wing shot): disable player shot
 	move.b	player_shot_1_structure_43C4,d0 	| [$3913: LD      A,(player_shot_1_structure_43C4)]
 	and.b	#0xF7,d0                         	| [$3916: AND     $F7]
 	move.b	d0,player_shot_1_structure_43C4 	| [$3918: LD      (player_shot_1_structure_43C4),A]
 	rts                                    	| [$391b: RET]
 	
-	* called when boss is killed
+	* called when boss is killed, also when vulture is shot
 	
 	DECL_ADDRESS	391c
-	
+* < A1: enemy struct
+* < A0:
+* < D1:
+
 l_391c:
 	move.b	d1,d0                           	| [$391c: LD      A,B]
 	cmp.b	#0x20,d0                         	| [$391d: CP      $20]
@@ -6496,7 +6535,7 @@ l_3923:
 	or.b	#0x80,d0                          	| [$392a: OR      $80]
 	move.b	d0,(a0)                         	| [$392c: LD      (HL),A]
 	rts                                    	| [$392d: RET]
-	rts                                    	| [$392e: RET]
+	                                    	| [$392e: RET]
 
 l_3930:
 	move.b	current_char_scroll_value_4BD2,d0                 	| [$3930: LD      A,(current_char_scroll_value_4BD2)]
