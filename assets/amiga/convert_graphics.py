@@ -71,7 +71,7 @@ for i in [2,4,5]:
 
 config["back"][4] = config["back"][3].copy()
 
-
+config["back"][3]["C0C136"] = None
 
 def replace_color(img,color,replacement_color):
     rval = Image.new("RGB",img.size)
@@ -123,6 +123,8 @@ with open(os.path.join(outdir,"palette.68k"),"w") as fp:
                 img_out = replace_color(img_out,hex2rgb(c1),hex2rgb(c2) if c2 else None)
 
             palette = bitplanelib.palette_extract(img_out)
+            if len(palette)>8:
+                raise Exception(f"Palette layer={layer} level={level} more than 8 colors: {len(palette)}")
             palette += [(16,16,16)]*(8-len(palette))
 
             fp.write(f"palette_{layer}_{level}:\n")

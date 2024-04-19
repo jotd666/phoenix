@@ -21,6 +21,9 @@
 *439A:439B 	counter_439A 	16 bit counter (MSB:LSB)
 *43C2:43C3  player ship X/Y (X changes, Y stays on the bottom of screen)
 *4800-4B40: bg tiles video ram (scrollable part)
+*4BD6: average_vulture_y_pos_in_chars_4BD6 cooked from vulture positions & alive state.
+* all vultures alive + swarm on top: value is $A
+* all vultures alive + lower vulture just above the player: value is $11
 
 * to skip a level, MAME cheat sets 43BA or 43BB depending on stage, and on final stage
 * just changes game_state_43A4 to 6 to set boss explode sequence
@@ -3897,7 +3900,7 @@ transition_to_vultures_and_last_level_2230:
 	ror.b	#1,d0                            	| [$2236: RRCA]
 	and.b	#0x3F,d0                         	| [$2237: AND     $3F]
 	cmp.b	#0x0D,d0                         	| [$2239: CP      $0D]
-	jeq	l_2292                             	| [$223b: JP      Z,$2292]
+	jeq	setup_boss_background_sceen_2292                             	| [$223b: JP      Z,$2292]
 	jcs	fill_screen_2260_1                             	| [$2240: JP      C,$2260]
 	clr.b	d1                               	| [$2243: LD      B,$00]
 	sub.b	#0x0E,d0                         	| [$2245: SUB     $0E]
@@ -3971,24 +3974,27 @@ l_227b:
 	
 	DECL_ADDRESS	2292
 	
-l_2292:
+setup_boss_background_sceen_2292:
 	lea	current_stage_43B8,a0          	| [$2292: LD      HL,current_stage_43B8]
 	move.b	(a0),d0                         	| [$2295: LD      A,(HL)]
 	and.b	#0x08,d0                         	| [$2296: AND     $08]
 	jeq	l_22f0                             	| [$2298: JP      Z,$22F0]
+	* boss screen: copy memory
 	lea	game_rom+0x1C00,a0                      	| [$229b: LD      HL,$1C00]
 	move.w	#0x4B3F,d7                	| [$229e: LD      DE,unknown_4B3F]
 	move.b	#0x47,d1                        	| [$22a1: LD      B,$47]
+	clr.w	d5
 l_22a3:
-	move.b	(a0)+,d0                         	| [$22a3: LD      A,(HL)]
+	move.b	(a0,d5.w),d0                         	| [$22a3: LD      A,(HL)]
 	jbsr	osd_w_videoram                         	| [$22a4: LD      (DE),A]
 	                           	| [$22a5: INC     L]
  	subq.w	#1,d7                           	| [$22a6: DEC     DE]
-	move.b	(a0)+,d0                         	| [$22a7: LD      A,(HL)]
+	move.b	(1,a0,d5.w),d0                         	| [$22a7: LD      A,(HL)]
 	jbsr	osd_w_videoram                         	| [$22a8: LD      (DE),A]
 	                           	| [$22a9: INC     L]
  	subq.w	#1,d7                           	| [$22aa: DEC     DE]
 	                           	| [$22ab: LD      A,B]
+	addq.b	#2,d5				| we need it to wrap
 	move.w	d7,d3
 	lsr.w	#8,d3
 	cmp.b	d3,d1                            	| [$22ac: CP      D]

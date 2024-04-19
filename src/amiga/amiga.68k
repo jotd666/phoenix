@@ -1169,7 +1169,7 @@ decode_sprite_data:
 
 
 osd_w_videoram:
-	movem.l	d0-d3/d7/a0-a2,-(a7)
+	movem.l	d0-d5/d7/a0-a2,-(a7)
 	cmp.w	#FORE_SCREEN_ADDRESS,d7
 	* game can try to write in ROM (on low addresses): ignore
 	jcs	2f				
@@ -1231,7 +1231,7 @@ write_back_videoram:
 	jbsr		update_tile
 	.endif
 2:
-	movem.l	(a7)+,d0-d3/d7/a0-a2
+	movem.l	(a7)+,d0-d5/d7/a0-a2
 	rts
 write_fore_videoram:
     .ifeq OPT_DISABLE_FG_LAYER
@@ -1249,7 +1249,7 @@ write_fore_videoram:
 	jbsr		update_tile
 	.endif
 0:
-	movem.l	(a7)+,d0-d3/d7/a0-a2
+	movem.l	(a7)+,d0-d5/d7/a0-a2
 	rts
 
 
@@ -1291,6 +1291,14 @@ update_tile:
 	moveq	#0,D2
 	move.b	current_stage_43B8,d2
 	and.w	#0xf,d2
+	
+	.ifndef	RELEASE
+	cmp.b	#0xA,d2
+	bcs.b	20f
+	illegal
+20:
+	.endif
+	
 	lsr.b	#1,d2
 	
 	add.w	d2,d2

@@ -2428,7 +2428,7 @@ bird_shot_0EA4:
 0EE4: E1              POP     HL
 0EE5: E9              JP      (HL)      ; what's wrong with using RET??
 
-0F00: 21 A6 43        LD      HL,unknown_43A6
+0F00: 21 A6 43        LD      HL,shield_timer_43A6
 0F03: 7E              LD      A,(HL)
 0F04: FE C0           CP      $C0
 0F06: D2 74 0F        JP      NC,$0F74            ;
@@ -3670,7 +3670,7 @@ end_of_level_transition_244C:
 ;uses a table in ROM from 0x3ED0
 2617: DA 50 26        JP      C,$2650             ;
 ; vultures go down
-261A: 3A D5 4B        LD      A,(unknown_4BD5)
+261A: 3A D5 4B        LD      A,(unknown_vulture_value_4BD5)
 261D: 57              LD      D,A
 261E: E6 03           AND     $03
 2620: 5F              LD      E,A
@@ -3743,7 +3743,7 @@ end_of_level_transition_244C:
 269F: D2 A3 26        JP      NC,$26A3            ;
 26A2: 14              INC     D
 26A3: 7A              LD      A,D
-26A4: 32 D5 4B        LD      (unknown_4BD5),A
+26A4: 32 D5 4B        LD      (unknown_vulture_value_4BD5),A
 26A7: C9              RET
 26A8: 00              NOP
 26A9: 58              LD      E,B
