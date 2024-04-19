@@ -4598,7 +4598,7 @@ handle_vultures_y_2600:
 	* uses a table in ROM from 0x3ED0
 	jcs	vultures_go_up_2650                             	| [$2617: JP      C,$2650]
 	* vultures go down
-	move.b	unknown_4BD5,d0                 	| [$261a: LD      A,(unknown_4BD5)]
+	move.b	unknown_vulture_value_4BD5,d0                 	| [$261a: LD      A,(unknown_vulture_value_4BD5)]
 	move.b	d0,d3                           	| [$261d: LD      D,A]
 	and.b	#0x03,d0                         	| [$261e: AND     $03]
 	move.b	d0,d4                           	| [$2620: LD      E,A]
@@ -4628,8 +4628,7 @@ set_vultures_scroll_value_2639:
 	DECL_ADDRESS	2650
 	
 vultures_go_up_2650:
-	move.w	#0xF00,0xDFF180
-	addq.w	#1,a0                           	| [$2650: INC     L]
+												| [$2650: INC     L]
 	move.b	current_scroll_value_43B9,d0    	| [$2651: LD      A,(current_scroll_value_43B9)]
 	rol.b	#2,d0                            	| [$2654: RLCA] * 2
 	and.b	#0x0C,d0                         	| [$2656: AND     $0C] effectively random on scroll value ! 0 4 8 12
@@ -4641,11 +4640,6 @@ vultures_go_up_2650:
 	                       	| [$265b: LD      L,A]
 	                       	| [$265c: LD      H,$3E]
 	move.b	current_scroll_value_43B9,d0    	| [$265e: LD      A,(current_scroll_value_43B9)]
-*	tst.b	(a0,d6.w)
-*	beq.b	0f
-*	move.w	#0xF00,0xDFF180
-*	
-*0:
 	add.b	(a0,d6.w),d0                          	| [$2661: ADD     A,(HL)] adds 1 or 0
 	jra	set_vultures_scroll_value_2639                             	| [$2662: JP      $2639]
 	
@@ -4670,6 +4664,7 @@ l_267c:
 	addq.b	#1,d1                           	| [$2684: INC     B]
 l_2685:
 	move.b	average_vulture_y_pos_in_chars_4BD6,d0                 	| [$2685: LD      A,(average_vulture_y_pos_in_chars_4BD6)]
+	* check from table in $3EE0
 	add.b	#0xE0,d0                         	| [$2688: ADD     $E0]
 	move.b	d0,d6                           	| [$268a: LD      L,A]
 	move.b	#0x3E,d5                        	| [$268b: LD      H,$3E]
@@ -4690,7 +4685,7 @@ l_269d:
 	addq.b	#1,d3                           	| [$26a2: INC     D]
 l_26a3:
 	move.b	d3,d0                           	| [$26a3: LD      A,D]
-	move.b	d0,unknown_4BD5                 	| [$26a4: LD      (unknown_4BD5),A]
+	move.b	d0,unknown_vulture_value_4BD5                 	| [$26a4: LD      (unknown_vulture_value_4BD5),A]
 	rts                                    	| [$26a7: RET]
 	                          	| [$26a8: NOP]
 	                           	| [$26a9: LD      E,B]

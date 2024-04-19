@@ -1,14 +1,24 @@
-- debug copy_bank (2player)
+logic:
 
+- debug copy_bank (2player)
 
 - handle_player_shot_0930: value of a0/a1 on entering?
 - space debris when killed appear but flicker
 - vultures don't shoot
 - vultures lowering all the time, should go up from time to time: check handle_vultures_y_2600
+  when going up, often locked by random +0 values!!
+  when forcing all values to nonzero, vultures scroll/wrap up which
+  never happens in the real game!
+  **probably: average_vulture_y_pos_in_chars_4BD6/vulture_swarm_height_in_chars_4BD7
+  not working proper**
+  
 - boss: completely crashes
 - hit by missiles with shield: illegal?? reproduce??
 - special explosions (flame split) don't work, score remains on screen
   (birds & vultures)
+
+colors:
+
 - title: reinstate the light pink for the (c) sign instead
   of white
 - first vultures level: yellow not shown for small vultures

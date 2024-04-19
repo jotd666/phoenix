@@ -111,7 +111,7 @@
 	.global	current_char_scroll_value_4BD2
 	.global	swarm_direction_change_timer_4BD3
 	.global	random_03_4BD4
-	.global	unknown_4BD5
+	.global	unknown_vulture_value_4BD5
 	.global	average_vulture_y_pos_in_chars_4BD6
 	.global	vulture_swarm_height_in_chars_4BD7
 	.global	unknown_4BF8
@@ -353,7 +353,7 @@ swarm_direction_change_timer_4BD3:
 	.skip	1
 random_03_4BD4:
 	.skip	1
-unknown_4BD5:
+unknown_vulture_value_4BD5:
 	.skip	1
 average_vulture_y_pos_in_chars_4BD6:
 	.skip	1
