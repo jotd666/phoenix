@@ -4,12 +4,15 @@
 *4000-4FFF: video/general purpose RAM, banked with 2 memory banks
 
 *4000-4340: fg tiles video ram (26*32 208*256)
+
+* a few values explained
 *4364   if != 0 the "killed bird" sound is played
 *43A0 	IN0Current 	Current value of IN0
 *43A1 	IN0Previous 	Previous value of IN0
 *43A2 	game_in_play_43A2  0 game not playing, !=0: playing, 1 or 2 nb players
 *43A4 	game_state_43A4 	Function table jump
 *43A5 	timer_43A5 	general purpose state timer
+*43A6   shield_timer_43A6  0x01-0xC0: inactive, cannot be enabled, 0: inactive, can be enabled, 0xC0-0xFF: active
 *43B8   current stage, always odd (even values are used for transitions)
 *43BA   nb enemies to kill before stage completed (not vultures, only birds stage)
 *43BB   nb vultures to kill before stage completed
@@ -1880,6 +1883,9 @@ erase_shots_0763:
 * < A1: contains screen address to plot to
 * < A4: points on character to be plotted
 * ex: first level first call writes 6C to DE=41A9 from BC=4B71
+*
+* also used to display enemy shots
+*
 animate_appearing_birds_076d:
 	exg	a1,a0                              	| [$076d: EX      DE,HL]
 	addq.w	#2,a0                           	| [$076e: INC     HL] * 2
@@ -2206,10 +2212,10 @@ handle_player_controls_08c4:
 	move.b	(a0),d0                         	| [$08c7: LD      A,(HL)]
 	and.b	#0x08,d0                         	| [$08c8: AND     $08]
 	jeq	l_0aa0                             	| [$08ca: JP      Z,$0AA0]
-	lea	unknown_43A6,a0                        	| [$08cd: LD      L,$A6]
+	lea	shield_timer_43A6,a0                        	| [$08cd: LD      L,$A6]
 	move.b	(a0),d0                         	| [$08cf: LD      A,(HL)]
 	                               	| [$08d0: AND     A]
-	jne	l_08ea                             	| [$08d1: JP      NZ,$08EA]
+	jne	l_08ea                             	| [$08d1: JP      NZ,$08EA] can't enable shield: timer already running
 	move.b	#0x80,d1                        	| [$08d4: LD      B,$80]
 	jbsr	check_input_bits_00bb                    	| [$08d6: CALL    check_input_bits_00bb]
 	jeq	l_08eb                             	| [$08d9: JP      Z,$08EB]
@@ -2220,8 +2226,8 @@ handle_player_controls_08c4:
 	move.b	(a0),d0                         	| [$08e2: LD      A,(HL)]
 	and.b	#0xF7,d0                         	| [$08e3: AND     $F7]
 	move.b	d0,(a0)                         	| [$08e5: LD      (HL),A]
-	lea	unknown_43A6,a0                        	| [$08e6: LD      L,$A6]
-	move.b	#0xFF,(a0)                      	| [$08e8: LD      (HL),$FF]
+	lea	shield_timer_43A6,a0                        	| [$08e6: LD      L,$A6]
+	move.b	#0xFF,(a0)                      	| [$08e8: LD      (HL),$FF] enable shield
 l_08ea:
 	subq.b	#1,(a0)                         	| [$08ea: DEC     (HL)]
 l_08eb:
@@ -2425,7 +2431,7 @@ l_0a72:
 	                           	| [$0a80: DEC     HL]
 	move.b	d4,-(a0)                         	| [$0a81: LD      (HL),E]
 	
-	
+	* no need to update a1 from d3/d4, a0 is loaded at l_09ba
 	exg	a1,a0                              	| [$0a82: EX      DE,HL]
 	addq.w	#2,a1                           	| [$0a83: INC     DE] * 2
 	addq.w	#2,a4                           	| [$0a85: INC     BC] * 2
@@ -2455,7 +2461,7 @@ l_0aa0:
 	subq.w	#1,d3                           	| [$0aa8: DEC     DE]
 	move.b	#0x04,d1
 	move.b	#0x04,d2                      	| [$0aa9: LD      BC,$0404]
-	lea		unknown_43A6,a0                        	| [$0aac: LD      L,$A6]
+	lea		shield_timer_43A6,a0                        	| [$0aac: LD      L,$A6]
 	subq.b	#1,(a0)                         	| [$0aae: DEC     (HL)]
 	move.b	(a0),d0                         	| [$0aaf: LD      A,(HL)]
 	lea	game_rom+0x17F0,a0                      	| [$0ab0: LD      HL,$17F0]
@@ -2530,8 +2536,10 @@ l_0b15:
 	bne.b	0f                               	| [...]
 	rts                                    	| [$0b1f: RET     Z] [...]
 0:
-	subq.b	#1,(a0)                         	| [$0b20: DEC     (HL)]
-
+	tst.b	infinite_lives_flag
+	bne.b	0f
+	subq.b	#1,(a0)                         	| [$0b20: DEC     (HL)] remove one life
+0:
 	move.l	a0,-(sp)                        	| [$0b21: PUSH    HL]
 	jbsr	display_players_lives_0367                            	| [$0b22: CALL    $0367]
 	move.l	(sp)+,a0                        	| [$0b25: POP     HL]
@@ -2779,6 +2787,10 @@ l_0cb4:
 	rts                                    	| [$0cc3: RET     NC] [...]
 0:
 player_hit_0cc4:
+	tst.b	invincible_flag
+	beq.b	0f
+	rts
+0:
 	move.b	#0x04,d0                        	| [$0cc4: LD      A,$04]
 	move.b	d0,game_state_43A4              	| [$0cc6: LD      (game_state_43A4),A]
 	move.b	#0x60,d0                        	| [$0cc9: LD      A,$60]
@@ -3230,7 +3242,7 @@ l_0ed5:
 												| [$0ee5: JP      (HL)] what's wrong with using RET??
 
 l_0f00:
-	lea	unknown_43A6,a0                	| [$0f00: LD      HL,unknown_43A6]
+	lea	shield_timer_43A6,a0                	| [$0f00: LD      HL,shield_timer_43A6]
 	move.b	(a0),d0                         	| [$0f03: LD      A,(HL)]
 	cmp.b	#0xC0,d0                         	| [$0f04: CP      $C0]
 	jcc	l_0f74                             	| [$0f06: JP      NC,$0F74]
@@ -3855,7 +3867,7 @@ l_2204:
 0:
 	lea	game_state_43A4,a0                        	| [$220c: LD      L,$A4]
 	move.b	#0x02,(a0)                      	| [$220e: LD      (HL),$02]
-	lea	unknown_43A6,a0                        	| [$2210: LD      L,$A6]
+	lea	shield_timer_43A6,a0                        	| [$2210: LD      L,$A6]
 	clr.b	(a0)                             	| [$2212: LD      (HL),$00]
 	lea	current_stage_43B8,a0                        	| [$2214: LD      L,$B8]
 	addq.b	#1,(a0)                         	| [$2216: INC     (HL)]
@@ -4261,11 +4273,13 @@ l_246a:
 	jra	copy_block_to_screen_0ad6                             	| [$2473: JP      $0AD6]
 	
 	DECL_ADDRESS	2476
-	* enters here called from l_26aa where H=$4B
+* enters here called from l_26aa where H=$4B
+* < D1: kind of pos-height of swarm
+* < D2:	derived from random 1-4
 l_2476:
 	move.b	d1,d0                           	| [$2476: LD      A,B]
 	add.b	d2,d0                            	| [$2477: ADD     A,C]
-	jbsr	l_2495                            	| [$2478: CALL    $2495]
+	jbsr	compute_direction_change_timer_2495                            	| [$2478: CALL    $2495]
 	lea	swarm_direction_change_timer_4BD3,a0                        	| [$247b: LD      L,$D3]
 	move.b	d0,(a0)                         	| [$247d: LD      (HL),A]
 	lea	nb_vultures_to_kill_before_stage_completed_43BB,a0                	| [$247e: LD      HL,nb_vultures_to_kill_before_stage_completed_43BB]
@@ -4283,7 +4297,7 @@ l_2476:
 	add.b	d1,d0                            	| [$248f: ADD     A,B]
 	move.b	d0,vultures_aggressivity_4BD1                 	| [$2490: LD      (vultures_aggressivity_4BD1),A]
 	rts                                    	| [$2493: RET]
-l_2495:
+compute_direction_change_timer_2495:
 	add.b	d1,d0                            	| [$2495: ADD     A,B]
 	subq.b	#1,d2                           	| [$2496: DEC     C]
 	bne.b	0f                               	| [...]
@@ -4592,14 +4606,13 @@ handle_vultures_y_2600:
 	rol.b	#2,d0                            	| [$2624: RLCA] * 2
 	and.b	#0x0C,d0                         	| [$2626: AND     $0C]
 	add.b	d4,d0                            	| [$2628: ADD     A,E] random variation +0 +4 +8 +12
-	add.b	#0xD0,d0                         	| [$2629: ADD     $D0]
+	moveq	#0,d6                         	| [$2629: ADD     $D0]
 	move.b	d0,d6                           	| [$262b: LD      L,A]
-	move.b	#0x3E,d5                        	| [$262c: LD      H,$3E]
+	lea		vulture_y_delta_table_3ED0(pc),a0    	| [$262c: LD      H,$3E]
 	move.b	d3,d0                           	| [$262e: LD      A,D]
 	ror.b	#2,d0                            	| [$262f: RRCA] * 2
 	and.b	#0x07,d0                         	| [$2631: AND     $07]
-	bsr		load_rom_in_a0_from_d5d6
-	add.b	(a0),d0                          	| [$2633: ADD     A,(HL)]
+	add.b	(a0,d6.w),d0                          	| [$2633: ADD     A,(HL)] adds 1 or 0 (adding 1 makes vultures go up)
 	move.b	d0,d3                           	| [$2634: LD      D,A]
 	move.b	current_scroll_value_43B9,d0    	| [$2635: LD      A,(current_scroll_value_43B9)]
 	sub.b	d3,d0                            	| [$2638: SUB     D]
@@ -4619,15 +4632,24 @@ vultures_go_up_2650:
 	addq.w	#1,a0                           	| [$2650: INC     L]
 	move.b	current_scroll_value_43B9,d0    	| [$2651: LD      A,(current_scroll_value_43B9)]
 	rol.b	#2,d0                            	| [$2654: RLCA] * 2
-	and.b	#0x0C,d0                         	| [$2656: AND     $0C]
-	add.b	(a0),d0                          	| [$2658: ADD     A,(HL)] add random_03_4BD4 (range 0-3)
-	add.b	#0xD0,d0                         	| [$2659: ADD     $D0]
-	move.b	d0,d6                           	| [$265b: LD      L,A]
-	move.b	#0x3E,d5                        	| [$265c: LD      H,$3E]
+	and.b	#0x0C,d0                         	| [$2656: AND     $0C] effectively random on scroll value ! 0 4 8 12
+	add.b	random_03_4BD4,d0                          	| [$2658: ADD     A,(HL)] add random_03_4BD4 (range 0-3)
+	moveq	#0,d6
+	lea		vulture_y_delta_table_3ED0(pc),a0
+	move.w	d0,d6
+	                         	| [$2659: ADD     $D0]
+	                       	| [$265b: LD      L,A]
+	                       	| [$265c: LD      H,$3E]
 	move.b	current_scroll_value_43B9,d0    	| [$265e: LD      A,(current_scroll_value_43B9)]
-	bsr		load_rom_in_a0_from_d5d6
-	add.b	(a0),d0                          	| [$2661: ADD     A,(HL)]
+*	tst.b	(a0,d6.w)
+*	beq.b	0f
+*	move.w	#0xF00,0xDFF180
+*	
+*0:
+	add.b	(a0,d6.w),d0                          	| [$2661: ADD     A,(HL)] adds 1 or 0
 	jra	set_vultures_scroll_value_2639                             	| [$2662: JP      $2639]
+	
+
 	                             	| [$2665: JP      NC,$26AE]
 l_2668:
 	move.b	unknown_436E,d0                 	| [$2668: LD      A,(unknown_436E)]
@@ -4692,14 +4714,14 @@ l_26aa:
 	rts                                    	| [$26ba: RET     C] [...]
 0:
 	* only enters if vulture swarm is not too high or not too low
-	addq.w	#1,a0                           	| [$26bb: INC     L]
-	sub.b	(a0),d0                          	| [$26bc: SUB     (HL)] subtract vulture_swarm_height_in_chars_4BD7
+													| [$26bb: INC     L]
+	sub.b	vulture_swarm_height_in_chars_4BD7,d0    | [$26bc: SUB     (HL)] subtract vulture_swarm_height_in_chars_4BD7
 	rol.b	#1,d0                            	| [$26bd: RLCA] times 2
 	move.b	d0,d1                           	| [$26be: LD      B,A]
 	* this contains only XX where X is a digit, ex 11, EE, 33 ...
 	move.b	repeated_bits_random_436F,d0                 	| [$26bf: LD      A,(repeated_bits_random_436F)]
 	and.b	#0x03,d0                         	| [$26c2: AND     $03]
-	* compute 0-3 value from another random value
+	* compute 0-3 value from random value above
 	lea	random_03_4BD4,a0                        	| [$26c4: LD      L,$D4]
 	move.b	d0,(a0)                         	| [$26c6: LD      (HL),A]
 	not.b	d0                               	| [$26c7: CPL]
@@ -4718,7 +4740,6 @@ compute_vulture_swarm_dimensions_26d0:
 	move.b	#0,d2
 	move.b	#0x80,d3			| invalid init value
 	move.b	#0,d4                      	| [$26d6: LD      DE,$8000]
-	move.b	#1,0x200
 l_26d9:
 	tst.b	(a0)                         	| [$26d9: LD      A,(HL)] is vulture alive?
 	                               	| [$26da: AND     A]
@@ -6598,7 +6619,7 @@ l_39db:
 	jra	copy_memory_05e0                             	| [$39ea: JP      $05E0]
 
 l_39f0:
-	lea	unknown_43A6,a0                        	| [$39f0: LD      L,$A6]
+	lea	shield_timer_43A6,a0                        	| [$39f0: LD      L,$A6]
 	move.b	(a0),d0                         	| [$39f2: LD      A,(HL)]
 	cmp.b	#0xC0,d0                         	| [$39f3: CP      $C0]
 	jcs	player_hit_0cc4                             	| [$39f5: JP      C,$0CC4]
@@ -6860,6 +6881,14 @@ l_3b43:
 	jra	l_3a90                             	| [$3b5b: JP      $3A90]
 
 
+
+* table in 3ED0 contains only zeroes and ones
+vulture_y_delta_table_3ED0:
+	.byte	0x01,0x01,0x01,0x01		| 100% of ones
+	.byte	0x00,0x00,0x01,0x01		| 50% of ones
+	.byte	0x00,0x01,0x01,0x01		| 75% of ones
+	.byte	0x00,0x00,0x00,0x01		| 25% of ones
+	
 jump_table_chain_3F00:
 	.long	0xFFFF 		| slot 0, not possible
 	.long	0xFFFF 

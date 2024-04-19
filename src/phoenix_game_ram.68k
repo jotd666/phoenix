@@ -68,7 +68,7 @@
 	.global	current_player_is_p2_43A3
 
 	.global timer_43A5
-	.global	unknown_43A6
+	.global	shield_timer_43A6
 	.global	unknown_43A7
 	.global	unknown_43A8
 	.global	unknown_43AA
@@ -244,7 +244,7 @@ game_state_43A4:
 	.skip	1
 timer_43A5:
 	.skip	1
-unknown_43A6:
+shield_timer_43A6:
 	.skip	1
 unknown_43A7:
 	.skip	1

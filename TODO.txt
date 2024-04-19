@@ -11,7 +11,7 @@
   (birds & vultures)
 - title: reinstate the light pink for the (c) sign instead
   of white
-- infinite lives/invincible cheat
+- first vultures level: yellow not shown for small vultures
 - create a 16+16 AGA DPF version
 
 original game bugs:

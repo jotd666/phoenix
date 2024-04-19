@@ -7,7 +7,11 @@ this_dir = os.path.abspath(os.path.dirname(__file__))
 indir = os.path.join(this_dir,"..","tiles")
 outdir = os.path.join(this_dir,"..","..","src","amiga")
 
+dump_pics = True
+
 dumpdir = os.path.join(this_dir,"dumps")
+if dump_pics and not os.path.exists(dumpdir):
+    os.mkdir(dumpdir)
 
 def hex2rgb(c):
     return tuple(int(c[i:i+2],16) for i in range(0,6,2))
@@ -36,7 +40,6 @@ config = {"fore":
 3:{
 "A71BCE":None,
 "0A07BD":None,  # dark blue
-"CDF040":None
 },
 5:{
 "C0C136":"EDC63A", # star yellow => boss yellow
@@ -67,6 +70,7 @@ for i in [2,4,5]:
     config["fore"][i] = config["fore"][1].copy()
 
 config["back"][4] = config["back"][3].copy()
+
 
 
 def replace_color(img,color,replacement_color):
@@ -131,7 +135,9 @@ with open(os.path.join(outdir,"palette.68k"),"w") as fp:
                 img_out.paste(black_row,(0,y*8))
 
             # big tile sheet per level/layer
-            img_out.save(f"sheet_{layer}_{level}_{p}.png")
+            if dump_pics:
+                img_out.save(os.path.join(dumpdir,f"sheet_{layer}_{level}_{p}.png"))
+
             index = 0
             for y in range(0,64,8):
                 for x in range(0,256,8):
