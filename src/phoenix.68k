@@ -4266,21 +4266,22 @@ l_2476:
 	move.b	d1,d0                           	| [$2476: LD      A,B]
 	add.b	d2,d0                            	| [$2477: ADD     A,C]
 	jbsr	l_2495                            	| [$2478: CALL    $2495]
-	lea	unknown_4BD3,a0                        	| [$247b: LD      L,$D3]
+	lea	swarm_direction_change_timer_4BD3,a0                        	| [$247b: LD      L,$D3]
 	move.b	d0,(a0)                         	| [$247d: LD      (HL),A]
 	lea	nb_vultures_to_kill_before_stage_completed_43BB,a0                	| [$247e: LD      HL,nb_vultures_to_kill_before_stage_completed_43BB]
 	move.b	#0x08,d0                        	| [$2481: LD      A,$08]
-	sub.b	(a0),d0                          	| [$2483: SUB     (HL)]
+	sub.b	(a0),d0                          	| [$2483: SUB     (HL)] nb killed vultures
 	rol.b	#1,d0                            	| [$2484: RLCA]
 	lea	counter_439A,a0                        	| [$2485: LD      L,$9A]
 	add.b	(a0),d0                          	| [$2487: ADD     A,(HL)]
 	rol.b	#1,d0                            	| [$2488: RLCA]
 	move.b	d0,d1                           	| [$2489: LD      B,A]
-	lea	unknown_436F,a0                        	| [$248a: LD      L,$6F]
+	* computes aggressivity depending on number of remaining vultures?
+	lea	repeated_bits_random_436F,a0                        	| [$248a: LD      L,$6F]
 	move.b	(a0),d0                         	| [$248c: LD      A,(HL)]
 	and.b	#0x1E,d0                         	| [$248d: AND     $1E]
 	add.b	d1,d0                            	| [$248f: ADD     A,B]
-	move.b	d0,unknown_4BD1                 	| [$2490: LD      (unknown_4BD1),A]
+	move.b	d0,vultures_aggressivity_4BD1                 	| [$2490: LD      (vultures_aggressivity_4BD1),A]
 	rts                                    	| [$2493: RET]
 l_2495:
 	add.b	d1,d0                            	| [$2495: ADD     A,B]
@@ -4576,8 +4577,11 @@ handle_vultures_y_2600:
 	lea	current_char_scroll_value_4BD2,a0                	| [$260e: LD      HL,current_char_scroll_value_4BD2]
 	move.b	d0,(a0)+                         	| [$2611: LD      (HL),A]
 	                           	| [$2612: INC     L]
- 	move.b	unknown_4BD1,d0                 	| [$2613: LD      A,(unknown_4BD1)]
+ 	move.b	vultures_aggressivity_4BD1,d0     | [$2613: LD      A,(vultures_aggressivity_4BD1)]
 	cmp.b	(a0),d0                          	| [$2616: CP      (HL)]
+	
+	* up or down, the delta y to move all vultures vertically
+	* uses a table in ROM from 0x3ED0
 	jcs	vultures_go_up_2650                             	| [$2617: JP      C,$2650]
 	* vultures go down
 	move.b	unknown_4BD5,d0                 	| [$261a: LD      A,(unknown_4BD5)]
@@ -4587,7 +4591,7 @@ handle_vultures_y_2600:
 	move.b	random_seed_counter_value_439B,d0                    	| [$2621: LD      A,(random_seed_counter_value_439B)]
 	rol.b	#2,d0                            	| [$2624: RLCA] * 2
 	and.b	#0x0C,d0                         	| [$2626: AND     $0C]
-	add.b	d4,d0                            	| [$2628: ADD     A,E]
+	add.b	d4,d0                            	| [$2628: ADD     A,E] random variation +0 +4 +8 +12
 	add.b	#0xD0,d0                         	| [$2629: ADD     $D0]
 	move.b	d0,d6                           	| [$262b: LD      L,A]
 	move.b	#0x3E,d5                        	| [$262c: LD      H,$3E]
@@ -4604,7 +4608,7 @@ set_vultures_scroll_value_2639:
 	jbsr	osd_set_scroll_value                       	| [$263c: LD      ($5800),A] 58xx scroll register
 	move.b	random_seed_counter_value_439B,d0                    	| [$263f: LD      A,(random_seed_counter_value_439B)]
 	ror.b	#1,d0                            	| [$2642: RRCA]
-	jcc	l_26d0                             	| [$2643: JP      NC,$26D0]
+	jcc	compute_vulture_swarm_dimensions_26d0                             	| [$2643: JP      NC,$26D0]
 	jbsr	l_2668                            	| [$2646: CALL    $2668]
 	jra	l_26aa                             	| [$2649: JP      $26AA]
 
@@ -4616,7 +4620,7 @@ vultures_go_up_2650:
 	move.b	current_scroll_value_43B9,d0    	| [$2651: LD      A,(current_scroll_value_43B9)]
 	rol.b	#2,d0                            	| [$2654: RLCA] * 2
 	and.b	#0x0C,d0                         	| [$2656: AND     $0C]
-	add.b	(a0),d0                          	| [$2658: ADD     A,(HL)] add unknown_4BD4
+	add.b	(a0),d0                          	| [$2658: ADD     A,(HL)] add random_03_4BD4 (range 0-3)
 	add.b	#0xD0,d0                         	| [$2659: ADD     $D0]
 	move.b	d0,d6                           	| [$265b: LD      L,A]
 	move.b	#0x3E,d5                        	| [$265c: LD      H,$3E]
@@ -4643,7 +4647,7 @@ l_267c:
 	jcc	l_2685                             	| [$2681: JP      NC,$2685]
 	addq.b	#1,d1                           	| [$2684: INC     B]
 l_2685:
-	move.b	unknown_4BD6,d0                 	| [$2685: LD      A,(unknown_4BD6)]
+	move.b	average_vulture_y_pos_in_chars_4BD6,d0                 	| [$2685: LD      A,(average_vulture_y_pos_in_chars_4BD6)]
 	add.b	#0xE0,d0                         	| [$2688: ADD     $E0]
 	move.b	d0,d6                           	| [$268a: LD      L,A]
 	move.b	#0x3E,d5                        	| [$268b: LD      H,$3E]
@@ -4669,7 +4673,7 @@ l_26a3:
 	                          	| [$26a8: NOP]
 	                           	| [$26a9: LD      E,B]
 l_26aa:
-	lea	unknown_4BD3,a0                	| [$26aa: LD      HL,unknown_4BD3]
+	lea	swarm_direction_change_timer_4BD3,a0                	| [$26aa: LD      HL,swarm_direction_change_timer_4BD3]
 	move.b	(a0),d0                         	| [$26ad: LD      A,(HL)]
 	subq.b	#1,(a0)                         	| [$26ae: DEC     (HL)]
 	tst.b	d0                               	| [$26af: AND     A]
@@ -4677,7 +4681,7 @@ l_26aa:
 	rts                                    	| [$26b0: RET     NZ] [...]
 0:
 	addq.b	#1,(a0)                         	| [$26b1: INC     (HL)]
-	lea	unknown_4BD6,a0                        	| [$26b2: LD      L,$D6]
+	lea	average_vulture_y_pos_in_chars_4BD6,a0                        	| [$26b2: LD      L,$D6]
 	move.b	(a0),d0                         	| [$26b4: LD      A,(HL)]
 	cmp.b	#0x16,d0                         	| [$26b5: CP      $16]
 	bcs.b	0f                               	| [...]
@@ -4687,13 +4691,16 @@ l_26aa:
 	bcc.b	0f                               	| [...]
 	rts                                    	| [$26ba: RET     C] [...]
 0:
+	* only enters if vulture swarm is not too high or not too low
 	addq.w	#1,a0                           	| [$26bb: INC     L]
-	sub.b	(a0),d0                          	| [$26bc: SUB     (HL)]
-	rol.b	#1,d0                            	| [$26bd: RLCA]
+	sub.b	(a0),d0                          	| [$26bc: SUB     (HL)] subtract vulture_swarm_height_in_chars_4BD7
+	rol.b	#1,d0                            	| [$26bd: RLCA] times 2
 	move.b	d0,d1                           	| [$26be: LD      B,A]
-	move.b	unknown_436F,d0                 	| [$26bf: LD      A,(unknown_436F)]
+	* this contains only XX where X is a digit, ex 11, EE, 33 ...
+	move.b	repeated_bits_random_436F,d0                 	| [$26bf: LD      A,(repeated_bits_random_436F)]
 	and.b	#0x03,d0                         	| [$26c2: AND     $03]
-	lea	unknown_4BD4,a0                        	| [$26c4: LD      L,$D4]
+	* compute 0-3 value from another random value
+	lea	random_03_4BD4,a0                        	| [$26c4: LD      L,$D4]
 	move.b	d0,(a0)                         	| [$26c6: LD      (HL),A]
 	not.b	d0                               	| [$26c7: CPL]
 	and.b	#0x03,d0                         	| [$26c8: AND     $03]
@@ -4704,20 +4711,22 @@ l_26aa:
 	
 	DECL_ADDRESS	26d0
 	
-l_26d0:
-	lea	unknown_4BA8,a0                	| [$26d0: LD      HL,unknown_4BA8]
-	move.w	#0x08,d1                      	| [$26d3: LD      BC,$0800]
+compute_vulture_swarm_dimensions_26d0:
+	* compute d3 and d4 according to vultures positions
+	lea	unknown_4BA8,a0                	| [$26d0: LD      HL,unknown_4BA8] end of vulture params
+	move.w	#0x08,d1                      	| [$26d3: LD      BC,$0800] vulture struct size
 	move.b	#0,d2
-	move.b	#0x80,d3
+	move.b	#0x80,d3			| invalid init value
 	move.b	#0,d4                      	| [$26d6: LD      DE,$8000]
+	move.b	#1,0x200
 l_26d9:
-	move.b	(a0),d0                         	| [$26d9: LD      A,(HL)]
+	tst.b	(a0)                         	| [$26d9: LD      A,(HL)] is vulture alive?
 	                               	| [$26da: AND     A]
-	jeq	l_26e5                             	| [$26db: JP      Z,$26E5]
+	jeq	l_26e5                             	| [$26db: JP      Z,$26E5] free slot? skip
 	move.b	d3,d0                           	| [$26de: LD      A,D]
-	rol.b	#1,d0                            	| [$26df: RLCA]
+	rol.b	#1,d0                            	| [$26df: RLCA]	is it init value?
 	jcc	l_26e4                             	| [$26e0: JP      NC,$26E4]
-	move.b	d2,d3                           	| [$26e3: LD      D,C]
+	move.b	d2,d3                           	| [$26e3: LD      D,C] first time: init with d2: index of lowest alive vulture
 l_26e4:
 	move.b	d2,d4                           	| [$26e4: LD      E,C]
 l_26e5:
@@ -4727,16 +4736,23 @@ l_26e5:
 	                           	| [$26e8: LD      L,A]
 	cmp.l	#unknown_4BA8-0x40,a0                         	| [$26e9: CP      $68]
 	jne	l_26d9                             	| [$26eb: JP      NZ,$26D9]
+	* in the end:
+	* d3: index of last alive vulture (starting from bottom)
+	* d4: index of first alive vulture (starting from bottom)
 	move.b	current_char_scroll_value_4BD2,d0                 	| [$26ee: LD      A,(current_char_scroll_value_4BD2)]
 	add.b	d3,d0                            	| [$26f1: ADD     A,D]
 	add.b	d4,d0                            	| [$26f2: ADD     A,E]
 	and.b	#0x1F,d0                         	| [$26f3: AND     $1F]
-	move.b	d0,unknown_4BD6                 	| [$26f5: LD      (unknown_4BD6),A]
+	* average y position of the swarm
+	move.b	d0,average_vulture_y_pos_in_chars_4BD6                 	| [$26f5: LD      (average_vulture_y_pos_in_chars_4BD6),A]
 	move.b	d4,d0                           	| [$26f8: LD      A,E]
 	sub.b	d3,d0                            	| [$26f9: SUB     D]
-	move.b	d0,unknown_4BD7                 	| [$26fa: LD      (unknown_4BD7),A]
+	* at start, it's 7, in the end it's 1 (2 adjacent vultures remaining)
+	move.b	d0,vulture_swarm_height_in_chars_4BD7                 	| [$26fa: LD      (vulture_swarm_height_in_chars_4BD7),A]
 	rts                                    	| [$26fd: RET]
 
+	DECL_ADDRESS	2700
+	
 l_2700:
 	lea	game_in_play_43A2,a0           	| [$2700: LD      HL,game_in_play_43A2]
 	move.b	(a0),d0                         	| [$2703: LD      A,(HL)]
@@ -5734,8 +5750,8 @@ animate_vulture_wings_3560:
 	rol.b	#2,d0                            	| [$3564: RLCA] * 2
 	move.b	d0,d2                           	| [$3566: LD      C,A]
 	rol.b	#2,d0                            	| [$3567: RLCA] * 2
-	or.b	d1,d0                             	| [$3569: OR      B]
-	move.b	d0,unknown_436F                 	| [$356a: LD      (unknown_436F),A]
+	or.b	d1,d0                             	| [$3569: OR      B] effectively duplicates 4 lower bits to upper bits
+	move.b	d0,repeated_bits_random_436F        | [$356a: LD      (repeated_bits_random_436F),A] ex 11, 33, EE, ...
 	move.b	current_stage_43B8,d0           	| [$356d: LD      A,(current_stage_43B8)]
 	cmp.b	#0x40,d0                         	| [$3570: CP      $40]
 	jcs	l_3577                             	| [$3572: JP      C,$3577]
@@ -5823,7 +5839,7 @@ l_35be:
 	rts                                    	| [$35db: RET]
 
 * this command doesn't have any parameters
-command_move_vultures_laterally_35e0:	
+vulture_command_move_vultures_laterally_35e0:	
 	addq.w	#2,a0                           	| [$35e0: INC     L]*2
 	move.b	(a0),d0                         	| [$35e2: LD      A,(HL)]
 	cmp.b	#0x10,d0                         	| [$35e3: CP      $10]
@@ -6001,7 +6017,7 @@ l_36ab:
 	                        	| [$36bc: LD      (HL),A]
 	                       	| [$36bd: RET]
 
-command_36c0:
+vulture_command_36c0:
 	move.b	(a0),d0                         	| [$36c0: LD      A,(HL)]
 	ror.b	#1,d0                            	| [$36c1: RRCA]
 	bcc.b	0f                               	| [...]
@@ -6021,7 +6037,7 @@ end_chained_calls_36cc:
 	move.l	(sp)+,a0                        	| [$36ce: POP     HL]
 	rts                                    	| [$36cf: RET]
 	
-command_36d2:
+vulture_command_36d2:
 	move.l	(sp)+,d3                        	| [$36d2: POP     DE] pops param ex 03FF
 	move.l	(sp)+,d1                        	| [$36d3: POP     BC] pops param ex 20FF
 	move.l	(sp)+,a0                        	| [$36d4: POP     HL] pops address pushed at 35BF
@@ -6040,7 +6056,7 @@ command_36d2:
 	move.b	d0,unknown_4368                 	| [$36e3: LD      (unknown_4368),A]
 	rts                                    	| [$36e6: RET]
 
-command_36ea:
+vulture_command_36ea:
 	move.l	(sp)+,d3                    	| [$36ea: POP     DE] pops params
 	move.l	(sp)+,d1                    	| [$36eb: POP     BC]
 	move.l	(sp)+,a0                        	| [$36ec: POP     HL]
@@ -6066,7 +6082,7 @@ command_36ea:
 	move.b	d0,unknown_4368                 	| [$3703: LD      (unknown_4368),A]
 	rts                                    	| [$3706: RET]
 
-command_370a:
+vulture_command_370a:
 	move.l	(sp)+,d3                     	| [$370a: POP     DE] pops params
 	move.l	(sp)+,d1					 	| [$370b: POP     BC]
 	move.l	(sp)+,a0                        	| [$370c: POP     HL]
@@ -6083,14 +6099,14 @@ command_370a:
 	beq.b	0f                               	| [...]
 	rts                                    	| [$3715: RET     NZ] [...]
 0:
-	subq.w	#2,a0                           	| [$3716: DEC     L]
+	subq.w	#2,a0                           	| [$3716: DEC     L] * 2
 	move.b	d1,(a0)                         	| [$3718: LD      (HL),B]
 	subq.w	#4,a0                           	| [$3719: DEC     L] * 4
 	move.b	d3,(a0)                         	| [$371d: LD      (HL),D]
 	move.b	unknown_4368,d0                 	| [$371e: LD      A,(unknown_4368)]
 	or.b	#0x04,d0                          	| [$3721: OR      $04]
 	move.b	d0,unknown_4368                 	| [$3723: LD      (unknown_4368),A]
-	move.b	unknown_436F,d0                 	| [$3726: LD      A,(unknown_436F)]
+	move.b	repeated_bits_random_436F,d0                 	| [$3726: LD      A,(repeated_bits_random_436F)]
 	and.b	d4,d0                            	| [$3729: AND     E]
 	and.b	#0xF0,d0                         	| [$372a: AND     $F0]
 	beq.b	0f                               	| [...]
@@ -6158,7 +6174,7 @@ l_3758:
 	addq.w	#1,d5                           	| [$3780: INC     HL]
 	add.w	d3,d5                            	| [$3781: ADD     HL,DE]
 	exg	d3,d5                              	| [$3782: EX      DE,HL]
-	move.w	#0xBFA0,d3                      	| [$3783: LD      HL,$BFA0]
+	move.w	#0xBFA0,d5                      	| [$3783: LD      HL,$BFA0]
 	add.w	d3,d5                            	| [$3786: ADD     HL,DE]
 	bcs.b	0f                               	| [...]
 	rts                                    	| [$3787: RET     NC] [...]
@@ -6753,7 +6769,7 @@ l_3ad0:
 	addq.b	#1,(a0)                         	| [$3ae4: INC     (HL)]
 	tst.b	d0                               	| [$3ae5: AND     A]
 	jeq	l_3af8                             	| [$3ae6: JP      Z,$3AF8]
-	move.b	unknown_4BD6,d0                 	| [$3ae9: LD      A,(unknown_4BD6)]
+	move.b	average_vulture_y_pos_in_chars_4BD6,d0                 	| [$3ae9: LD      A,(average_vulture_y_pos_in_chars_4BD6)]
 	add.b	#0xE0,d0                         	| [$3aec: ADD     $E0]
 	move.b	d0,d4                           	| [$3aee: LD      E,A]
 	move.b	#0x3D,d3                        	| [$3aef: LD      D,$3D]
@@ -6852,75 +6868,75 @@ jump_table_chain_3F00:
 
 	.long	0x20FF 		| slot 1
 	.long	0x02FF 
-	.long	command_36d2 
-	.long	command_36c0
+	.long	vulture_command_36d2 
+	.long	vulture_command_36c0
 
 	.long	0x20FF 		| slot 2
 	.long	0x03FF 
-	.long	command_36d2 
-	.long	command_move_vultures_laterally_35e0 
+	.long	vulture_command_36d2 
+	.long	vulture_command_move_vultures_laterally_35e0 
 
 	.long	0x30FF 		| slot 3 
 	.long	0x04FF 
-	.long	command_36d2 
-	.long	command_move_vultures_laterally_35e0
+	.long	vulture_command_36d2 
+	.long	vulture_command_move_vultures_laterally_35e0
 
 	.long	0x10FF  		| slot 4
 	.long	0x05FF 
-	.long	command_36ea
-	.long	command_move_vultures_laterally_35e0
+	.long	vulture_command_36ea
+	.long	vulture_command_move_vultures_laterally_35e0
 
 	.long	0x10FF 		| slot 5
 	.long	0x06FF
-	.long	command_36ea
-	.long	command_36c0
+	.long	vulture_command_36ea
+	.long	vulture_command_36c0
 
 	.long	0x1060 		| slot 6
 	.long	0x071F 
-	.long	command_370a 
-	.long	command_36c0 
+	.long	vulture_command_370a 
+	.long	vulture_command_36c0 
 
 	.long	0xF010 		| slot 7
 	.long	0x0B1A		
-	.long	command_370a
-	.long	command_36c0
+	.long	vulture_command_370a
+	.long	vulture_command_36c0
 
 	.long	0x40FF 		| slot 8, bogus  
 	.long	0x04FF 
-	.long	command_36ea
-	.long	command_36c0
+	.long	vulture_command_36ea
+	.long	vulture_command_36c0
 
 	.long	0x10FF 		| slot 9
 	.long	0x08FF
-	.long	command_36ea 
-	.long	command_36c0
+	.long	vulture_command_36ea 
+	.long	vulture_command_36c0
 
 	.long	0x4010 		| slot 10
 	.long	0x0F17 
-	.long	command_370a
-	.long	command_36c0 
+	.long	vulture_command_370a
+	.long	vulture_command_36c0 
 
 	.long	0x10FF 		| slot 11
 	.long	0x0AFF
-	.long	command_36ea
-	.long	command_move_vultures_laterally_35e0 
+	.long	vulture_command_36ea
+	.long	vulture_command_move_vultures_laterally_35e0 
 
 	.long	0xFFFF 		| slot 12
 	.long	0xFFFF
 	.long	end_chained_calls_36cc
-	.long	command_move_vultures_laterally_35e0
+	.long	vulture_command_move_vultures_laterally_35e0
 
 	.long	0xFFFF 		| slot 14
 	.long	0xFFFF
 	.long	end_chained_calls_36cc
-	.long	command_move_vultures_laterally_35e0
+	.long	vulture_command_move_vultures_laterally_35e0
 
 	.long	0x10FF  		| slot 15
 	.long	0x06FF 
-	.long	command_36ea 
-	.long	command_move_vultures_laterally_35e0
+	.long	vulture_command_36ea 
+	.long	vulture_command_move_vultures_laterally_35e0
 
 	.long	0x1010 		| slot 16
 	.long	0x0779
-	.long	command_370a 
-	.long	command_move_vultures_laterally_35e0
+	.long	vulture_command_370a 
+	.long	vulture_command_move_vultures_laterally_35e0

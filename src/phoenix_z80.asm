@@ -3424,7 +3424,7 @@ end_of_level_transition_244C:
 248C: 7E              LD      A,(HL)
 248D: E6 1E           AND     $1E
 248F: 80              ADD     A,B
-2490: 32 D1 4B        LD      (unknown_4BD1),A
+2490: 32 D1 4B        LD      (vultures_aggressivity_4BD1),A
 2493: C9              RET
 2494: 1F              RRA
 2495: 80              ADD     A,B
@@ -3664,9 +3664,12 @@ end_of_level_transition_244C:
 260E: 21 D2 4B        LD      HL,unknown_4BD2
 2611: 77              LD      (HL),A
 2612: 2C              INC     L
-2613: 3A D1 4B        LD      A,(unknown_4BD1)
+2613: 3A D1 4B        LD      A,(vultures_aggressivity_4BD1)
 2616: BE              CP      (HL)
+;up or down, the delta y to move all vultures vertically
+;uses a table in ROM from 0x3ED0
 2617: DA 50 26        JP      C,$2650             ;
+; vultures go down
 261A: 3A D5 4B        LD      A,(unknown_4BD5)
 261D: 57              LD      D,A
 261E: E6 03           AND     $03
@@ -3694,7 +3697,6 @@ end_of_level_transition_244C:
 2643: D2 D0 26        JP      NC,$26D0            ;
 2646: CD 68 26        CALL    $2668               ;
 2649: C3 AA 26        JP      $26AA               ;
-
 2650: 2C              INC     L
 2651: 3A B9 43        LD      A,(current_scroll_value_43B9)
 2654: 07              RLCA
@@ -3724,7 +3726,7 @@ end_of_level_transition_244C:
 267F: FE 03           CP      $03
 2681: D2 85 26        JP      NC,$2685            ;
 2684: 04              INC     B
-2685: 3A D6 4B        LD      A,(unknown_4BD6)
+2685: 3A D6 4B        LD      A,(average_vulture_y_pos_in_chars_4BD6)
 2688: C6 E0           ADD     $E0
 268A: 6F              LD      L,A
 268B: 26 3E           LD      H,$3E
@@ -3745,7 +3747,7 @@ end_of_level_transition_244C:
 26A7: C9              RET
 26A8: 00              NOP
 26A9: 58              LD      E,B
-26AA: 21 D3 4B        LD      HL,unknown_4BD3
+26AA: 21 D3 4B        LD      HL,swarm_direction_change_timer_4BD3
 26AD: 7E              LD      A,(HL)
 26AE: 35              DEC     (HL)
 26AF: A7              AND     A
@@ -3761,7 +3763,7 @@ end_of_level_transition_244C:
 26BC: 96              SUB     (HL)
 26BD: 07              RLCA
 26BE: 47              LD      B,A
-26BF: 3A 6F 43        LD      A,(unknown_436F)
+26BF: 3A 6F 43        LD      A,(repeated_bits_random_436F)
 26C2: E6 03           AND     $03
 26C4: 2E D4           LD      L,$D4
 26C6: 77              LD      (HL),A
@@ -3792,10 +3794,10 @@ end_of_level_transition_244C:
 26F1: 82              ADD     A,D
 26F2: 83              ADD     A,E
 26F3: E6 1F           AND     $1F
-26F5: 32 D6 4B        LD      (unknown_4BD6),A
+26F5: 32 D6 4B        LD      (average_vulture_y_pos_in_chars_4BD6),A
 26F8: 7B              LD      A,E
 26F9: 92              SUB     D
-26FA: 32 D7 4B        LD      (unknown_4BD7),A
+26FA: 32 D7 4B        LD      (vulture_swarm_height_in_chars_4BD7),A
 26FD: C9              RET
 
 2700: 21 A2 43        LD      HL,game_in_play_43A2
@@ -4657,7 +4659,7 @@ vultures_level_3400:
 3567: 07              RLCA
 3568: 07              RLCA
 3569: B0              OR      B
-356A: 32 6F 43        LD      (unknown_436F),A
+356A: 32 6F 43        LD      (repeated_bits_random_436F),A
 356D: 3A B8 43        LD      A,(current_stage_43B8)
 3570: FE 40           CP      $40
 3572: DA 77 35        JP      C,$3577             ;
@@ -4977,7 +4979,7 @@ command_370a:
 371E: 3A 68 43        LD      A,(unknown_4368)
 3721: F6 04           OR      $04
 3723: 32 68 43        LD      (unknown_4368),A
-3726: 3A 6F 43        LD      A,(unknown_436F)
+3726: 3A 6F 43        LD      A,(repeated_bits_random_436F)
 3729: A3              AND     E
 372A: E6 F0           AND     $F0
 372C: C0              RET     NZ
@@ -5540,7 +5542,7 @@ player_shots_vs_vultures_collision_3800:
 3AE4: 34              INC     (HL)
 3AE5: A7              AND     A
 3AE6: CA F8 3A        JP      Z,$3AF8             ;
-3AE9: 3A D6 4B        LD      A,(unknown_4BD6)
+3AE9: 3A D6 4B        LD      A,(average_vulture_y_pos_in_chars_4BD6)
 3AEC: C6 E0           ADD     $E0
 3AEE: 5F              LD      E,A
 3AEF: 16 3D           LD      D,$3D

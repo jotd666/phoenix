@@ -36,7 +36,7 @@
 	.global	unknown_436B
 	.global	unknown_436D
 	.global	unknown_436E
-	.global	unknown_436F
+	.global	repeated_bits_random_436F
 	.global	slot_for_regular_animation_4370
 	.global	slot_for_animation_4374
 	.global	slot_for_special_animation_4378
@@ -107,13 +107,13 @@
 	.global	unknown_4BB0
 	.global	unknown_4BB3
 	.global	unknown_4BC0
-	.global	unknown_4BD1
+	.global	vultures_aggressivity_4BD1
 	.global	current_char_scroll_value_4BD2
-	.global	unknown_4BD3
-	.global	unknown_4BD4
+	.global	swarm_direction_change_timer_4BD3
+	.global	random_03_4BD4
 	.global	unknown_4BD5
-	.global	unknown_4BD6
-	.global	unknown_4BD7
+	.global	average_vulture_y_pos_in_chars_4BD6
+	.global	vulture_swarm_height_in_chars_4BD7
 	.global	unknown_4BF8
 
 	.global	game_ram
@@ -172,7 +172,7 @@ unknown_436D:
 	.skip	1
 unknown_436E:
 	.skip	1
-unknown_436F:
+repeated_bits_random_436F:
 	.skip	1
 slot_for_regular_animation_4370:
 	.skip	4
@@ -345,19 +345,19 @@ unknown_4BB3:
 	.skip	13
 unknown_4BC0:
 	.skip	17
-unknown_4BD1:
+vultures_aggressivity_4BD1:
 	.skip	1
 current_char_scroll_value_4BD2:
 	.skip	1
-unknown_4BD3:
+swarm_direction_change_timer_4BD3:
 	.skip	1
-unknown_4BD4:
+random_03_4BD4:
 	.skip	1
 unknown_4BD5:
 	.skip	1
-unknown_4BD6:
+average_vulture_y_pos_in_chars_4BD6:
 	.skip	1
-unknown_4BD7:
+vulture_swarm_height_in_chars_4BD7:
 	.skip	33
 unknown_4BF8:
 	.skip	8
