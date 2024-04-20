@@ -1031,25 +1031,28 @@ osd_write_5000:
 	
 * < D0: 0 or 1 but we'll ignore that for Amiga
 set_palette:
-	movem.l	d0-d1/d7/a0-a1,-(a7)
+	movem.l	d0-d2/d7/a0-a1,-(a7)
+	moveq	#0,d2
 	bsr		get_current_stage
+	move.b	d0,d2
+	lsr.b	#1,d2
 	move.b	current_palette,d1
-	cmp.b	d0,d1
+	cmp.b	d2,d1
 	beq.b	2f
-	move.b	d0,current_palette
+	move.b	d2,current_palette
 	
 	move.w	#0x1FE,yellow_ship
 	* set or clear dynamic copper change for cyan color
 	* if level 3 (vultures)
-	cmp.b	#2,d0
+	cmp.b	#5,d0
 	bne.b	0f
 	move.w	#YELLOW_SHIP_COPPER_LONGWORD>>16,yellow_ship
 0:
 	
-	add.w	d0,d0
-	add.w	d0,d0
+	add.w	d2,d2
+	add.w	d2,d2
 	lea		back_palettes,a0
-	move.l	(a0,d0.w),a0
+	move.l	(a0,d2.w),a0
 
 	move.w	#TOTAL_NB_COLORS-1,d1
 	lea		bg_colors+2,a1
@@ -1059,7 +1062,7 @@ set_palette:
 	dbf		d1,1b
 	
 	lea		fore_palettes,a0
-	move.l	(a0,d0.w),a0
+	move.l	(a0,d2.w),a0
 
 	move.w	#TOTAL_NB_COLORS-1,d1
 	lea		fg_colors+2,a1
@@ -1077,7 +1080,7 @@ set_palette:
 	lea		bg_videoram,a0
 	bsr		force_tile_redraw
 2:		
-	movem.l	(a7)+,d0-d1/d7/a0-a1
+	movem.l	(a7)+,d0-d2/d7/a0-a1
 	rts
 	
 force_tile_redraw:
@@ -1264,7 +1267,6 @@ get_current_stage:
 	bcs.b	20f
 	move.b	#9,d0
 20:
-	lsr.b	#1,d0
 	rts
 	
 * d7: screen offset
@@ -1305,6 +1307,7 @@ update_tile:
 	exg		d0,d2
 	bsr		get_current_stage
 	exg		d0,d2
+	lsr.b	#1,d2
 	
 	
 	add.w	d2,d2

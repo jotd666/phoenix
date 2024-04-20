@@ -4657,12 +4657,16 @@ vultures_go_up_2650:
 	add.b	random_03_4BD4,d0                          	| [$2658: ADD     A,(HL)] add random_03_4BD4 (range 0-3)
 	moveq	#0,d6
 	lea		vulture_y_delta_table_3ED0(pc),a0
-	move.w	d0,d6
+	move.b	d0,d6
 	                         	| [$2659: ADD     $D0]
 	                       	| [$265b: LD      L,A]
 	                       	| [$265c: LD      H,$3E]
 	move.b	current_scroll_value_43B9,d0    	| [$265e: LD      A,(current_scroll_value_43B9)]
 	add.b	(a0,d6.w),d0                          	| [$2661: ADD     A,(HL)] adds 1 or 0
+	tst.b	(a0,d6.w)
+	beq.b	0f
+	move.w	#0x0F0,0xDFF180
+0:
 	jra	set_vultures_scroll_value_2639                             	| [$2662: JP      $2639]
 	
 

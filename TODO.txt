@@ -1,12 +1,10 @@
 logic:
 
 - handle_player_shot_0930: value of a0/a1 on entering?
-- player killed: debris not erased (lower fore screen not erased? debug)
 - vultures lowering all the time, should go up from time to time: check handle_vultures_y_2600
   when going up, often locked by random +0 values!!
 - boss: can't shoot the shield (birds ok, purple strip ok)
 - hit by missiles with shield: illegal?? reproduce??
-- special explosions (flame split) not erased, score remains on screen
 - debug copy_bank (2player)
 
 colors:
