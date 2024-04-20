@@ -1031,13 +1031,7 @@ osd_write_5000:
 * < D0: 0 or 1 but we'll ignore that for Amiga
 set_palette:
 	movem.l	d0-d1/d7/a0-a1,-(a7)
-	moveq	#0,d0
-	move.b	current_stage_43B8,d0
-	beq.b	0f			| intro: palettes 0
-	and.b	#0xF,d0		| loops after completing one round of levels
-	* not zero: 1 => 0, 3 => 1 ..., 5 => 2
-	lsr.b	#1,d0
-0:
+	bsr		get_current_stage
 	move.b	current_palette,d1
 	cmp.b	d0,d1
 	beq.b	2f
@@ -1252,7 +1246,18 @@ write_fore_videoram:
 	movem.l	(a7)+,d0-d5/d7/a0-a2
 	rts
 
-
+get_current_stage:
+	moveq	#0,D0
+	move.b	current_stage_43B8,d0
+	and.w	#0xf,d0
+	* boss stage has several sub-states 8,9,A,B
+	cmp.b	#0xA,d0
+	bcs.b	20f
+	move.b	#9,d0
+20:
+	lsr.b	#1,d0
+	rts
+	
 * d7: screen offset
 * d0: tile code
 
@@ -1288,16 +1293,10 @@ update_tile:
 	tst.b	d0
 	jeq	11f
 
-	moveq	#0,D2
-	move.b	current_stage_43B8,d2
-	and.w	#0xf,d2
-	* boss stage has several sub-states 8,9,A,B
-	cmp.b	#0xA,d2
-	bcs.b	20f
-	move.b	#9,d2
-20:
+	exg		d0,d2
+	bsr		get_current_stage
+	exg		d0,d2
 	
-	lsr.b	#1,d2
 	
 	add.w	d2,d2
 	add.w	d2,d2

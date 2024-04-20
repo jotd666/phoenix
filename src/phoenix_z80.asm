@@ -1672,13 +1672,13 @@ read_controls_to_move_ship_0900:
 0985: 6F              LD      L,A
 0986: 78              LD      A,B
 0987: 96              SUB     (HL)
-0988: 32 9E 43        LD      (unknown_439E),A
+0988: 32 9E 43        LD      (player_ship_left_x_439E),A
 098B: 23              INC     HL
 098C: 78              LD      A,B
 098D: 86              ADD     A,(HL)
-098E: 32 9F 43        LD      (unknown_439F),A
+098E: 32 9F 43        LD      (player_ship_right_x_439F),A
 0991: C9              RET
-0992: 32 9F 43        LD      (unknown_439F),A
+0992: 32 9F 43        LD      (player_ship_right_x_439F),A
 0995: C9              RET
 
 09A0: 01 C2 43        LD      BC,player_ship_x_43C2
@@ -2024,10 +2024,10 @@ moving_bird_shot_0C00:
 0CB6: D8              RET     C
 0CB7: FE E9           CP      $E9
 0CB9: D0              RET     NC
-0CBA: 3A 9F 43        LD      A,(unknown_439F)
+0CBA: 3A 9F 43        LD      A,(player_ship_right_x_439F)
 0CBD: BE              CP      (HL)
 0CBE: D8              RET     C
-0CBF: 3A 9E 43        LD      A,(unknown_439E)
+0CBF: 3A 9E 43        LD      A,(player_ship_left_x_439E)
 0CC2: BE              CP      (HL)
 0CC3: D0              RET     NC
 0CC4: 3E 04           LD      A,$04
@@ -2441,7 +2441,7 @@ bird_shot_0EA4:
 0F14: C8              RET     Z
 0F15: 00              NOP
 0F16: 00              NOP
-0F17: 21 9E 43        LD      HL,unknown_439E
+0F17: 21 9E 43        LD      HL,player_ship_left_x_439E
 0F1A: 7E              LD      A,(HL)
 0F1B: D6 06           SUB     $06
 0F1D: 47              LD      B,A
@@ -3482,10 +3482,10 @@ end_of_level_transition_244C:
 24FC: E6 0E           AND     $0E
 24FE: A6              AND     (HL)
 24FF: C0              RET     NZ
-2500: 3A 9E 43        LD      A,(unknown_439E)
+2500: 3A 9E 43        LD      A,(player_ship_left_x_439E)
 2503: B8              CP      B
 2504: D0              RET     NC
-2505: 3A 9F 43        LD      A,(unknown_439F)
+2505: 3A 9F 43        LD      A,(player_ship_right_x_439F)
 2508: B8              CP      B
 2509: D8              RET     C
 250A: 78              LD      A,B
@@ -3556,10 +3556,10 @@ end_of_level_transition_244C:
 2578: 00              NOP
 2579: C6 AD           ADD     $AD
 257B: 57              LD      D,A
-257C: 3A 9F 43        LD      A,(unknown_439F)
+257C: 3A 9F 43        LD      A,(player_ship_right_x_439F)
 257F: C6 03           ADD     $03
 2581: 4F              LD      C,A
-2582: 3A 9E 43        LD      A,(unknown_439E)
+2582: 3A 9E 43        LD      A,(player_ship_left_x_439E)
 2585: D6 0A           SUB     $0A
 2587: 47              LD      B,A
 2588: E5              PUSH    HL
@@ -5298,10 +5298,10 @@ player_shots_vs_vultures_collision_3800:
 393C: 6E              LD      L,(HL)
 393D: 26 4B           LD      H,$4B
 393F: CD 00 3A        CALL    $3A00               ;
-3942: 3A 9F 43        LD      A,(unknown_439F)
+3942: 3A 9F 43        LD      A,(player_ship_right_x_439F)
 3945: 82              ADD     A,D
 3946: 4F              LD      C,A
-3947: 3A 9E 43        LD      A,(unknown_439E)
+3947: 3A 9E 43        LD      A,(player_ship_left_x_439E)
 394A: 92              SUB     D
 394B: 47              LD      B,A
 394C: E5              PUSH    HL
@@ -5358,7 +5358,7 @@ player_shots_vs_vultures_collision_3800:
 39A2: CD E0 05        CALL    $05E0               ;
 39A5: 2E C4           LD      L,$C4
 39A7: 36 08           LD      (HL),$08
-39A9: 11 9E 43        LD      DE,unknown_439E
+39A9: 11 9E 43        LD      DE,player_ship_left_x_439E
 39AC: 3A 9B 43        LD      A,(random_seed_counter_value_439B)       ;
 39AF: 0F              RRCA
 39B0: DA BF 39        JP      C,$39BF             ;

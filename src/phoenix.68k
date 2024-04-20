@@ -2186,7 +2186,7 @@ common_game_routines_0876:
 	jbsr	erase_player_shots_0886                            	| [$0879: CALL    $0886]
 	jbsr	handle_player_shots_08a0                            	| [$087c: CALL    $08A0]
 	jbsr	display_player_ship_and_shots_09a0                            	| [$087f: CALL    $09A0]
-	jbsr	handle_ship_collision_and_enemy_shots_097a                            	| [$0882: CALL    $097A]
+	jbsr	compute_player_ship_boundaries_097a                            	| [$0882: CALL    $097A]
 	rts                                    	| [$0885: RET]
 	
 	DECL_ADDRESS	886
@@ -2352,8 +2352,11 @@ disable_player_shot_096e:
 
 	DECL_ADDRESS	97a
 
+* compute fine min x/max x depending on the position but also of the shape
+* of the ship.
 * without this routine, player is invincible, also, birds/vultures don't shoot
-handle_ship_collision_and_enemy_shots_097a:
+
+compute_player_ship_boundaries_097a:
 	move.b	  player_ship_x_43C2,d0                       	| [$097A: LD      A,(player_ship_x_43C2)]
 	move.b	d0,d1								| [$097D : LD      B,A]
 	and.w	#0x07,d0                         	| [$097e: AND     $07]
@@ -2364,13 +2367,13 @@ handle_ship_collision_and_enemy_shots_097a:
 											| [$0985: LD      L,A]
 	move.b	d1,d0                           	| [$0986: LD      A,B]
 	sub.b	(a0)+,d0                          	| [$0987: SUB     (HL)]
-	move.b	d0,unknown_439E                 	| [$0988: LD      (unknown_439E),A]
+	move.b	d0,player_ship_left_x_439E                 	| [$0988: LD      (player_ship_left_x_439E),A]
 	                           	| [$098b: INC     HL]
 	move.b	d1,d0                           	| [$098c: LD      A,B]
 	add.b	(a0),d0                          	| [$098d: ADD     A,(HL)]
-	move.b	d0,unknown_439F                 	| [$098e: LD      (unknown_439F),A]
+	move.b	d0,player_ship_right_x_439F                 	| [$098e: LD      (player_ship_right_x_439F),A]
 	rts                                    	| [$0991: RET]
-	               	| [$0992: LD      (unknown_439F),A]
+	               	| [$0992: LD      (player_ship_right_x_439F),A]
 	              	| [$0995: RET]
 
 	DECL_ADDRESS	9a0
@@ -2767,7 +2770,7 @@ l_0c84:
 	cmp.b	#0xF9,d0                         	| [$0c95: CP      $F9]
 	jcc	disable_player_shot_096e                             	| [$0c97: JP      NC,$096E]
 	subq.w	#1,a0                           	| [$0c9a: DEC     L]
-	jbsr	l_0cb4                            	| [$0c9b: CALL    $0CB4]
+	jbsr	player_vs_enemy_collision_0cb4                            	| [$0c9b: CALL    $0CB4]
 	
 	lea		(0x20,a0),a1
 												| [$0c9e: LD      D,H]
@@ -2786,21 +2789,21 @@ l_0c84:
 	jcc	disable_player_shot_096e                             	| [$0cac: JP      NC,$096E]
 	rts                                    	| [$0caf: RET]
 
-l_0cb4:
-	cmp.b	#0xDC,d0                         	| [$0cb4: CP      $DC]
+player_vs_enemy_collision_0cb4:
+	cmp.b	#0xDC,d0                         	| [$0cb4: CP      $DC] first check object Y
 	bcc.b	0f                               	| [...]
 	rts                                    	| [$0cb6: RET     C] [...]
 0:
-	cmp.b	#0xE9,d0                         	| [$0cb7: CP      $E9]
+	cmp.b	#0xE9,d0                         	| [$0cb7: CP      $E9] if doesn't match player Y, skip
 	bcs.b	0f                               	| [...]
 	rts                                    	| [$0cb9: RET     NC] [...]
 0:
-	move.b	unknown_439F,d0                 	| [$0cba: LD      A,(unknown_439F)]
+	move.b	player_ship_right_x_439F,d0                 	| [$0cba: LD      A,(player_ship_right_x_439F)]
 	cmp.b	(a0),d0                          	| [$0cbd: CP      (HL)]
 	bcc.b	0f                               	| [...]
 	rts                                    	| [$0cbe: RET     C] [...]
 0:
-	move.b	unknown_439E,d0                 	| [$0cbf: LD      A,(unknown_439E)]
+	move.b	player_ship_left_x_439E,d0                 	| [$0cbf: LD      A,(player_ship_left_x_439E)]
 	cmp.b	(a0),d0                          	| [$0cc2: CP      (HL)]
 	bcs.b	0f                               	| [...]
 	rts                                    	| [$0cc3: RET     NC] [...]
@@ -3278,7 +3281,7 @@ l_0f00:
 0:
 	                                    	| [$0f15: NOP]
 	                                    	| [$0f16: NOP]
-	lea	unknown_439E,a0                	| [$0f17: LD      HL,unknown_439E]
+	lea	player_ship_left_x_439E,a0                	| [$0f17: LD      HL,player_ship_left_x_439E]
 	move.b	(a0)+,d0                         	| [$0f1a: LD      A,(HL)]
 	subq.b	#0x06,d0                        	| [$0f1b: SUB     $06]
 	move.b	d0,d1                           	| [$0f1d: LD      B,A]
@@ -4041,7 +4044,7 @@ mothership_level_22CA:
 	move.b	#0x30,(a0)                      	| [$22d3: LD      (HL),$30]
 	lea	unknown_4367,a0                        	| [$22d5: LD      L,$67]
 	move.b	#0xFF,(a0)                      	| [$22d7: LD      (HL),$FF]
-	lea	game_state_43A4,a0                        	| [$22d9: LD      L,$BC]
+	lea	unknown_43BC,a0                        	| [$22d9: LD      L,$BC]
 	move.b	#0x3F,(a0)                      	| [$22db: LD      (HL),$3F]
 	rts                                    	| [$22dd: RET]
 
@@ -4409,12 +4412,12 @@ l_24f2:
 	beq.b	0f                               	| [...]
 	rts                                    	| [$24ff: RET     NZ] [...]
 0:
-	move.b	unknown_439E,d0                 	| [$2500: LD      A,(unknown_439E)]
+	move.b	player_ship_left_x_439E,d0                 	| [$2500: LD      A,(player_ship_left_x_439E)]
 	cmp.b	d1,d0                            	| [$2503: CP      B]
 	bcs.b	0f                               	| [...]
 	rts                                    	| [$2504: RET     NC] [...]
 0:
-	move.b	unknown_439F,d0                 	| [$2505: LD      A,(unknown_439F)]
+	move.b	player_ship_right_x_439F,d0                 	| [$2505: LD      A,(player_ship_right_x_439F)]
 	cmp.b	d1,d0                            	| [$2508: CP      B]
 	bcc.b	0f                               	| [...]
 	rts                                    	| [$2509: RET     C] [...]
@@ -4432,7 +4435,7 @@ l_24f2:
 	move.l	a0,-(sp)                        	| [$2518: PUSH    HL]
 
 	move.l	a0,-(sp)                        	| [$2519: PUSH    HL]
-	jra	l_25b7                             	| [$251a: JP      $25B7]
+	jra	enemy_starts_shooting_25b7                             	| [$251a: JP      $25B7]
 	
 	DECL_ADDRESS	2520
 
@@ -4494,10 +4497,10 @@ l_2560:
 	                               	| [$2578: NOP]
 	add.b	#0xAD,d0                         	| [$2579: ADD     $AD]
 	move.b	d0,d3                           	| [$257b: LD      D,A]
-	move.b	unknown_439F,d0                 	| [$257c: LD      A,(unknown_439F)]
+	move.b	player_ship_right_x_439F,d0                 	| [$257c: LD      A,(player_ship_right_x_439F)]
 	addq.b	#0x03,d0                        	| [$257f: ADD     $03]
 	move.b	d0,d2                           	| [$2581: LD      C,A]
-	move.b	unknown_439E,d0                 	| [$2582: LD      A,(unknown_439E)]
+	move.b	player_ship_left_x_439E,d0                 	| [$2582: LD      A,(player_ship_left_x_439E)]
 	sub.b	#0x0A,d0                         	| [$2585: SUB     $0A]
 	move.b	d0,d1                           	| [$2587: LD      B,A]
 	bsr		load_ram_in_a0_from_d5d6
@@ -4556,7 +4559,7 @@ l_2596:
 	move.b	d0,d2                           	| [$25b4: LD      C,A]
 	                           	| [$25b5: DEC     L]
 	move.b	-(a0),d1                         	| [$25b6: LD      B,(HL)]
-l_25b7:
+enemy_starts_shooting_25b7:
 	move.b	current_stage_43B8,d0           	| [$25b7: LD      A,(current_stage_43B8)]
 	move.b	#0x03,d3                        	| [$25ba: LD      D,$03]
 	cmp.b	#0x10,d0                         	| [$25bc: CP      $10]
@@ -5527,7 +5530,7 @@ vultures_level_3400:
 	move.b	random_seed_counter_value_439B,d0                    	| [$342a: LD      A,(random_seed_counter_value_439B)]
 	ror.b	#1,d0                            	| [$342d: RRCA]
 	jcs	l_0fc0                             	| [$342e: JP      C,$0FC0]
-	jbsr	l_3930                            	| [$3431: CALL    $3930]
+	jbsr	vultures_shoot_decision_3930                            	| [$3431: CALL    $3930]
 	jra	l_0c40                             	| [$3434: JP      $0C40]
 l_3438:
 	move.b	random_seed_counter_value_439B,d0                    	| [$3438: LD      A,(random_seed_counter_value_439B)]
@@ -5536,7 +5539,7 @@ l_3438:
 	jbsr	animate_vultures_3474                            	| [$343f: CALL    $3474]
 	jbsr	animate_vulture_wings_3560                            	| [$3442: CALL    $3560]
 	jbsr	l_3498                            	| [$3445: CALL    $3498]
-	jbsr	l_3930                            	| [$3448: CALL    $3930]
+	jbsr	vultures_shoot_decision_3930                            	| [$3448: CALL    $3930]
 	jra	l_0c40                             	| [$344b: JP      $0C40]
 
 l_3452:
@@ -6538,7 +6541,7 @@ l_3923:
 	rts                                    	| [$392d: RET]
 	                                    	| [$392e: RET]
 
-l_3930:
+vultures_shoot_decision_3930:
 	move.b	current_char_scroll_value_4BD2,d0                 	| [$3930: LD      A,(current_char_scroll_value_4BD2)]
 	and.w	#0x1E,d0                         	| [$3933: AND     $1E]
 	add.b	#0xC0,d0                         	| [$3935: ADD     $C0]
@@ -6548,13 +6551,13 @@ l_3930:
 	move.b	(a0)+,d4                         	| [$393a: LD      E,(HL)]
 	                           	| [$393b: INC     L]
 	move.b	(a0),d0                         	| [$393c: LD      L,(HL)]
-	lea		game_rom+0x4B00,a0                        	| [$393d: LD      H,$4B]
+	lea		fg_videoram_4000+0xB00,a0                        	| [$393d: LD      H,$4B]
 	add.w	d0,a0
 	jbsr	l_3a00                            	| [$393f: CALL    $3A00]
-	move.b	unknown_439F,d0                 	| [$3942: LD      A,(unknown_439F)]
+	move.b	player_ship_right_x_439F,d0                 	| [$3942: LD      A,(player_ship_right_x_439F)]
 	add.b	d3,d0                            	| [$3945: ADD     A,D]
 	move.b	d0,d2                           	| [$3946: LD      C,A]
-	move.b	unknown_439E,d0                 	| [$3947: LD      A,(unknown_439E)]
+	move.b	player_ship_left_x_439E,d0                 	| [$3947: LD      A,(player_ship_left_x_439E)]
 	sub.b	d3,d0                            	| [$394a: SUB     D]
 	move.b	d0,d1                           	| [$394b: LD      B,A]
 l_394c:
@@ -6596,7 +6599,7 @@ l_395c:
 	rol.b	#3,d0                            	| [$3975: RLCA] * 3
 	add.b	#0x08,d0                         	| [$3978: ADD     $08]
 	move.b	d0,d2                           	| [$397a: LD      C,A]
-	jra	l_25b7                             	| [$397b: JP      $25B7]
+	jra	enemy_starts_shooting_25b7                             	| [$397b: JP      $25B7]
 
 l_3980:
 	move.b	current_char_scroll_value_4BD2,d0                 	| [$3980: LD      A,(current_char_scroll_value_4BD2)]
@@ -6621,7 +6624,7 @@ l_3980:
 	jbsr	copy_memory_05e0                            	| [$39a2: CALL    $05E0]
 	lea	player_shot_1_structure_43C4,a0                        	| [$39a5: LD      L,$C4]
 	move.b	#0x08,(a0)                      	| [$39a7: LD      (HL),$08]
-	lea	unknown_439E,a1                	| [$39a9: LD      DE,unknown_439E]
+	lea	player_ship_left_x_439E,a1                	| [$39a9: LD      DE,player_ship_left_x_439E]
 	move.b	random_seed_counter_value_439B,d0                    	| [$39ac: LD      A,(random_seed_counter_value_439B)]
 	ror.b	#1,d0                            	| [$39af: RRCA]
 	jcs	l_39bf                             	| [$39b0: JP      C,$39BF]

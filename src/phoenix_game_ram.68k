@@ -62,8 +62,8 @@
 	.global	random_seed_counter_value_439B
 	.global	unknown_439C
 	.global	unknown_439D
-	.global	unknown_439E
-	.global	unknown_439F
+	.global	player_ship_left_x_439E
+	.global	player_ship_right_x_439F
 	.global	current_input_value_43A0
 	.global	current_player_is_p2_43A3
 
@@ -79,6 +79,7 @@
 	.global	unknown_43B4
 	.global	unknown_43B6
 	.global	nb_vultures_to_kill_before_stage_completed_43BB
+	.global	unknown_43BC
 	.global	unknown_43BD
 	.global	extra_life_at_43BE
 	.global	unknown_43C0
@@ -230,9 +231,9 @@ unknown_439C:
 	.skip	1
 unknown_439D:
 	.skip	1
-unknown_439E:
+player_ship_left_x_439E:
 	.skip	1
-unknown_439F:
+player_ship_right_x_439F:
 	.skip	1
 current_input_value_43A0:
 	.skip	2
@@ -273,7 +274,9 @@ current_scroll_value_43B9:
 nb_birds_to_kill_before_stage_completed_43BA:
 	.skip	1
 nb_vultures_to_kill_before_stage_completed_43BB:
-	.skip	2
+	.skip	1
+unknown_43BC:
+	.skip	1
 unknown_43BD:
 	.skip	1
 extra_life_at_43BE:
