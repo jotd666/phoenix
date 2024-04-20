@@ -6194,7 +6194,7 @@ l_3758:
 	rts                                    	| [$375a: RET     Z] [...]
 0:
 	subq.b	#1,(a0)                         	| [$375b: DEC     (HL)]
-	jeq	l_37cc                             	| [$375c: JP      Z,$37CC]
+	jeq	clear_two_screen_rows_37cc                             	| [$375c: JP      Z,$37CC]
 	move.b	(a0),d0                         	| [$375f: LD      A,(HL)]
 	ror.b	#1,d0                            	| [$3760: RRCA]
 	jcc	l_37b0                             	| [$3761: JP      NC,$37B0]
@@ -6285,23 +6285,23 @@ l_37b0:
 
 	DECL_ADDRESS	37cc
 	
-l_37cc:
+clear_two_screen_rows_37cc:
 	addq.w	#3,a0                           	| [$37cc: INC     L]
 	                          	| [$37cd: INC     L]
 	move.b	(a0),d0                         	| [$37cf: LD      A,(HL)]
 	and.b	#0x1F,d0                         	| [$37d0: AND     $1F]
 	add.b	#0x20,d0                         	| [$37d2: ADD     $20]
-	move.b	d0,d6                           	| [$37d4: LD      L,A]
-	move.b	#0x43,d5                        	| [$37d5: LD      H,$43]
+	move.w	#0x4300,d7                        	| [$37d5: LD      H,$43]
+	move.b	d0,d7                           	| [$37d4: LD      L,A]
 	move.w	#0xFFDF,d1                      	| [$37d7: LD      BC,$FFDF]
-	clr.b	d3                      	| [$37da: LD      DE,$001A] 26
+	moveq	#0,d0											| [$37da: LD      DE,$001A] 26
 	move.b	#0x1A,d4                      	| [$37da: LD      DE,$001A] 26
-	bsr		load_ram_in_a0_from_d5d6
+	
 l_37dd:
-	move.b	d3,(a0)+                         	| [$37dd: LD      (HL),D]
-	                           	| [$37de: INC     HL]
-	move.b	d3,(a0)                         	| [$37df: LD      (HL),D]
-	add.w	d1,a0                            	| [$37e0: ADD     HL,BC]
+	jbsr	osd_w_videoram                         	| [$37dd: LD      (HL),D]
+	addq.w	#1,d7                           	| [$37de: INC     HL]
+	jbsr	osd_w_videoram                         	| [$37df: LD      (HL),D]
+	add.w	d1,d7                            	| [$37e0: ADD     HL,BC]
  	subq.b	#1,d4                           	| [$37e1: DEC     E]
 	jne	l_37dd                             	| [$37e2: JP      NZ,$37DD]
 	rts                                    	| [$37e5: RET]
