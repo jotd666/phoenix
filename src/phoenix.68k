@@ -6210,8 +6210,8 @@ l_3758:
 	LOAD_D3_16_FROM_D3D4
 	move.w	d0,-(sp)                        	| [$3772: PUSH    AF]
 	move.w	d3,-(sp)                    	| [$3773: PUSH    DE]
-	move.w	#0xFFDf,d1                      	| [$3774: LD      BC,$FFDF]
-	jbsr	explosion_special_animation_3796                            	| [$3777: CALL    $3796]
+	move.w	#0xFFDf,d1                      	| [$3774: LD      BC,$FFDF] offset for copy_2_columns_to_screen
+	jbsr	explosion_special_animation_left_3796                            	| [$3777: CALL    $3796]
 	move.w	(sp)+,d3                    	| [$377a: POP     DE]
 	move.w	(sp)+,d0                        	| [$377b: POP     AF]
 	* weird screen address computation
@@ -6227,7 +6227,7 @@ l_3758:
 	bcs.b	0f                               	| [...]
 	rts                                    	| [$3787: RET     NC] [...]
 0:
-	exg	d5,d7                              	| [$3788: EX      DE,HL]
+	exg	d3,d7                              	| [$3788: EX      DE,HL]
 	lea	game_rom+0x17D6,a1                      	| [$3789: LD      DE,$17D6]
 	moveq	#0,d0
 	jbsr	osd_w_videoram
@@ -6240,26 +6240,24 @@ l_3758:
 	
 	DECL_ADDRESS	3796
 	
-explosion_special_animation_3796:
-	jbsr	osd_break
-	* take LSB from HL. Here HL is in ram
-	sub.l	#fg_videoram_4000-0x4000,a0
-	move.l	a0,d5
-	
-	and.w	#0xFF,d5                               	| [$3799: LD      H,$00]
-	add.w	#0x60,d0                         	| [$3796: ADD     $60]
+explosion_special_animation_left_3796:
+	moveq	#0,d5                               	| [$3799: LD      H,$00]
+	move.b	d0,d5
+	add.w	#0x60,d5                         	| [$3796: ADD     $60] add lateral offset
                            	| [$3798: LD      L,A]
 	jcc	l_379f                             	| [$379b: JP      NC,$379F]
 	add.w	#0x100,d5                           	| [$379e: INC     H]
 l_379f:
+	* transform to screen address to display exploding flames 
 	add.w	d3,d5                            	| [$379f: ADD     HL,DE]
 	exg	d3,d5                              	| [$37a0: EX      DE,HL]
+	* test if too much on the side?
 	move.w	#0xBCC0,d5                      	| [$37a1: LD      HL,$BCC0]
 	add.w	d3,d5                            	| [$37a4: ADD     HL,DE]
 	bcc.b	0f                               	| [...]
 	rts                                    	| [$37a5: RET     C] [...]
 0:
-	exg	d5,d7                              	| [$37a6: EX      DE,HL]
+	exg	d3,d7                              	| [$37a6: EX      DE,HL]
 	lea	game_rom+0x17D0,a1                      	| [$37a7: LD      DE,$17D0]
 	jra	copy_3_columns_to_screen_3540                             	| [$37aa: JP      $3540]
 
