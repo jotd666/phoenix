@@ -40,7 +40,7 @@
 	.global	slot_for_regular_animation_4370
 	.global	slot_for_animation_4374
 	.global	slot_for_special_animation_4378
-	.global	unknown_437C
+	.global	slot_for_special_animation_437C
 	.global	player_scores_buffer_4380
 	.global	player_2_score_end_4383
 	.global player_score_end_4387
@@ -91,7 +91,7 @@
 	.global	unknown_43E0
 	.global	screen_address_43E2
 	.global	ram_pointer_on_flying_enemies_table_43E6
-	.global	unknown_43E7
+	.global	ram_pointer_on_flying_enemies_table_lsb_43E7
 	.global	ram_pointer_on_birds_table_43EA
 	.global	unknown_43EB
 	.global	unknown_43EC
@@ -181,7 +181,7 @@ slot_for_animation_4374:
 	.skip	4
 slot_for_special_animation_4378:
 	.skip	4
-unknown_437C:
+slot_for_special_animation_437C:
 	.skip	4
 	* player 1 score highest digit: 4381
 player_scores_buffer_4380:
@@ -309,7 +309,7 @@ screen_address_43E2:
 	.skip	4
 ram_pointer_on_flying_enemies_table_43E6:
 	.skip	1
-unknown_43E7:
+ram_pointer_on_flying_enemies_table_lsb_43E7:
 	.skip	3
 ram_pointer_on_birds_table_43EA:
 	.skip	1

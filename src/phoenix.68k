@@ -3228,19 +3228,8 @@ l_0ec3:
 	jeq	l_0ed5                             	| [$0ece: JP      Z,$0ED5] Yes, skip ahead, we will use this slot
 	addq.w	#4,a0                           	| [$0ed1: INC     L] 
 * there should have been a check here to see if HL==#4380 and change it if so.
-* else, score bug appears
+* else, score bug appears. Adapted Don Hodges patch directly here
 
-
-*This bug can be fixed by the following patch, which requires changing 10 bytes of code:
-*
-*0ED2: CD E6 0E 	call $0EE6 	; call patch
-*...
-*0EE6: 2C	inr l 		; restore instructions wiped by the patch call
-*0EE7: 2C 	inr l		; 
-*0EE8: 2C 	inr l		; if L becomes #80 then the S flag is set. Did it happen?
-*0EE9: F0 	rp 		; no, return and continue normally
-*0EEA: 2E 70 	mov l,$70 	; else set L to #70 to use 1st slot, not the score RAM
-*0EEC: C9 	ret 		; return
 	cmp.l	#slot_for_regular_animation_4370+0x10,a0
 	bne.b	l_0ed5
 	sub.w	#0x10,a0			| fixes animation score bug trash directly
@@ -3419,7 +3408,7 @@ l_0fc0:
 	jbsr	l_0fd8                            	| [$0fc9: CALL    $0FD8]
 	lea	slot_for_special_animation_4378,a0                	| [$0fcc: LD      HL,slot_for_special_animation_4378]
 	jbsr	l_3758                            	| [$0fcf: CALL    $3758]
-	lea	unknown_437C,a0                	| [$0fd2: LD      HL,unknown_437C]
+	lea	slot_for_special_animation_437C,a0                	| [$0fd2: LD      HL,slot_for_special_animation_437C]
 	jra	l_3758                             	| [$0fd5: JP      $3758]
 l_0fd8:
 	move.b	(a0),d0                         	| [$0fd8: LD      A,(HL)]
@@ -5647,7 +5636,7 @@ animate_vulture_34c0:
 	                           	| [$34db: INC     L]
  	move.b	(a0),d6                         	| [$34dc: LD      L,(HL)]
 	move.b	d0,d5                           	| [$34dd: LD      H,A]
-l_34de:
+display_clipped_vulture_34de:
 	bsr		load_rom_in_a0_from_d5d6
 	* now we have to clip display on the borders, set d1 to a value that allows
 	* to select the proper drawing routine
@@ -6199,7 +6188,7 @@ l_3744:
 	DECL_ADDRESS	3758
 	
 l_3758:
-	move.b	(a0),d0                         	| [$3758: LD      A,(HL)]
+	move.b	(a0),d0                         	| [$3758: LD      A,(HL)] check if slot active
 	                               	| [$3759: AND     A]
 	bne.b	0f                               	| [...]
 	rts                                    	| [$375a: RET     Z] [...]
@@ -6214,14 +6203,16 @@ l_3758:
 	and.b	#0x0E,d0                         	| [$3767: AND     $0E]
 	rol.b	#4,d0                            	| [$3769: RLCA] * 4
 	addq.w	#2,a0                           	| [$376d: INC     L] * 2
+	* get screen address for animation
 	move.b	(a0)+,d3                         	| [$376f: LD      D,(HL)]
 	                           	| [$3770: INC     L]
 	move.b	(a0),d4                         	| [$3771: LD      E,(HL)]
+	LOAD_D3_16_FROM_D3D4
 	move.w	d0,-(sp)                        	| [$3772: PUSH    AF]
-	movem.w	d3/d4,-(sp)                    	| [$3773: PUSH    DE]
+	move.w	d3,-(sp)                    	| [$3773: PUSH    DE]
 	move.w	#0xFFDf,d1                      	| [$3774: LD      BC,$FFDF]
-	jbsr	screen_address_computation_3796                            	| [$3777: CALL    $3796]
-	movem.w	(sp)+,d3/d4                    	| [$377a: POP     DE]
+	jbsr	explosion_special_animation_3796                            	| [$3777: CALL    $3796]
+	move.w	(sp)+,d3                    	| [$377a: POP     DE]
 	move.w	(sp)+,d0                        	| [$377b: POP     AF]
 	* weird screen address computation
 	not.b	d0                               	| [$377c: CPL]
@@ -6249,12 +6240,13 @@ l_3758:
 	
 	DECL_ADDRESS	3796
 	
-screen_address_computation_3796:
-	* take LSB from HL. Here HL is 43xx
-	sub.l	#fg_videoram_4000+0x300,a0
+explosion_special_animation_3796:
+	jbsr	osd_break
+	* take LSB from HL. Here HL is in ram
+	sub.l	#fg_videoram_4000-0x4000,a0
 	move.l	a0,d5
 	
-	                               	| [$3799: LD      H,$00]
+	and.w	#0xFF,d5                               	| [$3799: LD      H,$00]
 	add.w	#0x60,d0                         	| [$3796: ADD     $60]
                            	| [$3798: LD      L,A]
 	jcc	l_379f                             	| [$379b: JP      NC,$379F]
@@ -6328,10 +6320,10 @@ player_shots_vs_vultures_collision_3800:
 	                           	| [$380b: LD      D,A]
 	move.b	current_char_scroll_value_4BD2,d4                 	| [$380c: LD      A,(current_char_scroll_value_4BD2)]
 	                           	| [$380f: LD      E,A]
-	move.b	unknown_43E7,d0                 	| [$3810: LD      A,(unknown_43E7)]
+	move.b	ram_pointer_on_flying_enemies_table_lsb_43E7,d0                 	| [$3810: LD      A,(ram_pointer_on_flying_enemies_table_lsb_43E7)]
 	and.b	#0xE0,d0                         	| [$3813: AND     $E0]
 	move.b	d0,d1                           	| [$3815: LD      B,A]
-	move.b	unknown_43E7,d0                 	| [$3816: LD      A,(unknown_43E7)]
+	move.b	ram_pointer_on_flying_enemies_table_lsb_43E7,d0                 	| [$3816: LD      A,(ram_pointer_on_flying_enemies_table_lsb_43E7)]
 	sub.b	d4,d0                            	| [$3819: SUB     E]
 	                                    	| [$381a: NOP]
 	and.b	#0x1F,d0                         	| [$381b: AND     $1F]
@@ -6395,7 +6387,7 @@ l_3844:
 	move.b	#0x10,d2                      	| [$386b: LD      BC,$1010]
 	move.b	d4,d0                           	| [$386e: LD      A,E]
 	cmp.b	#0x0F,d0                         	| [$386f: CP      $0F]
-	jeq	l_38fb                             	| [$3871: JP      Z,$38FB]
+	jeq	vulture_hit_38fb                             	| [$3871: JP      Z,$38FB]
 	move.b	d3,d0                           	| [$3874: LD      A,D]
 	ror.b	#1,d0                            	| [$3875: RRCA]
 	and.b	#0x7C,d0                         	| [$3876: AND     $7C]
@@ -6403,17 +6395,17 @@ l_3844:
 	move.b	d0,d2                           	| [$387a: LD      C,A]
 	move.b	d4,d0                           	| [$387b: LD      A,E]
 	cmp.b	#0x0E,d0                         	| [$387c: CP      $0E]
-	jeq	l_38fb                             	| [$387e: JP      Z,$38FB]
+	jeq	vulture_hit_38fb                             	| [$387e: JP      Z,$38FB]
 	move.b	d2,d0                           	| [$3881: LD      A,C]
 	ror.b	#1,d0                            	| [$3882: RRCA]
 	move.b	d0,d2                           	| [$3883: LD      C,A]
 	move.b	d4,d0                           	| [$3884: LD      A,E]
 	cmp.b	#0x0C,d0                         	| [$3885: CP      $0C]
-	jcc	l_38fb                             	| [$3887: JP      NC,$38FB]
+	jcc	vulture_hit_38fb                             	| [$3887: JP      NC,$38FB]
 	move.b	d2,d0                           	| [$388a: LD      A,C]
 	ror.b	#1,d0                            	| [$388b: RRCA]
 	move.b	d0,d2                           	| [$388c: LD      C,A]
-	jra	l_38fb                             	| [$388d: JP      $38FB]
+	jra	vulture_hit_38fb                             	| [$388d: JP      $38FB]
 
 l_3894:
 	move.b	#0x0D,d1                      	| [$3894: LD      BC,$0D05]
@@ -6434,7 +6426,7 @@ l_38a1:
 	add.b	#0xde,d0                         	| [$38ac: ADD     $DE]
 	move.b	d0,d6                           	| [$38ae: LD      L,A]
 	move.b	#0x17,d5                        	| [$38af: LD      H,$17]
-	jbsr	l_34de                            	| [$38b1: CALL    $34DE]
+	jbsr	display_clipped_vulture_34de                            	| [$38b1: CALL    $34DE]
 	move.l	(sp)+,a1                    	| [$38b4: POP     DE]
 	rts                                    	| [$38b5: RET]
 	
@@ -6491,16 +6483,17 @@ l_38e9:
 
 l_38f8:
 	lea	slot_for_regular_animation_4370,a0                	| [$38f8: LD      HL,slot_for_regular_animation_4370]
-l_38fb:
+vulture_hit_38fb:
 	                              	| [$38fb: XOR     A]
 	tst.b	(a0)                          	| [$38fc: CP      (HL)]
-	jeq	l_3906                             	| [$38fd: JP      Z,$3906]
-	addq.w	#4,a0                           	| [$3900: INC     L]
+	jeq	l_3906                             	| [$38fd: JP      Z,$3906]	is animation slot free? yes: use it
+	addq.w	#4,a0                           	| [$3900: INC     L]	next slot
 	tst.b	(a0)                          	| [$3904: CP      (HL)]
-	beq.b	0f                               	| [...]
-	rts                                    	| [$3905: RET     NZ] [...]
-0:
+	beq.b	l_3906                               	| [...]
+	rts                                    	| [$3905: RET     NZ] [...] no slot free: no anim (can't really happen)
 l_3906:
+
+	* populate animation structure (4 bytes)
 	move.b	d1,(a0)+                         	| [$3906: LD      (HL),B]
 	                           	| [$3907: INC     L]
 	move.b	d2,(a0)+                         	| [$3908: LD      (HL),C]
@@ -6508,7 +6501,7 @@ l_3906:
 	move.b	ram_pointer_on_flying_enemies_table_43E6,d0	| [$390a: LD      A,(ram_pointer_on_flying_enemies_table_43E6)]
 	move.b	d0,(a0)+                         	| [$390d: LD      (HL),A]
 	                           	| [$390e: INC     L]
-	move.b	unknown_43E7,d0                 	| [$390f: LD      A,(unknown_43E7)]
+	move.b	ram_pointer_on_flying_enemies_table_lsb_43E7,d0                 	| [$390f: LD      A,(ram_pointer_on_flying_enemies_table_lsb_43E7)]
 	move.b	d0,(a0)                         	| [$3912: LD      (HL),A]
 	* enemy shot (or just wing shot): disable player shot
 	move.b	player_shot_1_structure_43C4,d0 	| [$3913: LD      A,(player_shot_1_structure_43C4)]
@@ -6629,7 +6622,7 @@ l_3980:
 	ror.b	#1,d0                            	| [$39af: RRCA]
 	jcs	l_39bf                             	| [$39b0: JP      C,$39BF]
 	addq.w	#1,a1                           	| [$39b3: INC     E]
-	lea	unknown_43E7,a0                        	| [$39b4: LD      L,$E7]
+	lea	ram_pointer_on_flying_enemies_table_lsb_43E7,a0                        	| [$39b4: LD      L,$E7]
 	move.b	(a0),d0                         	| [$39b6: LD      A,(HL)]
 	sub.b	#0x20,d0                         	| [$39b7: SUB     $20]
 	move.b	d0,(a0)                         	| [$39b9: LD      (HL),A]
@@ -6647,7 +6640,7 @@ l_39c3:
 	move.b	(a0),d0                         	| [$39c9: LD      A,(HL)]
 	and.b	#0x08,d0                         	| [$39ca: AND     $08]
 	jeq	l_39f0                             	| [$39cc: JP      Z,$39F0]
-	lea	unknown_43E7,a0                	| [$39cf: LD      HL,unknown_43E7]
+	lea	ram_pointer_on_flying_enemies_table_lsb_43E7,a0                	| [$39cf: LD      HL,ram_pointer_on_flying_enemies_table_lsb_43E7]
 	addq.b	#1,(a0)                         	| [$39d2: INC     (HL)]
 	move.b	(a0),d0                         	| [$39d3: LD      A,(HL)]
 	and.b	#0x1F,d0                         	| [$39d4: AND     $1F]

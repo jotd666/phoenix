@@ -26,6 +26,7 @@ SCORE_FILE_SIZE = 0x50
 
 
 PURPLE_ALIEN_HEAD_COPPER_LONGWORD = ((color+14)<<16)+0xA2D
+YELLOW_SHIP_COPPER_LONGWORD = ((color+20)<<16)+0xFF4
 
 	.ifdef	RELEASE
 OPT_ENABLE_PROFILING = 0         | DO NOT CHANGE THIS
@@ -915,7 +916,7 @@ platform_init:
 	* restrict borders: we don't see bobs on the borders!
 	*         VVHH
     move.w #0x1C99+0x18,diwstrt(a5)
-    move.w #0x2481,diwstop(a5)
+    move.w #0x2381,diwstop(a5)
     move.w #0x0038,ddfstrt(a5)
     move.w #0x00D0,ddfstop(a5)
     move.w #0x6600,bplcon0(a5) | 6 bitplanes DPF
@@ -1036,6 +1037,14 @@ set_palette:
 	cmp.b	d0,d1
 	beq.b	2f
 	move.b	d0,current_palette
+	
+	move.w	#0x1FE,yellow_ship
+	* set or clear dynamic copper change for cyan color
+	* if level 3 (vultures)
+	cmp.b	#2,d0
+	bne.b	0f
+	move.w	#YELLOW_SHIP_COPPER_LONGWORD>>16,yellow_ship
+0:
 	
 	add.w	d0,d0
 	add.w	d0,d0
@@ -2039,6 +2048,8 @@ sprites:
     .word  0xE001,0xFFFE       | PAL wait
 alien_purple_score_screen:
 	.long	PURPLE_ALIEN_HEAD_COPPER_LONGWORD		| alien purple
+yellow_ship:
+	.long	YELLOW_SHIP_COPPER_LONGWORD
 	* pal limit
     .word  0xFFDF,0xFFFE       | PAL wait
     .word  0x0401,0xFFFE

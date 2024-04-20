@@ -24,7 +24,7 @@ config = {"fore":
 },
 
 3:{
-"F6F644":None
+"F6F644":"35E7BF"  # replace yellow by cyan for vulture level 3
 }
 },
 "back":{
