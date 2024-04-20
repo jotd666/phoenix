@@ -314,8 +314,8 @@ read_ram:
 	bcc.b	0b
 	.endif
 
-	lea		game_ram,a1
-	move.b	(a1,d7.w),d0
+	lea		game_ram,a6
+	move.b	(a6,d7.w),d0
 
 	move.w	(a7)+,d7
 	rts
@@ -2472,7 +2472,7 @@ l_0a8a:
 	rts                                    	| [$0a99: RET]
 	
 	DECL_ADDRESS	aa0
-
+	* enters here with HL=$43C0
 l_0aa0:
 	lea		screen_address_43E2,a0                        	| [$0aa0: LD      L,$E2]
 	move.b	(a0)+,d3                         	| [$0aa2: LD      D,(HL)]
@@ -4094,7 +4094,7 @@ l_2322:
 	jra	copy_block_to_screen_0ad6                             	| [$2337: JP      $0AD6]
 
 * < A1: shot structure
-* < A0: ??
+* < A0: ram_pointer_on_flying_enemies_table_43E6
 
 handle_player_shot_vs_mothership_2351:
 	move.b	(a1),d0                             | [$2351: LD      A,(DE)]
@@ -4118,9 +4118,10 @@ handle_player_shot_vs_mothership_2351:
 	and.b	#0xE0,d0                         	| [$2366: AND     $E0]
 	or.b	d1,d0                             	| [$2368: OR      B]
 	move.b	d0,d6                           	| [$2369: LD      L,A]
-	* reconvert to a0
-	bsr		load_ram_in_a0_from_d5d6
-	move.b	(a0),d0                         	| [$236a: LD      A,(HL)]
+	* reconvert to screen address
+	LOAD_D5_16_FROM_D5D6
+	move.w	d5,d7
+	bsr		read_ram                       	| [$236a: LD      A,(HL)]
 	move.b	d0,d1                           	| [$236b: LD      B,A]
 	and.b	#0xFC,d0                         	| [$236c: AND     $FC]
 	cmp.b	#0x4C,d0                         	| [$236e: CP      $4C]
@@ -4132,30 +4133,35 @@ handle_player_shot_vs_mothership_2351:
 l_237b:
 	move.b	(a1),d0                         	| [$237b: LD      A,(DE)]
 	and.b	#0xF7,d0                         	| [$237c: AND     $F7]
-	move.b	d0,(a1)                         	| [$237e: LD      (DE),A]
+	move.b	d0,(a1)                         	| [$237e: LD      (DE),A]	disable player shot
 	st.b	d0                                	| [$237f: LD      A,$FF]
 	move.b	d0,unknown_4366                 	| [$2381: LD      (unknown_4366),A]
 	move.b	d1,d0                           	| [$2384: LD      A,B]
+	* weaken the shield
 	subq.b	#1,d0                           	| [$2385: DEC     A]
-	move.b	d0,(a0)                         	| [$2386: LD      (HL),A]
+	jbsr	osd_w_videoram	                 	| [$2386: LD      (HL),A]
 	cmp.b	#0x4B,d0                         	| [$2387: CP      $4B]
 	beq.b	0f                               	| [...]
 	rts                                    	| [$2389: RET     NZ] [...]
 0:
-	clr.b	(a0)                             	| [$238a: LD      (HL),$00]
+	* no more shield on that character
+	moveq	#0,d0
+	jbsr	osd_w_videoram			| [$238a: LD      (HL),$00]
 	                           	| [$238c: DEC     L]
-	move.b	-(a0),d0                         	| [$238d: LD      A,(HL)]
+	subq.w	#1,d7
+	bsr		read_ram                        	| [$238d: LD      A,(HL)]
 	cmp.b	#0x5E,d0                         	| [$238e: CP      $5E]
 	beq.b	0f                               	| [...]
 	rts                                    	| [$2390: RET     NZ] [...]
 0:
-	move.b	#0x4F,(a0)                      	| [$2391: LD      (HL),$4F]
+	move.b	#0x4F,d0                      	| [$2391: LD      (HL),$4F]
+	jbsr	osd_w_videoram
 	rts                                    	| [$2393: RET]
 
 l_2398:
 	move.b	(a1),d0                         	| [$2398: LD      A,(DE)]
 	and.b	#0xF7,d0                         	| [$2399: AND     $F7]
-	move.b	d0,(a1)                         	| [$239b: LD      (DE),A]
+	move.b	d0,(a1)                         	| [$239b: LD      (DE),A]  	disable player shot
 	addq.w	#2,a1                           	| [$239c: INC     E]
 	move.b	(a1),d0                         	| [$239e: LD      A,(DE)]
 	and.b	#0x04,d0                         	| [$239f: AND     $04]
@@ -4171,19 +4177,20 @@ l_23ac:
 	add.w	d0,a1                            	| [$23b2: ADD     A,E]
 												| [$23b3: LD      E,A]
 	move.b	(a1),d0                         	| [$23b4: LD      A,(DE)]
-	move.b	d0,(a0)                         	| [$23b5: LD      (HL),A]
+	jbsr	osd_w_videoram                         	| [$23b5: LD      (HL),A]
 	st.b	d0                                	| [$23b6: LD      A,$FF]
 	move.b	d0,unknown_4366                 	| [$23b8: LD      (unknown_4366),A]
 	rts                                    	| [$23bb: RET]
 
 l_23c0:
-	                           	| [$23c0: DEC     L]
- 	move.b	-(a0),d0                         	| [$23c1: LD      A,(HL)]
+	subq.w	#1,d7                           	| [$23c0: DEC     L]
+ 	bsr		read_ram                         	| [$23c1: LD      A,(HL)]
 	and.b	#0xF0,d0                         	| [$23c2: AND     $F0]
 	cmp.b	#0x70,d0                         	| [$23c4: CP      $70]
 	beq.b	0f                               	| [...]
 	rts                                    	| [$23c6: RET     NZ] [...]
 0:
+	* bull's eye: we got the boss
 	lea	game_state_43A4,a0             	| [$23c7: LD      HL,game_state_43A4]
 	move.b	#0x06,(a0)+                      	| [$23ca: LD      (HL),$06]
 	                           	| [$23cc: INC     L]
@@ -4295,14 +4302,14 @@ l_246a:
 	jra	copy_block_to_screen_0ad6                             	| [$2473: JP      $0AD6]
 	
 	DECL_ADDRESS	2476
-* enters here called from l_26aa where H=$4B
+* enters here called from update_vulture_random_26aa where H=$4B
 * < D1: kind of pos-height of swarm
 * < D2:	derived from random 1-4
 l_2476:
 	move.b	d1,d0                           	| [$2476: LD      A,B]
 	add.b	d2,d0                            	| [$2477: ADD     A,C]
 	jbsr	compute_direction_change_timer_2495                            	| [$2478: CALL    $2495]
-	lea	swarm_direction_change_timer_4BD3,a0                        	| [$247b: LD      L,$D3]
+	lea	swarm_vertical_direction_change_timer_4BD3,a0                        	| [$247b: LD      L,$D3]
 	move.b	d0,(a0)                         	| [$247d: LD      (HL),A]
 	lea	nb_vultures_to_kill_before_stage_completed_43BB,a0                	| [$247e: LD      HL,nb_vultures_to_kill_before_stage_completed_43BB]
 	move.b	#0x08,d0                        	| [$2481: LD      A,$08]
@@ -4461,6 +4468,7 @@ l_253d:
 	move.b	#0x04,d1                        	| [$254b: LD      B,$04]
 	jra	write_digits_to_screen_00c4                             	| [$254d: JP      $00C4]
 
+	* here HL=$43xx
 l_2552:
 	lea		game_state_43A4,a0                       	| [$2552: LD      L,$A4]
 	move.b	#0x07,(a0)+                      	| [$2554: LD      (HL),$07]
@@ -4614,7 +4622,7 @@ handle_vultures_y_2600:
 	move.b	d0,(a0)+                         	| [$2611: LD      (HL),A]
 	                           	| [$2612: INC     L]
  	move.b	vultures_aggressivity_4BD1,d0     | [$2613: LD      A,(vultures_aggressivity_4BD1)]
-	cmp.b	(a0),d0                          	| [$2616: CP      (HL)]
+	cmp.b	(a0),d0                          	| [$2616: CP      (HL)] compare to swarm_vertical_direction_change_timer_4BD3
 	
 	* up or down, the delta y to move all vultures vertically
 	* uses a table in ROM from 0x3ED0
@@ -4643,15 +4651,29 @@ set_vultures_scroll_value_2639:
 	jbsr	osd_set_scroll_value                       	| [$263c: LD      ($5800),A] 58xx scroll register
 	move.b	random_seed_counter_value_439B,d0                    	| [$263f: LD      A,(random_seed_counter_value_439B)]
 	ror.b	#1,d0                            	| [$2642: RRCA]
-	jcc	compute_vulture_swarm_dimensions_26d0                             	| [$2643: JP      NC,$26D0]
+	* calls one time out of two either compute_vulture_swarm_dimensions_26d0 or update_vulture_random_26aa
+	* maybe not to overload the modest CPU tick?
+	jcc	compute_vulture_swarm_dimensions_26d0                             	| [$2643: JP      NC,$26D0] compute swarm dimensions 50% of time
 	jbsr	l_2668                            	| [$2646: CALL    $2668]
-	jra	l_26aa                             	| [$2649: JP      $26AA]
+	jra	update_vulture_random_26aa                             	| [$2649: JP      $26AA]
 
 	DECL_ADDRESS	2650
 	
+* jotd: I don't really know what is the problem here, but I have to change things as random_03_4BD4
+* is not or rarely updated, which often leads to it selecting 0 in the table
+* in vultures_go_up_2650, so the vultures almost never go up... I don't know why it works in the original
+* game and not here... but I'm changing the code so the vultures can go up if too many zero adds
+* in a row: updating random in that case if more than 30 zeroes in a row seems to do the trick
+*
+
 vultures_go_up_2650:
+    * avoid that vultures go up and warp from top to bottom of screen. Preventing scroll counter to wrap does the trick
 												| [$2650: INC     L]
 	move.b	current_scroll_value_43B9,d0    	| [$2651: LD      A,(current_scroll_value_43B9)]
+	cmp.b	#0xFC,d0
+	bcc.b	set_vultures_scroll_value_2639
+	
+	
 	rol.b	#2,d0                            	| [$2654: RLCA] * 2
 	and.b	#0x0C,d0                         	| [$2656: AND     $0C] effectively random on scroll value ! 0 4 8 12
 	add.b	random_03_4BD4,d0                          	| [$2658: ADD     A,(HL)] add random_03_4BD4 (range 0-3)
@@ -4662,14 +4684,27 @@ vultures_go_up_2650:
 	                       	| [$265b: LD      L,A]
 	                       	| [$265c: LD      H,$3E]
 	move.b	current_scroll_value_43B9,d0    	| [$265e: LD      A,(current_scroll_value_43B9)]
-	add.b	(a0,d6.w),d0                          	| [$2661: ADD     A,(HL)] adds 1 or 0
-	tst.b	(a0,d6.w)
-	beq.b	0f
-	move.w	#0x0F0,0xDFF180
+	move.b	(a0,d6.w),d6                          	| [$2661: ADD     A,(HL)] adds 1 or 0
+	bne.b	0f
+	* zero:
+	addq.w	#1,zero_added
+	cmp.w	#30,zero_added
+	bne.b	0f
+	clr.w	zero_added
+	move.w	d0,-(a7)
+	move.b	repeated_bits_random_436F,d0                 	| [$26bf: LD      A,(repeated_bits_random_436F)]
+	and.b	#0x03,d0                         	| [$26c2: AND     $03]
+	* compute 0-3 value from random value above
+	                        	| [$26c4: LD      L,$D4]
+	move.b	d0,random_03_4BD4                         	| [$26c6: LD      (HL),A]
+	move.w	(a7)+,d0
+
 0:
+	add.b	d6,d0
 	jra	set_vultures_scroll_value_2639                             	| [$2662: JP      $2639]
 	
-
+zero_added:
+	.word	0
 	                             	| [$2665: JP      NC,$26AE]
 l_2668:
 	move.b	unknown_436E,d0                 	| [$2668: LD      A,(unknown_436E)]
@@ -4715,14 +4750,15 @@ l_26a3:
 	rts                                    	| [$26a7: RET]
 	                          	| [$26a8: NOP]
 	                           	| [$26a9: LD      E,B]
-l_26aa:
-	lea	swarm_direction_change_timer_4BD3,a0                	| [$26aa: LD      HL,swarm_direction_change_timer_4BD3]
+update_vulture_random_26aa:
+	lea	swarm_vertical_direction_change_timer_4BD3,a0   | [$26aa: LD      HL,swarm_vertical_direction_change_timer_4BD3]
 	move.b	(a0),d0                         	| [$26ad: LD      A,(HL)]
 	subq.b	#1,(a0)                         	| [$26ae: DEC     (HL)]
 	tst.b	d0                               	| [$26af: AND     A]
 	beq.b	0f                               	| [...]
 	rts                                    	| [$26b0: RET     NZ] [...]
 0:
+	* time to change swarm vertical direction
 	addq.b	#1,(a0)                         	| [$26b1: INC     (HL)]
 	lea	average_vulture_y_pos_in_chars_4BD6,a0                        	| [$26b2: LD      L,$D6]
 	move.b	(a0),d0                         	| [$26b4: LD      A,(HL)]
@@ -4743,14 +4779,18 @@ l_26aa:
 	move.b	repeated_bits_random_436F,d0                 	| [$26bf: LD      A,(repeated_bits_random_436F)]
 	and.b	#0x03,d0                         	| [$26c2: AND     $03]
 	* compute 0-3 value from random value above
-	lea	random_03_4BD4,a0                        	| [$26c4: LD      L,$D4]
-	move.b	d0,(a0)                         	| [$26c6: LD      (HL),A]
+	                        	| [$26c4: LD      L,$D4]
+	move.b	d0,random_03_4BD4                         	| [$26c6: LD      (HL),A]
 	not.b	d0                               	| [$26c7: CPL]
 	and.b	#0x03,d0                         	| [$26c8: AND     $03]
 	addq.b	#1,d0                           	| [$26ca: INC     A]
 	move.b	d0,d2                           	| [$26cb: LD      C,A]
 	jra	l_2476                             	| [$26cc: JP      $2476]
 	                                    	| [$26cf: RET]
+											
+* entering here HL=$4Bxx
+*
+
 	
 	DECL_ADDRESS	26d0
 	

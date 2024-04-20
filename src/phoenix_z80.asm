@@ -2556,7 +2556,7 @@ bird_shot_0EA4:
 0FC9: CD D8 0F        CALL    $0FD8               ;
 0FCC: 21 78 43        LD      HL,slot_for_special_animation_4378
 0FCF: CD 58 37        CALL    $3758               ;
-0FD2: 21 7C 43        LD      HL,unknown_437C
+0FD2: 21 7C 43        LD      HL,slot_for_special_animation_437C
 0FD5: C3 58 37        JP      $3758               ;
 0FD8: 7E              LD      A,(HL)
 0FD9: A7              AND     A
@@ -3747,7 +3747,7 @@ end_of_level_transition_244C:
 26A7: C9              RET
 26A8: 00              NOP
 26A9: 58              LD      E,B
-26AA: 21 D3 4B        LD      HL,swarm_direction_change_timer_4BD3
+26AA: 21 D3 4B        LD      HL,swarm_vertical_direction_change_timer_4BD3
 26AD: 7E              LD      A,(HL)
 26AE: 35              DEC     (HL)
 26AF: A7              AND     A
@@ -5114,10 +5114,10 @@ player_shots_vs_vultures_collision_3800:
 380B: 57              LD      D,A
 380C: 3A D2 4B        LD      A,(unknown_4BD2)
 380F: 5F              LD      E,A
-3810: 3A E7 43        LD      A,(unknown_43E7)
+3810: 3A E7 43        LD      A,(ram_pointer_on_flying_enemies_table_lsb_43E7)
 3813: E6 E0           AND     $E0
 3815: 47              LD      B,A
-3816: 3A E7 43        LD      A,(unknown_43E7)
+3816: 3A E7 43        LD      A,(ram_pointer_on_flying_enemies_table_lsb_43E7)
 3819: 93              SUB     E
 381A: 00              NOP
 381B: E6 1F           AND     $1F
@@ -5268,7 +5268,7 @@ player_shots_vs_vultures_collision_3800:
 390A: 3A E6 43        LD      A,(ram_pointer_on_flying_enemies_table_43E6)
 390D: 77              LD      (HL),A
 390E: 2C              INC     L
-390F: 3A E7 43        LD      A,(unknown_43E7)
+390F: 3A E7 43        LD      A,(ram_pointer_on_flying_enemies_table_lsb_43E7)
 3912: 77              LD      (HL),A
 3913: 3A C4 43        LD      A,(player_shot_1_structure_43C4)
 3916: E6 F7           AND     $F7
@@ -5378,7 +5378,7 @@ player_shots_vs_vultures_collision_3800:
 39C9: 7E              LD      A,(HL)
 39CA: E6 08           AND     $08
 39CC: CA F0 39        JP      Z,$39F0             ;
-39CF: 21 E7 43        LD      HL,unknown_43E7
+39CF: 21 E7 43        LD      HL,ram_pointer_on_flying_enemies_table_lsb_43E7
 39D2: 34              INC     (HL)
 39D3: 7E              LD      A,(HL)
 39D4: E6 1F           AND     $1F
