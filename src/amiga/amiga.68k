@@ -1094,6 +1094,13 @@ force_tile_redraw:
 	rts
 	
 osd_wait_for_vblank:
+	addq.b	#1,vb_ticks_count
+	cmp.b	#5,vb_ticks_count
+	bne.b	0f
+	* don't wait every 5 ticks to simulate 60Hz
+	clr.b	vb_ticks_count
+	rts
+0:	
 	.ifndef	RELEASE
 	tst.b	fast_forward_flag
 	beq.b	1f
@@ -1478,10 +1485,10 @@ osd_read_inputs:
 	movem.l	a0/d1,-(a7)
 	lea		keyboard_table(pc),a0
 	* misc control keys
-	tst.b	(6,a0)		| "6" key like in MAME
-	beq.b	0f
-	bclr	#1,d0
-0:	
+*	tst.b	(6,a0)		| "6" key like in MAME
+*	beq.b	0f
+*	bclr	#1,d0
+*0:	
 	tst.b	(5,a0)		| "5" key like in MAME
 	beq.b	0f
 	bclr	#BIT_COIN,d0
@@ -1532,41 +1539,31 @@ osd_read_inputs:
 	beq.b	0f
 	bclr	#BIT_RED,d0
 0:
-	btst	#JPB_BTN_RED,d1
+	btst	#JPB_BTN_BLU,d1
 	beq.b	0f
 	bclr	#BIT_BLUE,d0
 0:
 	* test all those flags to see if normal controls
 	* could be used to insert coins/start game
 
-	bra.b	3f
-	*** unreach
-	
-	move.l	d2,-(a7)
-	move.l	_previous_joypad_state(pc),d2
-	* save prev state as game loops within vblank
-	* pushing fire would either lockup the game
-	* or insert a lot of credits simulatenously
-	move.l	d1,_previous_joypad_state
-	
+	tst.b	game_in_play_43A2
+	bne.b	3f
+		
 	* game not in play, accept start 1P game with "up"
 	btst	#JPB_BTN_UP,d1
 	beq.b	0f
-	bclr	#2,d0
+	bclr	#BIT_START_1,d0
 0:
 	* game not in play, accept start 2P game with "down"
 	btst	#JPB_BTN_DOWN,d1
 	beq.b	0f
-	bclr	#10,d0
+	bclr	#BIT_START_2,d0
 0:
 	btst	#JPB_BTN_RED,d1
 	beq.b	0f
-	btst	#JPB_BTN_RED,d2
-	bne.b	0f
 	* game not in play, accept insert coin with fire
-	bclr	#0,d0
+	bclr	#BIT_COIN,d0
 0:
-	move.l	(a7)+,d2
 3:
 
 	movem.l	(a7)+,a0/d1
