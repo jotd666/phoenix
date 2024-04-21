@@ -2262,8 +2262,10 @@ handle_player_controls_08c4:
 	move.b	(a0),d0                         	| [$08e2: LD      A,(HL)]
 	and.b	#0xF7,d0                         	| [$08e3: AND     $F7]
 	move.b	d0,(a0)                         	| [$08e5: LD      (HL),A]
+	move.w	#SHIELD_SND,d0
+	jbsr	osd_sound_start
 	lea	shield_timer_43A6,a0                        	| [$08e6: LD      L,$A6]
-	move.b	#0xFF,(a0)                      	| [$08e8: LD      (HL),$FF] enable shield
+	st.b	(a0)                      	| [$08e8: LD      (HL),$FF] enable shield
 l_08ea:
 	subq.b	#1,(a0)                         	| [$08ea: DEC     (HL)]
 l_08eb:
@@ -2702,6 +2704,7 @@ draw_bird_extended_winds_0bca:
 	rts                                    	| [$0bf1: RET]
 
 moving_bird_shot_0C00:
+
 	* here A0 points on ram at 0x4Bxx
 	move.l	a0,-(sp)                        	| [$0c00: PUSH    HL]
 	* compute A0 lsb
@@ -2832,6 +2835,10 @@ player_hit_0cc4:
 	beq.b	0f
 	rts
 0:
+	jbsr	osd_sound_stop
+	move.w	#EXPLOSION_SND,d0
+	jbsr	osd_sound_start
+	
 	move.b	#0x04,d0                        	| [$0cc4: LD      A,$04]
 	move.b	d0,game_state_43A4              	| [$0cc6: LD      (game_state_43A4),A]
 	move.b	#0x60,d0                        	| [$0cc9: LD      A,$60]
@@ -3229,12 +3236,18 @@ l_0ead:
 	move.b	(a0)+,d1                         	| [$0eb5: LD      B,(HL)]
 	                           	| [$0eb6: INC     HL]
 	move.b	(a0),d2                         	| [$0eb7: LD      C,(HL)] load into BC (ram pointer)
+	move.w	#VULTURE_SHOT_SND,d5
+
 	lea	slot_for_special_animation_4378,a0                	| [$0eb8: LD      HL,slot_for_special_animation_4378]
 	move.b	d3,d0                           	| [$0ebb: LD      A,D]
 	cmp.b	#0x10,d0                         	| [$0ebc: CP      $10]	Are we to use the special animation?
 	jeq	l_0ec3                             	| [$0ebe: JP      Z,$0EC3]
+	move.w	#BIRD_SHOT_SND,d5
 	lea	slot_for_regular_animation_4370,a0                        	| [$0ec1: LD      L,$70]
 l_0ec3:
+	move.b	d5,d0
+	jbsr	osd_sound_start
+
 	move.b	(a0),d0                         	| [$0ec3: LD      A,(HL)]
 	                               	| [$0ec4: AND     A]
 	jeq	l_0ed5                             	| [$0ec5: JP      Z,$0ED5]
@@ -6447,6 +6460,10 @@ l_3844:
 	st.b	d0                                	| [$3863: LD      A,$FF]
 	move.b	d0,unknown_4369                 	| [$3865: LD      (unknown_4369),A]
 	lea	slot_for_special_animation_4378,a0                	| [$3868: LD      HL,slot_for_special_animation_4378]
+	
+	move.w	#VULTURE_SHOT_SND,d0
+	jbsr	osd_sound_start
+	
 	move.b	#0x10,d1
 	move.b	#0x10,d2                      	| [$386b: LD      BC,$1010]
 	move.b	d4,d0                           	| [$386e: LD      A,E]
@@ -6476,7 +6493,11 @@ l_3894:
 	move.b	#0x05,d2                      	| [$3894: LD      BC,$0D05]
 	st.b	d0                                	| [$3897: LD      A,$FF]
 	move.b	d0,killed_sfx_flag_4364                 	| [$3899: LD      (killed_sfx_flag_4364),A]
-	jra	l_38f8                             	| [$389c: JP      $38F8]
+
+	move.w	#BIRD_SHOT_SND,d0
+	jbsr	osd_sound_start	
+
+	jra	vulture_simple_hit_38f8                             	| [$389c: JP      $38F8]
 
 l_38a1:
 	move.l	a1,-(sp)                    	| [$38a1: PUSH    DE]
@@ -6545,7 +6566,10 @@ l_38e9:
 	move.b	#0x02,d2                      	| [$38ee: LD      BC,$0702]
 	                             	| [$38f1: JP      $38F8]
 
-l_38f8:
+	move.w	#SHOT_BOUNCES_1_SND,D0
+	jbsr	osd_sound_start
+	
+vulture_simple_hit_38f8:
 	lea	slot_for_regular_animation_4370,a0                	| [$38f8: LD      HL,slot_for_regular_animation_4370]
 vulture_hit_38fb:
 	                              	| [$38fb: XOR     A]
@@ -6573,7 +6597,7 @@ l_3906:
 	move.b	d0,player_shot_1_structure_43C4 	| [$3918: LD      (player_shot_1_structure_43C4),A]
 	rts                                    	| [$391b: RET]
 	
-	* called when vulture is shot
+	* called when vulture is nearly shot, not lethally (like wing)
 	
 	DECL_ADDRESS	391c
 * < A0:

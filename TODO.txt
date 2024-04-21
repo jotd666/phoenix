@@ -1,20 +1,22 @@
 logic:
 
-- game_in_play_43A2 to allow credit / start
 - check demo ship moving?
-- center digit of awarded vulture score sometimes bogus, seems to
-  be able to corrupt main score for a while too (DAA issue)
-- boss killed: score not centered on screen can be bogus (DAA missing?)
 - when restarting, status bar is erased at first
 - hit by missiles with shield: illegal?? reproduce??
 - debug copy_bank (2player) atm 2P disabled
-- 60Hz
 
 colors:
 
 - title: reinstate the light pink for the (c) sign instead: "F4CDCF":"FFFFFF" when 4008=$79
   of white
 - create a 16+16 AGA DPF version
+
+sounds:
+
+- test bounce/add random for better bounce bounce 2
+- vultures loop to implement
+- boss stage!!
+- extra life beeps
 
 original game bugs:
 

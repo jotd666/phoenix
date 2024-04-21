@@ -653,7 +653,7 @@ osd_break:
 osd_sound_loop_stop:
 	movem.l	d0/a6,-(a7)
 	move.b	#3,d0
-	move.l	_custom,a6
+	lea		_custom,a6
 	jbsr	_mt_stopfx
 	clr.b	loop_playing
 	movem.l	(a7)+,d0/a6
