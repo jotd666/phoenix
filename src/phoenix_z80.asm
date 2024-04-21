@@ -661,7 +661,7 @@ display_players_lives_0367:
 0373: 32 62 40        LD      (unknown_4062),A
 0376: C9              RET
 
-0377: 21 8C 43        LD      HL,unknown_438C
+0377: 21 8C 43        LD      HL,sound_buffer_438C
 037A: 77              LD      (HL),A
 037B: 2C              INC     L
 037C: 77              LD      (HL),A
@@ -3327,9 +3327,9 @@ mothership_level_22CA:
 23E1: FE 03           CP      $03
 23E3: CA 98 3A        JP      Z,$3A98             ;
 23E6: FE 05           CP      $05
-23E8: CA D0 3A        JP      Z,$3AD0             ;
+23E8: CA D0 3A        JP      Z,vultures_background_sound_3ad0             ;
 23EB: FE 07           CP      $07
-23ED: CA D0 3A        JP      Z,$3AD0             ;
+23ED: CA D0 3A        JP      Z,vultures_background_sound_3ad0             ;
 23F0: FE 09           CP      $09
 23F2: D8              RET     C
 23F3: FE 0B           CP      $0B
@@ -3905,7 +3905,7 @@ end_of_level_transition_244C:
 27A5: FF              RST     0X38
 27A6: FF              RST     0X38
 27A7: FF              RST     0X38
-27A8: 21 8C 43        LD      HL,unknown_438C
+27A8: 21 8C 43        LD      HL,sound_buffer_438C
 27AB: 7E              LD      A,(HL)
 27AC: 32 00 60        LD      (unknown_6000),A           ; 60xx sound A
 27AF: 2C              INC     L
@@ -5516,15 +5516,17 @@ player_shots_vs_vultures_collision_3800:
 3ABD: 3E 08           LD      A,$08
 3ABF: C6 25           ADD     $25
 3AC1: 4F              LD      C,A
-3AC2: 21 8C 43        LD      HL,unknown_438C
+3AC2: 21 8C 43        LD      HL,sound_buffer_438C
 3AC5: 7E              LD      A,(HL)
 3AC6: E6 C0           AND     $C0
 3AC8: B1              OR      C
 3AC9: 77              LD      (HL),A
 3ACA: C9              RET
 
+; plays the changing frequency high pitched "alert" sound
+; changes depending on how low the vultures are
 
-
+vultures_background_sound_3ad0:
 3AD0: 21 8E 43        LD      HL,unknown_438E
 3AD3: 7E              LD      A,(HL)
 3AD4: E6 01           AND     $01
@@ -5615,6 +5617,14 @@ player_shots_vs_vultures_collision_3800:
 3B58: CD 82 3A        CALL    $3A82               ;
 3B5B: C3 90 3A        JP      $3A90               ;
 
+
+; table in 3ED0 contains only zeroes and ones
+vulture_y_delta_table_3ED0:
+	.byte	$01,$01,$01,$01		; 100% of ones
+	.byte	$00,$00,$01,$01		; 50% of ones
+	.byte	$00,$01,$01,$01		; 75% of ones
+	.byte	$00,$00,$00,$01		; 25% of ones
+	
 ; group of 4 routines to be chained
 ; if last of the 4 routines is bogus, but last value is called first
 ; so the routine can pop the stack to just drop the FFFF or load parameters!

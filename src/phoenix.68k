@@ -1180,7 +1180,7 @@ display_players_lives_0367:
 	rts                                    	| [$0376: RET]
 
 l_0377:
-	lea	unknown_438C,a0                	| [$0377: LD      HL,unknown_438C]
+	lea	sound_buffer_438C,a0                	| [$0377: LD      HL,sound_buffer_438C]
 	move.b	d0,(a0)+                         	| [$037a: LD      (HL),A]
 	                           	| [$037b: INC     L]
 	move.b	d0,(a0)                         	| [$037c: LD      (HL),A]
@@ -4225,9 +4225,9 @@ l_23d6:
 	cmp.b	#0x03,d0                         	| [$23e1: CP      $03]
 	jeq	l_3a98                             	| [$23e3: JP      Z,$3A98]
 	cmp.b	#0x05,d0                         	| [$23e6: CP      $05]
-	jeq	l_3ad0                             	| [$23e8: JP      Z,$3AD0]
+	jeq	vultures_background_sound_3ad0                             	| [$23e8: JP      Z,$3AD0]
 	cmp.b	#0x07,d0                         	| [$23eb: CP      $07]
-	jeq	l_3ad0                             	| [$23ed: JP      Z,$3AD0]
+	jeq	vultures_background_sound_3ad0                             	| [$23ed: JP      Z,$3AD0]
 	cmp.b	#0x09,d0                         	| [$23f0: CP      $09]
 	bcc.b	0f                               	| [...]
 	rts                                    	| [$23f2: RET     C] [...]
@@ -4894,7 +4894,7 @@ l_2739:
 	bne.b	0f                               	| [...]
 	jbsr	l_2768                            	| [$273d: CALL    Z,$2768]
 0:
-	jbsr	l_27a8                            	| [$2740: CALL    $27A8]
+	jbsr	handle_sounds_27a8                            	| [$2740: CALL    $27A8]
 	jra	l_3a10                             	| [$2743: JP      $3A10]
 
 
@@ -4966,8 +4966,9 @@ l_2778:
 	                           	| [$27a2: DEC     L]
 	move.b	d0,-(a0)                         	| [$27a3: LD      (HL),A]
 	rts                                    	| [$27a4: RET]
-l_27a8:
-	lea	unknown_438C,a0                	| [$27a8: LD      HL,unknown_438C]
+	
+handle_sounds_27a8:
+	lea	sound_buffer_438C,a0                	| [$27a8: LD      HL,sound_buffer_438C]
 	move.b	(a0)+,d0                         	| [$27ab: LD      A,(HL)]
 	*move.b	d0,sound_6000                 	| [$27ac: LD      (sound_6000),A] 60xx sound A
 	                           	| [$27af: INC     L]
@@ -4976,9 +4977,12 @@ l_27a8:
 	or.b	#0x0F,d0                          	| [$27b4: OR      $0F]
 	move.b	d0,(a0)                         	| [$27b6: LD      (HL),A]
 	                           	| [$27b7: DEC     L]
- 	move.b	#0x0F,-(a0)                      	| [$27b8: LD      (HL),$0F]
+ 	move.b	#0x0F,-(a0)                      	| [$27b8: LD      (HL),$0F] acknowledge?
 	rts                                    	| [$27ba: RET]
-l_27bd:
+	
+* used for player shots and explosions
+
+noise_generation_27bd:
 	lea	unknown_4363,a0                	| [$27bd: LD      HL,unknown_4363]
 	move.b	(a0),d0                         	| [$27c0: LD      A,(HL)]
 	                               	| [$27c1: AND     A]
@@ -4992,7 +4996,7 @@ l_27bd:
 	cmp.b	#0x19,d0                         	| [$27ca: CP      $19]
 	jcc	l_27d8                             	| [$27cc: JP      NC,$27D8]
 	subq.b	#1,(a0)                         	| [$27cf: DEC     (HL)]
-	lea	unknown_438C,a0                        	| [$27d0: LD      L,$8C]
+	lea	sound_buffer_438C,a0                        	| [$27d0: LD      L,$8C]
 	move.b	(a0),d0                         	| [$27d2: LD      A,(HL)]
 	or.b	#0x40,d0                          	| [$27d3: OR      $40]
 	move.b	d0,(a0)                         	| [$27d5: LD      (HL),A]
@@ -5000,7 +5004,7 @@ l_27bd:
 	                         	| [$27d7: LD      (HL),A]
 l_27d8:
 	move.b	#0x18,(a0)                      	| [$27d8: LD      (HL),$18]
-	lea	unknown_438C,a0                        	| [$27da: LD      L,$8C]
+	lea	sound_buffer_438C,a0                        	| [$27da: LD      L,$8C]
 	move.b	(a0),d0                         	| [$27dc: LD      A,(HL)]
 	and.b	#0xBF,d0                         	| [$27dd: AND     $BF]
 	move.b	d0,(a0)                         	| [$27df: LD      (HL),A]
@@ -5013,8 +5017,8 @@ l_27e2:
 	move.b	#0x40,(a0)                      	| [$27e7: LD      (HL),$40]
 l_27e9:
 	subq.b	#1,(a0)                         	| [$27e9: DEC     (HL)]
-	lea	unknown_438C,a0                        	| [$27ea: LD      L,$8C]
-	move.b	#0x8F,(a0)                      	| [$27ec: LD      (HL),$8F]
+	lea	sound_buffer_438C,a0                        	| [$27ea: LD      L,$8C]
+	move.b	#0x8F,(a0)                      	| [$27ec: LD      (HL),$8F] noise
 	rts                                    	| [$27ee: RET]
 
 * if not called, birds just move left and right
@@ -6781,7 +6785,7 @@ l_3a4e:
 	not.b	d0                               	| [$3a53: CPL]
 	and.b	#0x07,d0                         	| [$3a54: AND     $07]
 	or.b	#0x10,d0                          	| [$3a56: OR      $10]
-	lea	unknown_438C,a0                        	| [$3a58: LD      L,$8C]
+	lea	sound_buffer_438C,a0                        	| [$3a58: LD      L,$8C]
 	move.b	d0,(a0)                         	| [$3a5a: LD      (HL),A]
 	lea	unknown_4366,a0                        	| [$3a5b: LD      L,$66]
 	clr.b	(a0)                             	| [$3a5d: LD      (HL),$00]
@@ -6804,7 +6808,7 @@ l_3a62:
 	move.b	#0x05,(a0)                      	| [$3a76: LD      (HL),$05]
 l_3a78:
 	subq.b	#1,(a0)                         	| [$3a78: DEC     (HL)]
-	lea	unknown_438C,a0                        	| [$3a79: LD      L,$8C]
+	lea	sound_buffer_438C,a0                        	| [$3a79: LD      L,$8C]
 	move.b	(a0),d0                         	| [$3a7b: LD      A,(HL)]
 	and.b	#0x08,d0                         	| [$3a7c: AND     $08]
 	or.b	#0x04,d0                          	| [$3a7e: OR      $04]
@@ -6858,16 +6862,17 @@ l_3aae:
 l_3abf:
 	add.b	#0x25,d0                         	| [$3abf: ADD     $25]
 	move.b	d0,d2                           	| [$3ac1: LD      C,A]
-	lea	unknown_438C,a0                	| [$3ac2: LD      HL,unknown_438C]
+	lea	sound_buffer_438C,a0                	| [$3ac2: LD      HL,sound_buffer_438C]
 	move.b	(a0),d0                         	| [$3ac5: LD      A,(HL)]
 	and.b	#0xC0,d0                         	| [$3ac6: AND     $C0]
 	or.b	d2,d0                             	| [$3ac8: OR      C]
 	move.b	d0,(a0)                         	| [$3ac9: LD      (HL),A]
 	rts                                    	| [$3aca: RET]
 
+* plays the changing frequency high pitched "alert" sound
+* changes depending on how low the vultures are
 
-
-l_3ad0:
+vultures_background_sound_3ad0:
 	lea	unknown_438E,a0                	| [$3ad0: LD      HL,unknown_438E]
 	move.b	(a0),d0                         	| [$3ad3: LD      A,(HL)]
 	and.b	#0x01,d0                         	| [$3ad4: AND     $01]
@@ -6970,7 +6975,7 @@ l_3b43:
 	jbsr	l_3b33                            	| [$3b4c: CALL    $3B33]
 	jbsr	l_3b1b                            	| [$3b4f: CALL    $3B1B]
 	jbsr	l_3a1d                            	| [$3b52: CALL    $3A1D]
-	jbsr	l_27bd                            	| [$3b55: CALL    $27BD]
+	jbsr	noise_generation_27bd                            	| [$3b55: CALL    $27BD]
 	jbsr	l_3a82                            	| [$3b58: CALL    $3A82]
 	jra	l_3a90                             	| [$3b5b: JP      $3A90]
 
