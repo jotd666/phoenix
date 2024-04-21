@@ -24,7 +24,7 @@
 	.global	unknown_4358
 	.global	unknown_435F
 	.global	unknown_4360
-	.global	unknown_4361
+	.global	shot_sound_counter_4361
 	.global	unknown_4362
 	.global	unknown_4363
 	.global	killed_sfx_flag_4364
@@ -149,7 +149,7 @@ unknown_435F:
 	.skip	1
 unknown_4360:
 	.skip	1
-unknown_4361:
+shot_sound_counter_4361:
 	.skip	1
 unknown_4362:
 	.skip	1

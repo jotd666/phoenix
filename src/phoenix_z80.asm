@@ -1644,7 +1644,7 @@ read_controls_to_move_ship_0900:
 0956: 01 20 16        LD      BC,$1620
 0959: CD 26 09        CALL    $0926               ;
 095C: 3E 30           LD      A,$30
-095E: 32 61 43        LD      (unknown_4361),A
+095E: 32 61 43        LD      (shot_sound_counter_4361),A
 0961: C9              RET
 
 0964: 2C              INC     L
