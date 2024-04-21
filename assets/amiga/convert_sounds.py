@@ -21,10 +21,10 @@ sndfile = os.path.join(src_dir,"sound_entries.68k")
 hq_sample_rate = 22050
 
 
-noise = 3
-loop = 2
-kills = 1
-other = 4
+noise = 1
+loop = 3
+kills = 2
+other = 0
 
 EMPTY_SND = "EMPTY_SND"
 sound_dict = {
@@ -36,9 +36,9 @@ sound_dict = {
 "SHIELD_SND"             :{"index":3,"channel":other,"sample_rate":hq_sample_rate,"priority":1},
 "EXPLOSION_SND"             :{"index":4,"channel":other,"sample_rate":hq_sample_rate,"priority":1},
 "BIRD_SHOT_SND"             :{"index":5,"channel":kills,"sample_rate":hq_sample_rate,"priority":1},
-"ATTACK_LOOP_SND"             :{"index":6,"channel":loop,"sample_rate":hq_sample_rate,"priority":1},
+"ATTACK_LOOP_SND"             :{"index":6,"channel":loop,"sample_rate":hq_sample_rate,"priority":1,"loops":True},
 "VULTURE_SHOT_SND"             :{"index":7,"channel":kills,"sample_rate":hq_sample_rate,"priority":1},
-"VULTURE_LOOP_SND"             :{"index":8,"channel":loop,"sample_rate":hq_sample_rate,"priority":1},
+"VULTURE_LOOP_SND"             :{"index":8,"channel":loop,"sample_rate":hq_sample_rate,"priority":1,"loops":True},
 
 }
 

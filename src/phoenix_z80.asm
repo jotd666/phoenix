@@ -5527,7 +5527,7 @@ player_shots_vs_vultures_collision_3800:
 ; changes depending on how low the vultures are
 
 vultures_background_sound_3ad0:
-3AD0: 21 8E 43        LD      HL,unknown_438E
+3AD0: 21 8E 43        LD      HL,sound_control_438E
 3AD3: 7E              LD      A,(HL)
 3AD4: E6 01           AND     $01
 3AD6: 07              RLCA

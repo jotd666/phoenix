@@ -47,8 +47,8 @@
 	.global	unknown_4389
 	.global	highest_score_438B
 	.global	sound_buffer_438C
-	.global	unknown_438D
-	.global	unknown_438E
+	.global	sound_control_438D
+	.global	sound_control_438E
 	.global	CoinCount_438F
 	.global	unknown_4392
 	.global	birds_attack_counter_4393
@@ -196,10 +196,10 @@ highest_score_438B:
 	.skip	1
 sound_buffer_438C:
 	.skip	1
-unknown_438D:
+sound_control_438D:
 	.skip	1
 
-unknown_438E:
+sound_control_438E:
 	.skip	1
 CoinCount_438F:
 	.skip	1

@@ -41,6 +41,7 @@
 	.equ	BIRD_SHOT_SND,                      5
 	.equ	ATTACK_LOOP_SND,                    6
 	.equ	VULTURE_SHOT_SND,              7
+	.equ	VULTURE_LOOP_SND,              8
 
 
 

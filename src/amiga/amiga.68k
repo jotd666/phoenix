@@ -139,6 +139,7 @@ start:
 		.global osd_set_scroll_value
 		.global osd_sound_start
 		.global osd_sound_stop
+		.global osd_sound_loop_stop
 		.global	osd_write_5000
 		.global	osd_wait_for_vblank
 
@@ -649,9 +650,14 @@ osd_break:
 1003:
         .align	
 
-	
-
-
+osd_sound_loop_stop:
+	movem.l	d0/a6,-(a7)
+	move.b	#3,d0
+	move.l	_custom,a6
+	jbsr	_mt_stopfx
+	clr.b	loop_playing
+	movem.l	(a7)+,d0/a6
+	rts
 	
 osd_sound_start:
 
@@ -676,6 +682,9 @@ osd_sound_start:
 	lea		_custom,a6
 	tst.w	d1
 	beq.b	3f
+	tst.b	loop_playing
+	bne.b	1f
+	st.b	loop_playing
 	* looped sound
 	jsr		_mt_loopfx
 	bra.b	1f
@@ -758,6 +767,7 @@ osd_sound_stop:
 	move.b	#-1,music_track_start_number
     clr.w   music_tick   | not playing anymore
 	clr.b	music_playing
+	clr.b	loop_playing
     jsr		_mt_end
 0:
 	movem.l	(a7)+,d0/a0/a6
@@ -1030,6 +1040,10 @@ set_palette:
 	bsr		get_current_stage
 	move.b	d0,d2
 	lsr.b	#1,d2
+	bcs.b	0f
+	* intermissions are a good time to stop all sounds
+	jbsr	osd_sound_stop
+0:
 	move.b	current_palette,d1
 	cmp.b	d2,d1
 	beq.b	2f
@@ -1878,6 +1892,8 @@ music_loops:
 music_volume:
 	.byte	0
 music_playing:
+	.byte	0
+loop_playing:
 	.byte	0
 music_muted:
 	.byte	0

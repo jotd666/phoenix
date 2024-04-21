@@ -4218,14 +4218,14 @@ l_23c0:
 	move.b	#0xFF,(a0)                      	| [$23d1: LD      (HL),$FF]
 	rts                                    	| [$23d3: RET]
 
-l_23d6:
+play_stage_ambient_sound_23d6:
 	lea	current_stage_43B8,a0          	| [$23d6: LD      HL,current_stage_43B8]
 	move.b	(a0),d0                         	| [$23d9: LD      A,(HL)]
 	and.b	#0x0F,d0                         	| [$23da: AND     $0F]
 	cmp.b	#0x01,d0                         	| [$23dc: CP      $01]
-	jeq	l_3a98                             	| [$23de: JP      Z,$3A98]
+	jeq	birds_ambient_sound_3a98                             	| [$23de: JP      Z,$3A98]
 	cmp.b	#0x03,d0                         	| [$23e1: CP      $03]
-	jeq	l_3a98                             	| [$23e3: JP      Z,$3A98]
+	jeq	birds_ambient_sound_3a98                             	| [$23e3: JP      Z,$3A98]
 	cmp.b	#0x05,d0                         	| [$23e6: CP      $05]
 	jeq	vultures_background_sound_3ad0                             	| [$23e8: JP      Z,$3AD0]
 	cmp.b	#0x07,d0                         	| [$23eb: CP      $07]
@@ -4237,7 +4237,7 @@ l_23d6:
 	cmp.b	#0x0B,d0                         	| [$23f3: CP      $0B]
 	jcs	l_3b02                             	| [$23f5: JP      C,$3B02]
 	jbsr	l_3b02                            	| [$23f8: CALL    $3B02]
-	jra	l_3a98                             	| [$23fb: JP      $3A98]
+	jra	birds_ambient_sound_3a98                             	| [$23fb: JP      $3A98]
 
 boss_stage_completed_2400:
 	jbsr	l_242c                            	| [$2400: CALL    $242C]
@@ -6421,7 +6421,7 @@ player_shots_vs_vultures_collision_3800:
 	bcc.b	0f                               	| [...]
 	jbsr	l_3844                            	| [$383e: CALL    C,$3844]
 0:
-	jra	l_391c                             	| [$3841: JP      $391C]
+	jra	vulture_shot_sound_391c                             	| [$3841: JP      $391C]
 l_3844:
 	add.b	#0x60,d0                         	| [$3844: ADD     $60]
 	move.b	d0,d6                           	| [$3846: LD      L,A]
@@ -6573,14 +6573,13 @@ l_3906:
 	move.b	d0,player_shot_1_structure_43C4 	| [$3918: LD      (player_shot_1_structure_43C4),A]
 	rts                                    	| [$391b: RET]
 	
-	* called when boss is killed, also when vulture is shot
+	* called when vulture is shot
 	
 	DECL_ADDRESS	391c
-* < A1: enemy struct
 * < A0:
 * < D1:
 
-l_391c:
+vulture_shot_sound_391c:
 	move.b	d1,d0                           	| [$391c: LD      A,B]
 	cmp.b	#0x20,d0                         	| [$391d: CP      $20]
 	jcc	l_38bc                             	| [$391f: JP      NC,$38BC]
@@ -6590,7 +6589,7 @@ l_3923:
 	rts                                    	| [$3923: RET     Z] [...]
 0:
 	subq.b	#1,(a0)                         	| [$3924: DEC     (HL)]
-	lea	unknown_438D,a0                        	| [$3925: LD      L,$8D]
+	lea	sound_control_438D,a0                        	| [$3925: LD      L,$8D]
 	move.b	(a0),d0                         	| [$3927: LD      A,(HL)]
 	and.b	#0x3F,d0                         	| [$3928: AND     $3F]
 	or.b	#0x80,d0                          	| [$392a: OR      $80]
@@ -6746,7 +6745,7 @@ l_3a10:
 	move.b	(a0),d0                         	| [$3a13: LD      A,(HL)]
 	                               	| [$3a14: AND     A]
 	jne	l_3b43                             	| [$3a15: JP      NZ,$3B43]
-	lea	unknown_438D,a0                        	| [$3a18: LD      L,$8D]
+	lea	sound_control_438D,a0                        	| [$3a18: LD      L,$8D]
 	move.b	#0xCF,(a0)                      	| [$3a1a: LD      (HL),$CF]
 	rts                                    	| [$3a1c: RET]
 l_3a1d:
@@ -6764,7 +6763,7 @@ l_3a2c:
 	                                    	| [$3a30: NOP]
 	not.b	d0                               	| [$3a31: CPL]
 	and.b	#0x0E,d0                         	| [$3a32: AND     $0E]
-	lea	unknown_438D,a0                        	| [$3a34: LD      L,$8D]
+	lea	sound_control_438D,a0                        	| [$3a34: LD      L,$8D]
 	move.b	d0,(a0)                         	| [$3a36: LD      (HL),A]
 	lea	unknown_4368,a0                        	| [$3a37: LD      L,$68]
 	clr.b	(a0)                             	| [$3a39: LD      (HL),$00]
@@ -6824,17 +6823,21 @@ l_3a82:
 	bcc.b	0f                               	| [...]
 	rts                                    	| [$3a88: RET     C] [...]
 0:
-	lea	unknown_438D,a0                        	| [$3a89: LD      L,$8D]
+	lea	sound_control_438D,a0                        	| [$3a89: LD      L,$8D]
 	move.b	(a0),d0                         	| [$3a8b: LD      A,(HL)]
 	and.b	#0x3F,d0                         	| [$3a8c: AND     $3F]
 	move.b	d0,(a0)                         	| [$3a8e: LD      (HL),A]
 	rts                                    	| [$3a8f: RET]
+	
+	
 l_3a90:
 	lea	unknown_436B,a0                	| [$3a90: LD      HL,unknown_436B]
 	move.b	(a0),d0                         	| [$3a93: LD      A,(HL)]
 	                               	| [$3a94: AND     A]
 	jra	l_3923                             	| [$3a95: JP      $3923]
-l_3a98:
+	
+birds_ambient_sound_3a98:
+	* count how many birds are attacking
 	lea		bird_data_4B70,a0                	| [$3a98: LD      HL,bird_data_4B70]
 	move.b	#0x08,d1
 	move.b	#0x00,d2                      	| [$3a9b: LD      BC,$0800]
@@ -6857,8 +6860,15 @@ l_3aae:
 	move.b	d2,d0                           	| [$3ab5: LD      A,C]
 	                               	| [$3ab6: AND     A]
 	bne.b	0f                               	| [...]
+	* don't play attack sound. Continuously exits there when no attack
+	* because no bird is attacking
+	jbsr	osd_sound_loop_stop
 	rts                                    	| [$3ab7: RET     Z] [...]
 0:
+	* here play attack sound
+	move.w	#ATTACK_LOOP_SND,d0
+	jbsr	osd_sound_start
+	
 	cmp.b	#0x08,d0                         	| [$3ab8: CP      $08]
 	jcs	l_3abf                             	| [$3aba: JP      C,$3ABF]
 	move.b	#0x08,d0                        	| [$3abd: LD      A,$08]
@@ -6876,7 +6886,7 @@ l_3abf:
 * changes depending on how low the vultures are
 
 vultures_background_sound_3ad0:
-	lea	unknown_438E,a0                	| [$3ad0: LD      HL,unknown_438E]
+	lea	sound_control_438E,a0                	| [$3ad0: LD      HL,sound_control_438E]
 	move.b	(a0),d0                         	| [$3ad3: LD      A,(HL)]
 	and.b	#0x01,d0                         	| [$3ad4: AND     $01]
 	rol.b	#2,d0                            	| [$3ad6: RLCA] * 2
@@ -6904,9 +6914,9 @@ vultures_background_sound_3ad0:
 0:
 	clr.b	(a0)                             	| [$3af4: LD      (HL),$00]
 	rts                                    	| [$3af6: RET]
-	move.b	d0,d4                           	| [$3af7: LD      E,A]
+	                           	| [$3af7: LD      E,A]
 l_3af8:
-	lea	unknown_438E,a0                        	| [$3af8: LD      L,$8E]
+	lea	sound_control_438E,a0                        	| [$3af8: LD      L,$8E]
 	addq.b	#1,(a0)                         	| [$3afa: INC     (HL)]
 	                           	| [$3afb: DEC     L]
 	move.b	-(a0),d0                         	| [$3afc: LD      A,(HL)]
@@ -6923,7 +6933,7 @@ l_3b02:
 	addq.w	#1,a0                           	| [$3b09: INC     L]
 	move.b	(a0),d0                         	| [$3b0a: LD      A,(HL)]
 	move.b	d0,d1                           	| [$3b0b: LD      B,A]
-	lea	unknown_438D,a0                        	| [$3b0e: LD      L,$8D]
+	lea	sound_control_438D,a0                        	| [$3b0e: LD      L,$8D]
 	move.b	#0x0A,(a0)                      	| [$3b10: LD      (HL),$0A]
 	and.b	#0x60,d0                         	| [$3b0c: AND     $60]
 	beq.b	0f                               	| [...]
@@ -6951,7 +6961,7 @@ l_3b28:
 	and.b	#0x06,d0                         	| [$3b2a: AND     $06]
 	rol.b	#1,d0                            	| [$3b2c: RLCA]
 	nop                                    	| [$3b2d: NOP]
-	lea	unknown_438D,a0                        	| [$3b2e: LD      L,$8D]
+	lea	sound_control_438D,a0                        	| [$3b2e: LD      L,$8D]
 	move.b	d0,(a0)                         	| [$3b30: LD      (HL),A]
 	rts                                    	| [$3b31: RET]
 
@@ -6965,7 +6975,7 @@ l_3b33:
 	subq.b	#1,(a0)                         	| [$3b39: DEC     (HL)]
 	and.b	#0x08,d0                         	| [$3b3a: AND     $08]
 	or.b	#0x07,d0                          	| [$3b3c: OR      $07]
-	lea	unknown_438D,a0                        	| [$3b3e: LD      L,$8D]
+	lea	sound_control_438D,a0                        	| [$3b3e: LD      L,$8D]
 	move.b	d0,(a0)                         	| [$3b40: LD      (HL),A]
 	rts                                    	| [$3b41: RET]
 l_3b43:
@@ -6973,7 +6983,7 @@ l_3b43:
 	move.b	(a0),d0                         	| [$3b46: LD      A,(HL)]
 	cmp.b	#0x03,d0                         	| [$3b47: CP      $03]
 	bne.b	0f                               	| [...]
-	jbsr	l_23d6                            	| [$3b49: CALL    Z,$23D6]
+	jbsr	play_stage_ambient_sound_23d6                            	| [$3b49: CALL    Z,$23D6]
 0:
 	jbsr	l_3b33                            	| [$3b4c: CALL    $3B33]
 	jbsr	l_3b1b                            	| [$3b4f: CALL    $3B1B]
