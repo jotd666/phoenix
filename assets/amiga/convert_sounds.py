@@ -34,10 +34,11 @@ sound_dict = {
 "SHOT_BOUNCES_1_SND"             :{"index":1,"channel":kills,"sample_rate":hq_sample_rate,"priority":1},
 "SHOT_BOUNCES_2_SND"             :{"index":2,"channel":kills,"sample_rate":hq_sample_rate,"priority":1},
 "SHIELD_SND"             :{"index":3,"channel":other,"sample_rate":hq_sample_rate,"priority":1},
-"EXPLOSION_SND"             :{"index":4,"channel":noise,"sample_rate":hq_sample_rate,"priority":1},
+"EXPLOSION_SND"             :{"index":4,"channel":other,"sample_rate":hq_sample_rate,"priority":1},
 "BIRD_SHOT_SND"             :{"index":5,"channel":kills,"sample_rate":hq_sample_rate,"priority":1},
 "ATTACK_LOOP_SND"             :{"index":6,"channel":loop,"sample_rate":hq_sample_rate,"priority":1},
 "VULTURE_SHOT_SND"             :{"index":7,"channel":kills,"sample_rate":hq_sample_rate,"priority":1},
+"VULTURE_LOOP_SND"             :{"index":8,"channel":loop,"sample_rate":hq_sample_rate,"priority":1},
 
 }
 
