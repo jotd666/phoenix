@@ -1,6 +1,6 @@
 logic:
 
-- check demo ship moving?
+- demo ship not moving
 - when restarting, status bar is erased at first (bank switch at 02b9 ?)
 - hit by missiles with shield: illegal?? reproduce??
 - debug copy_bank (2player) atm 2P disabled
