@@ -1,9 +1,10 @@
 logic:
 
 - check demo ship moving?
-- when restarting, status bar is erased at first
+- when restarting, status bar is erased at first (bank switch at 02b9 ?)
 - hit by missiles with shield: illegal?? reproduce??
 - debug copy_bank (2player) atm 2P disabled
+- save/load highscore
 
 colors:
 
@@ -13,14 +14,12 @@ colors:
 
 sounds:
 
-- test bounce/add random for better bounce bounce 2
-- vultures loop to implement
-- boss stage!!
 - extra life beeps
+- missing tunes
 
 original game bugs:
 
-- updating highscore is to be done in real-time not when restarting a game
+- updating highscore is to be done in real-time not when restarting a game (call update_highscore_02f0)
 - applied Don Hodges fix to avoid score corruption when shooting 3 flying birds
   
 converter: ADD     $DE] => add 0xA1 !!!! 38ac

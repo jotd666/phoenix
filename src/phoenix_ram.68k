@@ -10,13 +10,15 @@
 	.global infinite_lives_flag
 	.global last_played_sound_timer_table
 	.global	sound_timer
-	.global fast_forward_flag
-	.global fast_forward_counter
 	.global zero_added
+	.global	vulture_sound_toggle
+	.global	boss_sound_counter
 	.ifdef	__amiga__
 	
 	.ascii	"RAM_STRT"
 	.ifndef	RELEASE
+	.global fast_forward_flag
+	.global fast_forward_counter
 
 	.endif
 	.else
@@ -53,10 +55,17 @@ invincible_flag:
 	.byte	0
 infinite_lives_flag:
 	.byte	0
+vulture_sound_toggle:
+	.byte	0
+boss_sound_counter:
+	.byte	0
+	.ifndef	RELEASE
 fast_forward_flag:
 	.byte	0
 fast_forward_counter:
 	.byte	0
+	.endif
+	
 start_level:
 	.byte	0
 highscores_need_saving:
@@ -68,6 +77,5 @@ current_ticks_count:
 	.skip	4000
 stack_top:
 	.align	2
-regscopy:
-	ds.b	64
+
 	.ascii	"RAM_END!"

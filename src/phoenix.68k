@@ -1054,6 +1054,7 @@ l_02a7:
 	rts                                    	| [$02c7: RET]
 
 
+* start 1P or 2P game
 
 decrease_credits_02cb:
 	move.b	#0x01,d2                        	| [$02cb: LD      C,$01]
@@ -4168,6 +4169,14 @@ l_237b:
 	move.b	d0,(a1)                         	| [$237e: LD      (DE),A]	disable player shot
 	st.b	d0                                	| [$237f: LD      A,$FF]
 	move.b	d0,unknown_4366                 	| [$2381: LD      (unknown_4366),A]
+	
+	move.w	#BOSS_SHIELD_SHOT_1,d0
+	eor.b	#1,vulture_sound_toggle
+	bne.b	0f
+	move.w	#BOSS_SHIELD_SHOT_2,d0
+0:
+	jbsr	osd_sound_start
+	
 	move.b	d1,d0                           	| [$2384: LD      A,B]
 	* weaken the shield
 	subq.b	#1,d0                           	| [$2385: DEC     A]
@@ -4223,6 +4232,10 @@ l_23c0:
 	rts                                    	| [$23c6: RET     NZ] [...]
 0:
 	* bull's eye: we got the boss
+	jbsr	osd_sound_stop			| stop all loops
+	move.w	#EXPLOSION_SND,d0
+	jbsr	osd_sound_start
+	
 	lea	game_state_43A4,a0             	| [$23c7: LD      HL,game_state_43A4]
 	move.b	#0x06,(a0)+                      	| [$23ca: LD      (HL),$06]
 	                           	| [$23cc: INC     L]
@@ -4248,8 +4261,8 @@ play_stage_ambient_sound_23d6:
 	rts                                    	| [$23f2: RET     C] [...]
 0:
 	cmp.b	#0x0B,d0                         	| [$23f3: CP      $0B]
-	jcs	l_3b02                             	| [$23f5: JP      C,$3B02]
-	jbsr	l_3b02                            	| [$23f8: CALL    $3B02]
+	jcs	boss_ambient_sound_3b02                             	| [$23f5: JP      C,$3B02]
+	jbsr	boss_ambient_sound_3b02                            	| [$23f8: CALL    $3B02]
 	jra	birds_ambient_sound_3a98                             	| [$23fb: JP      $3A98]
 
 boss_stage_completed_2400:
@@ -4982,18 +4995,18 @@ l_2778:
 	move.b	d0,-(a0)                         	| [$27a3: LD      (HL),A]
 	rts                                    	| [$27a4: RET]
 	
-*handle_sounds_27a8:
-*	lea	sound_buffer_438C,a0                	| [$27a8: LD      HL,sound_buffer_438C]
-*	move.b	(a0)+,d0                         	| [$27ab: LD      A,(HL)]
-*	*move.b	d0,sound_6000                 	| [$27ac: LD      (sound_6000),A] 60xx sound A
-*	                           	| [$27af: INC     L]
-* 	move.b	(a0),d0                         	| [$27b0: LD      A,(HL)]
-*	*move.b	d0,sound_6800                 	| [$27b1: LD      (sound_6800),A] 68xx sound B
-*	or.b	#0x0F,d0                          	| [$27b4: OR      $0F]
-*	move.b	d0,(a0)                         	| [$27b6: LD      (HL),A]
-*	                           	| [$27b7: DEC     L]
-* 	move.b	#0x0F,-(a0)                      	| [$27b8: LD      (HL),$0F] acknowledge?
-*	rts                                    	| [$27ba: RET]
+handle_sounds_27a8:
+	lea	sound_buffer_438C,a0                	| [$27a8: LD      HL,sound_buffer_438C]
+	move.b	(a0)+,d0                         	| [$27ab: LD      A,(HL)]
+	*move.b	d0,sound_6000                 	| [$27ac: LD      (sound_6000),A] 60xx sound A
+	                           	| [$27af: INC     L]
+ 	move.b	(a0),d0                         	| [$27b0: LD      A,(HL)]
+	*move.b	d0,sound_6800                 	| [$27b1: LD      (sound_6800),A] 68xx sound B
+	or.b	#0x0F,d0                          	| [$27b4: OR      $0F]
+	move.b	d0,(a0)                         	| [$27b6: LD      (HL),A]
+	                           	| [$27b7: DEC     L]
+ 	move.b	#0x0F,-(a0)                      	| [$27b8: LD      (HL),$0F] acknowledge?
+	rts                                    	| [$27ba: RET]
 	
 * used for player shots and explosions
 
@@ -6936,10 +6949,19 @@ vultures_background_sound_3ad0:
 	bcs.b	0f                               	| [...]
 	rts                                    	| [$3af3: RET     NC] [...]
 0:
+	* here it sets the decaying sound, there are 2 alternating decaying sounds
+	move.w	#VULTURE_BACK_1_SND,d0
+	eor.b	#1,vulture_sound_toggle
+	beq		0f
+	move.w	#VULTURE_BACK_2_SND,d0
+0:
+	jbsr	osd_sound_start
+
 	clr.b	(a0)                             	| [$3af4: LD      (HL),$00]
 	rts                                    	| [$3af6: RET]
 	                           	| [$3af7: LD      E,A]
 l_3af8:
+	
 	lea	sound_control_438E,a0                        	| [$3af8: LD      L,$8E]
 	addq.b	#1,(a0)                         	| [$3afa: INC     (HL)]
 	                           	| [$3afb: DEC     L]
@@ -6947,7 +6969,8 @@ l_3af8:
 	or.b	#0x10,d0                          	| [$3afd: OR      $10]
 	move.b	d0,(a0)                         	| [$3aff: LD      (HL),A]
 	rts                                    	| [$3b00: RET]
-l_3b02:
+	
+boss_ambient_sound_3b02:
 	lea	counter_439A,a0                	| [$3b02: LD      HL,counter_439A]
 	move.b	(a0),d0                         	| [$3b05: LD      A,(HL)]
 	cmp.b	#0x02,d0                         	| [$3b06: CP      $02]
@@ -6962,6 +6985,13 @@ l_3b02:
 	and.b	#0x60,d0                         	| [$3b0c: AND     $60]
 	beq.b	0f                               	| [...]
 	rts                                    	| [$3b12: RET     NZ] [...]
+0:
+	addq.b	#1,boss_sound_counter
+	cmp.b	#6,boss_sound_counter
+	bne.b	0f
+	clr.b	boss_sound_counter
+	move.w	#BOSS_SND,d0
+	jbsr	osd_sound_start
 0:
 	move.b	d1,d0                           	| [$3b13: LD      A,B]
 	and.b	#0x02,d0                         	| [$3b14: AND     $02]
@@ -6984,7 +7014,7 @@ l_3b28:
 	move.b	(a0),d0                         	| [$3b29: LD      A,(HL)]
 	and.b	#0x06,d0                         	| [$3b2a: AND     $06]
 	rol.b	#1,d0                            	| [$3b2c: RLCA]
-	nop                                    	| [$3b2d: NOP]
+											| [$3b2d: NOP]
 	lea	sound_control_438D,a0                        	| [$3b2e: LD      L,$8D]
 	move.b	d0,(a0)                         	| [$3b30: LD      (HL),A]
 	rts                                    	| [$3b31: RET]

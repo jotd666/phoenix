@@ -1,5 +1,5 @@
 import subprocess,os,glob,shutil
-gamename = "donkey_kong"
+gamename = "phoenix"
 
 progdir = os.path.abspath(os.path.join(os.path.dirname(__file__),os.pardir))
 packed_exe = os.path.join(progdir,f"{gamename}.rnc")
@@ -26,8 +26,9 @@ else:
 for file in ["readme.md",gamename,f"{gamename}.slave"]:
     shutil.copy(os.path.join(progdir,file),outdir)
 
-shutil.copy(os.path.join(progdir,"assets","amiga","DonkeyKong500.info"),outdir)
-shutil.copy(os.path.join(progdir,"assets","amiga","boxart.png"),outdir)
+for icon in glob.glob(os.path.join(progdir,"assets","amiga","DonkeyKong500.info")):
+    shutil.copy(icon,outdir)
+shutil.copy(os.path.join(progdir,"assets","amiga","Phoenix.png"),outdir)
 
 # pack the file for floppy
 subprocess.check_output(["cranker_windows.exe","-f",os.path.join(progdir,gamename),

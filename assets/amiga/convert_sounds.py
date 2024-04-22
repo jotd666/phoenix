@@ -38,7 +38,11 @@ sound_dict = {
 "BIRD_SHOT_SND"             :{"index":5,"channel":kills,"sample_rate":hq_sample_rate,"priority":1},
 "ATTACK_LOOP_SND"             :{"index":6,"channel":loop,"sample_rate":hq_sample_rate,"priority":1,"loops":True},
 "VULTURE_SHOT_SND"             :{"index":7,"channel":kills,"sample_rate":hq_sample_rate,"priority":1},
-"VULTURE_LOOP_SND"             :{"index":8,"channel":loop,"sample_rate":hq_sample_rate,"priority":1,"loops":True},
+"VULTURE_BACK_1_SND"             :{"index":8,"channel":loop,"sample_rate":hq_sample_rate,"priority":1},
+"VULTURE_BACK_2_SND"             :{"index":9,"channel":loop,"sample_rate":hq_sample_rate,"priority":1},
+"BOSS_SND"             :{"index":10,"channel":loop,"sample_rate":hq_sample_rate,"priority":1},
+"BOSS_SHIELD_SHOT_1_SND"             :{"index":11,"channel":noise,"sample_rate":hq_sample_rate,"priority":1},
+"BOSS_SHIELD_SHOT_2_SND"             :{"index":12,"channel":noise,"sample_rate":hq_sample_rate,"priority":1},
 
 }
 

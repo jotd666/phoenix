@@ -1505,10 +1505,10 @@ osd_read_inputs:
 	beq.b	0f
 	bclr	#BIT_START_1,d0
 0:
-	tst.b	(2,a0)		| "2" key like in MAME
-	beq.b	0f
-	bclr	#BIT_START_2,d0
-0:	
+*	tst.b	(2,a0)		| "2" key like in MAME
+*	beq.b	0f
+*	bclr	#BIT_START_2,d0
+*0:	
 	tst.b	(0x4F,a0)		| "<-" key
 	beq.b	0f
 	bclr	#BIT_LEFT,d0
@@ -1562,11 +1562,11 @@ osd_read_inputs:
 	beq.b	0f
 	bclr	#BIT_START_1,d0
 0:
-	* game not in play, accept start 2P game with "down"
-	btst	#JPB_BTN_DOWN,d1
-	beq.b	0f
-	bclr	#BIT_START_2,d0
-0:
+*	* game not in play, accept start 2P game with "down"
+*	btst	#JPB_BTN_DOWN,d1
+*	beq.b	0f
+*	bclr	#BIT_START_2,d0
+*0:
 	btst	#JPB_BTN_RED,d1
 	beq.b	0f
 	* game not in play, accept insert coin with fire
@@ -1709,7 +1709,13 @@ handle_keyboard:
 	nop
 0:
 10:
+	cmp.b	#0x57,d0	| F8 key makes lose all lives and die
+	bne.b	0f
+	move.b	#1,nb_lives_p1_4390
+	move.b	#0x04,game_state_43A4 
+0:
 	.ifndef	RELEASE
+
 	cmp.b	#0x58,d0	| F9 key crashes game (restarts whdload)
 	bne.b	0f
 	illegal
