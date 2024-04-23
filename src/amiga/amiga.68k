@@ -25,6 +25,7 @@ TOTAL_NB_COLORS = 8
 SCORE_FILE_SIZE = 0x50
 
 
+ROSE_COPYRIGHT_COPPER_LONGWORD = ((color+28)<<16)+0xFCC
 PURPLE_ALIEN_HEAD_COPPER_LONGWORD = ((color+14)<<16)+0xA2D
 YELLOW_SHIP_COPPER_LONGWORD = ((color+20)<<16)+0xFF4
 
@@ -1183,7 +1184,7 @@ osd_w_videoram:
 	
 	sub.w	#FORE_SCREEN_ADDRESS,d7
 	cmp.w	#REAL_VIDEO_SIZE,d7
-	bcs.b	write_fore_videoram
+	jcs	write_fore_videoram
 
 	sub.w	#BACK_SCREEN_ADDRESS-FORE_SCREEN_ADDRESS,d7
 	bcs.b	0f
@@ -1242,6 +1243,19 @@ write_fore_videoram:
 	
 	cmp.b	(a1),d0
 	beq.b	0f		| already the proper value
+
+
+	cmp.w	#8,d7
+	bne.b	1f
+
+	cmp.b	#0x79,d0
+	beq.b	0f
+	* if specific address written to, enable/disable dyn color
+	move.w	#0x01FE,copyright_pink_title_screen
+	bra.b	1f
+0:
+	move.w	#ROSE_COPYRIGHT_COPPER_LONGWORD>>16,copyright_pink_title_screen
+1:
 
 	move.b	d0,(a1)	| update logical grid
 	
@@ -2033,7 +2047,11 @@ sprites:
     .word    sprpt+28,0
     .word    sprpt+30,0
 
-    .word  0xE001,0xFFFE       | PAL wait
+    .word  0x6001,0xFFFE
+copyright_pink_title_screen:
+	.long	ROSE_COPYRIGHT_COPPER_LONGWORD		| alien purple
+
+    .word  0xE001,0xFFFE
 alien_purple_score_screen:
 	.long	PURPLE_ALIEN_HEAD_COPPER_LONGWORD		| alien purple
 yellow_ship:

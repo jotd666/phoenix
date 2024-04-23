@@ -1,26 +1,23 @@
 logic:
 
+- crash on birds stage check .whdl_dump
 - demo ship not moving
 - when restarting, status bar is erased at first (bank switch at 02b9 ?)
-- hit by missiles with shield: illegal?? reproduce??
 - debug copy_bank (2player) atm 2P disabled
 - save/load highscore
+- pause game
 
 colors:
 
-- title: reinstate the light pink for the (c) sign instead: "F4CDCF":"FFFFFF" when 4008=$79
-  of white
 - create a 16+16 AGA DPF version
 
 sounds:
 
 - extra life beeps
-- missing tunes
 
-original game bugs:
 
-- updating highscore is to be done in real-time not when restarting a game (call update_highscore_02f0)
-- applied Don Hodges fix to avoid score corruption when shooting 3 flying birds
+
+
   
 converter: ADD     $DE] => add 0xA1 !!!! 38ac
 !!!!move.b	#0xa4,d6                        	| [$22d9: LD      L,$BC]

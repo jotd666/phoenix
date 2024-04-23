@@ -921,6 +921,7 @@ SubtractOneRow_0217:
 * < HL: pointer on score
 
 AddToScore_0220:
+	movem.l	a0-a1/d0-d1,-(a7)
 	CLEAR_XC_FLAGS
 	
 	clr.b	d0                               	| [$0220: XOR     A] !! Pointless. We are about to change A and the flags
@@ -940,7 +941,11 @@ AddToScore_0220:
 
                          | Adjust for binary coded decimal
 	move.b	d0,(a0)                         	| [$022f: LD      (HL),A] Store the upper 2 digits
-	addq.w	#2,a0                           	| [$0230: INC     L] * 2 Restore ...
+	                           	| [$0230: INC     L] * 2 Restore ...
+
+
+	jbsr	update_highscore_02f0                            	| [$02b0: CALL    $02F0]
+	movem.l	(a7)+,a0-a1/d0-d1
 	rts                                    	| [$0232: RET] Done
 
 
@@ -1041,7 +1046,6 @@ l_02a7:
 0:
 	jbsr	decrease_credits_02cb                            	| [$02ad: CALL    $02CB]
 	* we should update highscore in real time like newer games
-	jbsr	update_highscore_02f0                            	| [$02b0: CALL    $02F0]
 	jbsr	zero_player_scores_032e                            	| [$02b3: CALL    $032E]
 	jbsr	init_player_lives_0350                            	| [$02b6: CALL    $0350]
 	jbsr	init_new_play_0140                            	| [$02b9: CALL    $0140]
