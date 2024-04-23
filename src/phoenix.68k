@@ -1051,6 +1051,11 @@ l_02a7:
 	jbsr	init_new_play_0140                            	| [$02c0: CALL    $0140]
 	moveq	#0,d0                        	| [$02c3: LD      H,$50] 50xx video register
 	jbsr	osd_write_5000                             	| [$02c5: LD      (HL),$00] set bank 0
+
+	clr.b	vulture_sound_toggle
+	move.w	#START_MUSIC_SND,d0
+	jbsr	osd_sound_start
+
 	rts                                    	| [$02c7: RET]
 
 
@@ -4481,6 +4486,9 @@ l_24f2:
 	DECL_ADDRESS	2520
 
 display_boss_score_2520:
+	move.w	#BOSS_END_MUSIC_SND,d0
+	jbsr	osd_sound_start
+	
 	movem.w	d3/d4,-(sp)                    	| [$2520: PUSH    DE]
 	jbsr	clear_foreground_tiles_0380                            	| [$2521: CALL    $0380]
 	movem.w	(sp)+,d3/d4                    	| [$2524: POP     DE]
@@ -6950,10 +6958,10 @@ vultures_background_sound_3ad0:
 	rts                                    	| [$3af3: RET     NC] [...]
 0:
 	* here it sets the decaying sound, there are 2 alternating decaying sounds
-	move.w	#VULTURE_BACK_1_SND,d0
+	move.w	#VULTURE_BACK_2_SND,d0
 	eor.b	#1,vulture_sound_toggle
 	beq		0f
-	move.w	#VULTURE_BACK_2_SND,d0
+	move.w	#VULTURE_BACK_1_SND,d0
 0:
 	jbsr	osd_sound_start
 

@@ -46,6 +46,8 @@
 	.equ	BOSS_SND,              10
 	.equ	BOSS_SHIELD_SHOT_1,              11
 	.equ	BOSS_SHIELD_SHOT_2,              12
+	.equ	START_MUSIC_SND,              13
+	.equ	BOSS_END_MUSIC_SND,              14
 
 
 

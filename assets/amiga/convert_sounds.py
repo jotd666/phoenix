@@ -2,7 +2,7 @@ import subprocess,os,struct,glob,tempfile
 import shutil
 
 sox = "sox"
-gamename = "sbagman"
+gamename = "phoenix"
 
 if not shutil.which("sox"):
     raise Exception("sox command not in path, please install it")
@@ -21,9 +21,9 @@ sndfile = os.path.join(src_dir,"sound_entries.68k")
 hq_sample_rate = 22050
 
 
-noise = 1
+noise = 2
 loop = 3
-kills = 2
+kills = 1
 other = 0
 
 EMPTY_SND = "EMPTY_SND"
@@ -43,6 +43,8 @@ sound_dict = {
 "BOSS_SND"             :{"index":10,"channel":loop,"sample_rate":hq_sample_rate,"priority":1},
 "BOSS_SHIELD_SHOT_1_SND"             :{"index":11,"channel":noise,"sample_rate":hq_sample_rate,"priority":1},
 "BOSS_SHIELD_SHOT_2_SND"             :{"index":12,"channel":noise,"sample_rate":hq_sample_rate,"priority":1},
+"START_MUSIC_SND"             :{"index":13,"pattern":2,"loops":False,"volume":32,"ticks":1000},
+"BOSS_END_MUSIC_SND"             :{"index":14,"pattern":0,"loops":False,"volume":32,"ticks":500},
 
 }
 
@@ -166,6 +168,11 @@ with open(sndfile,"w") as fst,open(outfile,"w") as fw:
                 raise Exception(f"Sound {wav_entry} is too long")
             write_asm(contents,fw)
 
+    with open(os.path.join(sound_dir,f"{gamename}_conv.mod"),"rb") as f:
+        contents = f.read()
+    fw.write("{}:".format(music_module_label))
+    write_asm(contents,fw)
+    fw.write("\t.align\t8\n")
 
 
     fst.writelines(sound_table)

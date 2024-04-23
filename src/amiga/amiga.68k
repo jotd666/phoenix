@@ -201,35 +201,16 @@ _user:
 	or.l	#2,cheat_flags
 	st.b	cheat_used
 2:
-	move.l	(A0)+,D0	| INFTIME/S
-	beq.b	2f
-	or.l	#4,cheat_flags
-	st.b	cheat_used
-2:
-	move.l	(A0)+,D0	| INFPICK/S
-	beq.b	2f
-	or.l	#8,cheat_flags
-	st.b	cheat_used
-2:
 	move.l	(A0)+,D0	| CHEATKEYS/S
 	beq.b	2f
 	* cheat isn't used as long as no cheat key is used
 	or.l	#0x10,cheat_flags
 2:
-	move.l	(A0)+,D0	| HARDBAGS/S
+	move.l	(A0)+,D0	| B2SHIELD/S
 	beq.b	2f
 	or.l	#1,misc_options
 2:
-	move.l	(A0)+,D0	| FRENCH/S
-	beq.b	2f
-	or.l	#2,misc_options
-2:
 
-	move.l	(A0)+,D0	| SKILL/S
-	beq.b	2f
-	bsr		bcpl_string_to_int
-	move.l	d0,dip_switch_difficulty
-2:
 	move.l	(A0)+,D0	| STARTLIVES/S
 	beq.b	2f
 	bsr		bcpl_string_to_int
@@ -240,10 +221,7 @@ _user:
 2:
 	move.l	#2,dip_switch_start_lives		| 3 lives default
 3:
-	move.l	(A0)+,D0	| EXTRA40000/S
-	beq.b	2f
-	or.l	#4,misc_options
-2:
+
 	bsr		load_highscores
 
     * check if "floppy" file is here
@@ -324,6 +302,9 @@ _user:
 	sne		infinite_lives_flag
 	btst	#2,d0
 
+	btst	#0,misc_options+3
+	sne		only_b2_shield_flag
+	
 	
 	jsr	 _detect_controller_types 
 	clr.b	controller_joypad_0
@@ -727,7 +708,7 @@ osd_sound_start:
 	bsr		osd_sound_stop
     lea _custom,a6
  	movem.l	d0/a0,-(a7)
-    *lea	phoenix_tunes,a0
+    lea	phoenix_tunes,a0
 	move.b	d1,music_track_start_number
 	move.w	d1,d0
     sub.l   a1,a1		| samples are in the module
@@ -1041,8 +1022,8 @@ set_palette:
 	move.b	d0,d2
 	lsr.b	#1,d2
 	bcs.b	0f
-	* intermissions are a good time to stop all sounds
-	jbsr	osd_sound_stop
+	* intermissions are a good time to stop looped sounds
+	jbsr	osd_sound_loop_stop
 0:
 	move.b	current_palette,d1
 	cmp.b	d2,d1
@@ -1527,6 +1508,8 @@ osd_read_inputs:
 0:
 	* directions + fire
 	move.l	_joypad_state(pc),d1
+	tst.b	only_b2_shield_flag
+	bne.b	10f
 	btst	#JPB_BTN_UP,d1
 	beq.b	0f
 	bclr	#BIT_BLUE,d0
@@ -1535,6 +1518,7 @@ osd_read_inputs:
 	beq.b	0f
 	bclr	#BIT_BLUE,d0
 0:
+10:
 	btst	#JPB_BTN_LEFT,d1
 	beq.b	0f
 	bclr	#BIT_LEFT,d0
@@ -1694,8 +1678,16 @@ handle_keyboard:
 	bne.b	0f
 	st.b	cheat_used
 	move.w	#0x0FF,_custom+color
+	move.w	d0,-(a7)
+	move.b	current_stage_43B8,d0
+	and.b	#0xF,d0
+	cmp.b	#0xB,d0
+	bne.b	22f
+	move.b	#6,game_state_43A4
+22:
 	clr.b	nb_birds_to_kill_before_stage_completed_43BA
 	clr.b	nb_vultures_to_kill_before_stage_completed_43BB
+	move.w	(a7)+,d0
 0:
 	cmp.b	#0x54,d0	| F5 key
 	bne.b	0f
@@ -1773,8 +1765,8 @@ program_args_end:
 	.align	4
 read_args_string:
 	.byte	read_args_string_end-read_args_string
-	.ascii	"INVINCIBLE/S,INFLIVES/S,INFTIME/S,INFPICK/S,"
-	.ascii	"CHEATKEYS/S,HARDBAGS/S,FRENCH/S,SKILL/K/N,STARTLIVES/K/N,EXTRA40000/S"
+	.ascii	"INVINCIBLE/S,INFLIVES/S,"
+	.ascii	"CHEATKEYS/S,B2SHIELD/S,STARTLIVES/K/N"
 read_args_string_end:
 	.align	2
 
@@ -1868,7 +1860,8 @@ _dosbase:
 	.long	0
 delay_timer:
 	.word	0
-one_out_of_five:
+
+only_b2_shield_flag:
 	.word	0
 bg_drawed_screen_ptr:
 	.long	bg_screen_data_1
