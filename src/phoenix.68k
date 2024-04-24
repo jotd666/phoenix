@@ -491,10 +491,15 @@ l_0000:
 	jbsr	osd_write_5000                 	| [$000b: LD      H,$50] 50xx video register
 											| [$000d: LD      (HL),$00] Select the first bank of RAM
 	jbsr	InitSoundScreen_0050              	| [$000f: CALL    InitSoundScreen_0050] Turn sound off and clear both screen areas
+	
+	
 	lea	game_rom+0x1800,a0                      	| [$0012: LD      HL,$1800] Screen draw info
 	move.b	#0x03,d2                        	| [$0015: LD      C,$03] 3 columns (rotated to 3 rows)
 	jbsr	draw_game_status_01d0                            	| [$0017: CALL    $01D0] Draw the first 3 rows of the background (scores and coins);
 
+	lea		highest_score_438B-2,a0
+	jbsr	osd_read_high_scores
+	jbsr	display_highscore_0306
 	
 * init has ended, enter the mainloop, always called no matter what
 mainloop_001A:
@@ -1096,14 +1101,17 @@ update_highscore_02f0:
 	lea	highest_score_438B,a0                	| [$02f3: LD      HL,highest_score_438B]
 	jbsr	compare_scores_0314                            	| [$02f6: CALL    $0314]
 	bcs.b	0f                               	| [...]
+	st.b	highscores_beaten_flag
 	jbsr	copy_3_bytes_a0_a1_0320                            	| [$02f9: CALL    NC,$0320]
 0:
 	lea	player_score_end_4387,a1										| [$02fc: LD      E,$87]
 	lea	highest_score_438B,a0										| [$02fe: LD      L,$8B]
 	jbsr	compare_scores_0314                            	| [$0300: CALL    $0314]
 	bcs.b	0f                               	| [...]
+	st.b	highscores_beaten_flag
 	jbsr	copy_3_bytes_a0_a1_0320                            	| [$0303: CALL    NC,$0320]
 0:
+display_highscore_0306:
 	lea	highest_score_438B,a0                        	| [$0306: LD      L,$8B]
 	move.w	#0x4141,d3                	| [$0308: LD      DE,unknown_4141]
 	move.b	#0x06,d1                        	| [$030b: LD      B,$06]
@@ -2624,6 +2632,12 @@ l_0b48:
 
 * called during "game over" screen
 game_over_0B60:
+	tst.b	highscores_beaten_flag
+	beq.b	0f
+	lea		highest_score_438B-2,a0
+	jbsr	osd_write_high_scores
+	clr.b	highscores_beaten_flag
+0:
 	lea	timer_43A5,a0                  	| [$0b60: LD      HL,timer_43A5]
 	addq.b	#1,(a0)                         	| [$0b63: INC     (HL)]
 	move.b	(a0),d0                         	| [$0b64: LD      A,(HL)]
@@ -3193,7 +3207,7 @@ l_0e7e:
 0:
 	addq.w	#2,a0                           	| [$0e86: INC     HL] * 2
 	                        	| [$0e88: LD      A,$B0]
-	cmp.l	#bird_data_4B70+0xB0-0x70,d0                            	| [$0e8a: CP      L]
+	cmp.l	#bird_data_4B70+0xB0-0x70,a0                            	| [$0e8a: CP      L]
 	jne	l_0e7e                             	| [$0e8b: JP      NZ,$0E7E]
 	rts                                    	| [$0e8e: RET]
 
@@ -3219,7 +3233,8 @@ swarm_bird_close_to_shot_0E90:
 	beq.b	0f                               	| [...]
 	rts                                    	| [$0e9f: RET     NZ] [...]
 0:
-	* regular explosion (swarm)
+	* from now on, function isn't going to return to caller
+	* regular explosion (swarm) then return to caller's caller
 	move.b	#0x0C,d3
 	move.b	#0x02,d4                      	| [$0ea0: LD      DE,$0C02]
 	                                    	| [$0ea3: NOP]

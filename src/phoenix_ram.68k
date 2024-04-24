@@ -12,6 +12,7 @@
 	.global	sound_timer
 	.global zero_added
 	.global	vulture_sound_toggle
+	.global highscores_beaten_flag
 	.global	boss_sound_counter
 	.ifdef	__amiga__
 	
@@ -58,6 +59,8 @@ infinite_lives_flag:
 vulture_sound_toggle:
 	.byte	0
 boss_sound_counter:
+	.byte	0
+highscores_beaten_flag:
 	.byte	0
 	.ifndef	RELEASE
 fast_forward_flag:

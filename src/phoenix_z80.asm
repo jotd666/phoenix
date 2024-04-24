@@ -1,22 +1,42 @@
 ;0000-3FFF: ROM
-
+;
 ;4000-4FFF: video/general purpose RAM, banked with 2 memory banks
-
+;
 ;4000-4340: fg tiles video ram (26*32 208*256)
+;
+; a few values explained
 ;4364   if != 0 the "killed bird" sound is played
 ;43A0 	IN0Current 	Current value of IN0
 ;43A1 	IN0Previous 	Previous value of IN0
 ;43A2 	game_in_play_43A2  0 game not playing, !=0: playing, 1 or 2 nb players
 ;43A4 	game_state_43A4 	Function table jump
 ;43A5 	timer_43A5 	general purpose state timer
+;43A6   shield_timer_43A6  0x01-0xC0: inactive, cannot be enabled, 0: inactive, can be enabled, 0xC0-0xFF: active
 ;43B8   current stage, always odd (even values are used for transitions)
 ;43BA   nb enemies to kill before stage completed (not vultures, only birds stage)
 ;43BB   nb vultures to kill before stage completed
 ;438F 	CoinCount 	Number of coins inserted (max counted is 9)
+;4398:4399 	intro 16 bit counter (MSB:LSB)
 ;439A:439B 	counter_439A 	16 bit counter (MSB:LSB)
 ;43C2:43C3  player ship X/Y (X changes, Y stays on the bottom of screen)
 ;4800-4B40: bg tiles video ram (scrollable part)
-
+;4BD6: average_vulture_y_pos_in_chars_4BD6 cooked from vulture positions & alive state.
+; all vultures alive + swarm on top: value is $A
+; all vultures alive + lower vulture just above the player: value is $11
+;4B70-...: vulture structures. Each structure is 8 bytes
+;
+; offset 0: vulture state: a few states:
+;  - 0: dead
+;  - 1/2: star (for intro)
+;  - 3: small egg
+;  - 7: full
+;  - 8: hatching
+;  - 0xC: missing right wing
+;  - 0xD: missing left wing
+;  - 0xE: missing both wings
+; offset 1-2: screen address
+; offset 3: animation frame for current state
+	
 ; to skip a level, MAME cheat sets 43BA or 43BB depending on stage, and on final stage
 ; just changes game_state_43A4 to 6 to set boss explode sequence
 
@@ -82,7 +102,7 @@ mainloop_001A:
 0040: CD 88 02        CALL    $0288               ;
 0043: C3 1A 00        JP      mainloop_001A               ;
 ;
-0046: CD E3 00        CALL    $00E3               ;
+0046: CD E3 00        CALL    misc_event_trigger_routine_00e3               ;
 0049: C3 1A 00        JP      mainloop_001A               ;
 
 004C: FF FF FF FF
@@ -116,7 +136,7 @@ ClearScreenPlane_006B:
 0074: C2 70 00        JP      NZ,$0070            ; No ... go back for all
 0077: C9              RET                         ; Done
 
-0078: CD 96 01        CALL    $0196               ;
+0078: CD 96 01        CALL    draw_intro_text_0196               ;
 007B: C3 F0 06        JP      $06F0               ;
 
 007E: FF FF
@@ -171,6 +191,7 @@ WaitVBlankCoin_0080:
 ; from 1 to 0 since last we checked. Return NZ if transitioned from 1 to 0.
 ;
 CheckInputBits:
+check_input_bits_00bb:
 00BB: 21 A0 43        LD      HL,current_input_value_43A0            ; Get current ...
 00BE: 7E              LD      A,(HL)              ; ... input value
 00BF: 2F              CPL                         ; Flip the current bits
@@ -179,6 +200,7 @@ CheckInputBits:
 00C2: A6              AND     (HL)                ; Zero unles new bit is 0 and old is 1
 00C3: C9              RET                         ; Return state
 
+write_digits_to_screen_00c4:
 00C4: 7E              LD      A,(HL)
 00C5: E6 0F           AND     $0F
 00C7: F6 20           OR      $20
@@ -197,11 +219,12 @@ CheckInputBits:
 00D9: CD 10 02        CALL    AddOneRow_0210           ;
 00DC: 2B              DEC     HL
 00DD: 05              DEC     B
-00DE: C2 C4 00        JP      NZ,$00C4            ;
+00DE: C2 C4 00        JP      NZ,write_digits_to_screen_00c4            ;
 00E1: C9              RET
 
 00E2: FF
 
+misc_event_trigger_routine_00e3:
 00E3: 21 99 43        LD      HL,unknown_4399
 00E6: CD 00 02        CALL    AddOneToMem_0200         ;
 00E9: 01 01 00        LD      BC,$0001
@@ -210,16 +233,16 @@ CheckInputBits:
 00F2: 01 02 00        LD      BC,$0002
 00F5: 11 1F 01        LD      DE,$011F
 00F8: CD 60 02        CALL    test_if_mem_between_BC_and_DE_0260    ;
-00FB: D2 96 01        JP      NC,$0196            ;
+00FB: D2 96 01        JP      NC,draw_intro_text_0196            ;
 00FE: 01 20 01        LD      BC,$0120
 0101: CD 58 02        CALL    CompareBCtoMem_0258      ;
-0104: CA CA 0B        JP      Z,$0BCA             ;
+0104: CA CA 0B        JP      Z,draw_bird_extended_winds_0bca             ;
 0107: 0E B0           LD      C,$B0
 0109: CD 58 02        CALL    CompareBCtoMem_0258      ;
 010C: CA E1 01        JP      Z,$01E1             ;
 010F: 0E B8           LD      C,$B8
 0111: CD 58 02        CALL    CompareBCtoMem_0258      ;
-0114: CA 80 05        JP      Z,$0580             ;
+0114: CA 80 05        JP      Z,init_scrolling_data_0580             ;
 0117: 0E C0           LD      C,$C0
 0119: 11 DF 02        LD      DE,$02DF
 011C: CD 60 02        CALL    test_if_mem_between_BC_and_DE_0260    ;
@@ -227,11 +250,11 @@ CheckInputBits:
 0122: 01 00 03        LD      BC,$0300
 0125: 11 AF 03        LD      DE,$03AF
 0128: CD 60 02        CALL    test_if_mem_between_BC_and_DE_0260    ;
-012B: D2 DC 21        JP      NC,$21DC            ;
+012B: D2 DC 21        JP      NC,animate_title_vulture_21dc            ;
 012E: 01 E6 03        LD      BC,$03E6
 0131: 11 FF FF        LD      DE,$FFFF
 0134: CD 60 02        CALL    test_if_mem_between_BC_and_DE_0260    ;
-0137: D2 B0 03        JP      NC,$03B0            ;
+0137: D2 B0 03        JP      NC,rest_of_intro_sequence_03b0            ;
 013A: C9              RET
 
 013B: FF FF FF FF FF
@@ -287,6 +310,7 @@ init_new_play_0140:
 0192: 06 7E           LD      B,$7E
 0194: C9              RET
 
+draw_intro_text_0196:
 0196: 7E              LD      A,(HL)
 0197: E6 1F           AND     $1F
 0199: FE 06           CP      $06
@@ -479,6 +503,7 @@ CompareBCtoMem_0258:
 ; Subtract DE from memory if memory is greater/equal to BC.
 ;
 test_if_mem_between_BC_and_DE_0260:
+test_if_mem_between_d1_and_d3_0260:
 0260: CD 70 02        CALL    SubtractFromMemory_0270  ; Try subtraction. Is memory larger (or equal) to BC?
 0263: D8              RET     C                   ; No ... ignore request
 0264: CD 77 02        CALL    SubtractToMemory_0277    ; Yes ... subtract DE from memory
@@ -537,10 +562,10 @@ CompareHLtoBC_0280:
 02AA: 2F              CPL
 02AB: A1              AND     C
 02AC: C8              RET     Z
-02AD: CD CB 02        CALL    $02CB               ;
-02B0: CD F0 02        CALL    $02F0               ;
-02B3: CD 2E 03        CALL    $032E               ;
-02B6: CD 50 03        CALL    $0350               ;
+02AD: CD CB 02        CALL    decrease_credits_02cb               ;
+02B0: CD F0 02        CALL    update_highscore_02f0               ;
+02B3: CD 2E 03        CALL    zero_player_scores_032e               ;
+02B6: CD 50 03        CALL    init_player_lives_0350               ;
 02B9: CD 40 01        CALL    init_new_play_0140               ;
 02BC: 26 50           LD      H,$50               ; 50xx video register
 02BE: 36 01           LD      (HL),$01            ; set bank 1
@@ -551,6 +576,7 @@ CompareHLtoBC_0280:
 
 
 
+decrease_credits_02cb:
 02CB: 0E 01           LD      C,$01
 02CD: FE 02           CP      $02
 02CF: CA D4 02        JP      Z,$02D4             ;
@@ -572,24 +598,26 @@ CompareHLtoBC_0280:
 02ED: C9              RET
 
 
+update_highscore_02f0:
 02F0: 11 83 43        LD      DE,player_2_score_end_4383
 02F3: 21 8B 43        LD      HL,unknown_438B
-02F6: CD 14 03        CALL    $0314               ;
+02F6: CD 14 03        CALL    compare_scores_0314               ;
 02F9: D4 20 03        CALL    NC,copy_3_bytes_a0_a1_0320            ;
 02FC: 1E 87           LD      E,$87
 02FE: 2E 8B           LD      L,$8B
-0300: CD 14 03        CALL    $0314               ;
+0300: CD 14 03        CALL    compare_scores_0314               ;
 0303: D4 20 03        CALL    NC,copy_3_bytes_a0_a1_0320            ;
 0306: 2E 8B           LD      L,$8B
 0308: 11 41 41        LD      DE,unknown_4141
 030B: 06 06           LD      B,$06
-030D: CD C4 00        CALL    $00C4               ;
+030D: CD C4 00        CALL    write_digits_to_screen_00c4               ;
 0310: C9              RET
 
 0311: FF              RST     0X38
 0312: FF              RST     0X38
 0313: FF              RST     0X38
 
+compare_scores_0314:
 0314: 1A              LD      A,(DE)
 0315: 96              SUB     (HL)
 0316: 1D              DEC     E
@@ -620,6 +648,7 @@ copy_3_bytes_a0_a1_0320:
 032C: FF              RST     0X38
 032D: FF              RST     0X38
 
+zero_player_scores_032e:
 032E: 21 80 43        LD      HL,unknown_4380
 0331: 36 00           LD      (HL),$00
 0333: 23              INC     HL
@@ -629,15 +658,16 @@ copy_3_bytes_a0_a1_0320:
 033A: 2E 83           LD      L,$83
 033C: 11 61 42        LD      DE,unknown_4261
 033F: 06 06           LD      B,$06
-0341: CD C4 00        CALL    $00C4               ;
+0341: CD C4 00        CALL    write_digits_to_screen_00c4               ;
 0344: 2E 87           LD      L,$87
 0346: 11 21 40        LD      DE,unknown_4021
 0349: 06 06           LD      B,$06
-034B: CD C4 00        CALL    $00C4               ;
+034B: CD C4 00        CALL    write_digits_to_screen_00c4               ;
 034E: C9              RET
 
 034F: FF              RST     0X38
 
+init_player_lives_0350:
 0350: 3A 00 78        LD      A,($7800)           ; 78xx DSW0
 0353: E6 03           AND     $03                 ; Lives
 0355: C6 03           ADD     $03
@@ -705,12 +735,13 @@ clear_background_tiles_03a0:
 03AB: BB              CP      E
 03AC: C2 A6 03        JP      NZ,$03A6            ;
 03AF: C9              RET
+rest_of_intro_sequence_03b0:
 03B0: 01 A0 07        LD      BC,$07A0
 03B3: CD 70 02        CALL    SubtractFromMemory_0270  ;
 03B6: DA CE 03        JP      C,$03CE             ;
 03B9: CD 58 02        CALL    CompareBCtoMem_0258      ;
 03BC: CA EB 03        JP      Z,$03EB             ;
-03BF: 01 60 0B        LD      BC,$0B60
+03BF: 01 60 0B        LD      BC,game_over_0B60
 03C2: CD 70 02        CALL    SubtractFromMemory_0270  ;
 03C5: DA CE 03        JP      C,$03CE             ;
 03C8: CD 58 02        CALL    CompareBCtoMem_0258      ;
@@ -900,7 +931,7 @@ init_new_play_clear_screen_04AC:
 04DA: 2E 87           LD      L,$87
 04DC: 11 21 40        LD      DE,unknown_4021
 04DF: 06 06           LD      B,$06
-04E1: CD C4 00        CALL    $00C4               ;
+04E1: CD C4 00        CALL    write_digits_to_screen_00c4               ;
 04E4: C9              RET
 04E5: FF
 04E6: 21 A3 43        LD      HL,current_player_is_p2_43A3
@@ -910,14 +941,15 @@ init_new_play_clear_screen_04AC:
 04EE: CA F4 04        JP      Z,$04F4             ;
 04F1: 11 21 40        LD      DE,unknown_4021
 04F4: 06 06           LD      B,$06
-04F6: CD FB 04        CALL    $04FB               ;
+04F6: CD FB 04        CALL    clear_score_digits_04fb               ;
 04F9: C9              RET
 04FA: FF              RST     0X38
+clear_score_digits_04fb:
 04FB: 3E 00           LD      A,$00
 04FD: 12              LD      (DE),A
 04FE: CD 10 02        CALL    AddOneRow_0210           ;
 0501: 05              DEC     B
-0502: C2 FB 04        JP      NZ,$04FB            ;
+0502: C2 FB 04        JP      NZ,clear_score_digits_04fb            ;
 0505: C9              RET
 0506: 21 92 43        LD      HL,unknown_4392
 0509: 06 06           LD      B,$06
@@ -931,11 +963,11 @@ init_new_play_step_2_0515:
 0515: CD 1E 04        CALL    set_proper_stage_palette_041E               ;
 0518: 21 A4 43        LD      HL,game_state_43A4
 051B: 36 03           LD      (HL),$03         ; advance state machine to "playing"
-051D: CD 80 05        CALL    $0580               ;
+051D: CD 80 05        CALL    init_scrolling_data_0580               ;
 0520: CD 47 05        CALL    $0547               ;
-0523: CD A0 09        CALL    $09A0               ;
+0523: CD A0 09        CALL    display_player_ship_and_shots_09a0               ;
 0526: CD 32 05        CALL    $0532               ;
-0529: CD 6C 0A        CALL    $0A6C               ;
+0529: CD 6C 0A        CALL    draw_birds_0a6c               ;
 052C: CD 06 05        CALL    $0506               ;
 052F: C3 B0 32        JP      $32B0               ;
 ;
@@ -952,7 +984,7 @@ init_new_play_step_2_0515:
 0547: 21 60 05        LD      HL,$0560
 054A: 11 C0 43        LD      DE,unknown_43C0
 054D: 06 20           LD      B,$20
-054F: CD E0 05        CALL    $05E0               ;
+054F: CD E0 05        CALL    copy_memory_05e0               ;
 0552: 21 E0 43        LD      HL,unknown_43E0
 0555: 06 20           LD      B,$20
 0557: CD D8 05        CALL    clear_area_05D8               ;
@@ -960,6 +992,7 @@ init_new_play_step_2_0515:
 
 055B: FF FF FF FF FF
 
+init_scrolling_data_0580:
 0580: 21 98 05        LD      HL,$0598
 0581: 98              SBC     B
 0582: 05              DEC     B
@@ -971,7 +1004,7 @@ init_new_play_step_2_0515:
 058B: 26 05           LD      H,$05
 058D: 11 AB 43        LD      DE,unknown_43AB
 0590: 06 0C           LD      B,$0C
-0592: CD E0 05        CALL    $05E0               ;
+0592: CD E0 05        CALL    copy_memory_05e0               ;
 0595: C9              RET
 
 ; data section
@@ -987,12 +1020,13 @@ clear_area_05D8:
 
 05DF: C9              RET
 
+copy_memory_05e0:
 05E0: 7E              LD      A,(HL)
 05E1: 12              LD      (DE),A
 05E2: 23              INC     HL
 05E3: 13              INC     DE
 05E4: 05              DEC     B
-05E5: C2 E0 05        JP      NZ,$05E0            ;
+05E5: C2 E0 05        JP      NZ,copy_memory_05e0            ;
 05E8: C9              RET
 05E9: FF              RST     0X38
 05EA: FF              RST     0X38
@@ -1006,6 +1040,7 @@ clear_area_05D8:
 05F7: 56              LD      D,(HL)
 05F8: 23              INC     HL
 05F9: 5E              LD      E,(HL)
+set_birds_params_05fa:
 05FA: 21 70 4B        LD      HL,bird_data_4B70
 05FD: 3A BA 43        LD      A,(nb_to_kill_before_stage_completed_43BA)
 0600: 47              LD      B,A
@@ -1186,7 +1221,7 @@ update_scrolling_067A:
 06E1: 85              ADD     A,L
 06E2: 6F              LD      L,A
 06E3: 6E              LD      L,(HL)
-06E4: CD DC 07        CALL    $07DC               ;
+06E4: CD DC 07        CALL    write_2x2_chars_07dc               ;
 06E7: C9              RET
 06E8: 21 00 18        LD      HL,$1800
 06EB: 0E 01           LD      C,$01
@@ -1204,9 +1239,10 @@ update_scrolling_067A:
 06FE: FF              RST     0X38
 06FF: FF              RST     0X38
 
+display_player_ship_and_shots_0700:
 0700: 01 C0 43        LD      BC,unknown_43C0
 0703: 11 E0 43        LD      DE,unknown_43E0
-0706: CD 18 07        CALL    $0718               ;
+0706: CD 18 07        CALL    do_game_selected_routines_0718               ;
 0709: 79              LD      A,C
 070A: C6 04           ADD     $04
 070C: 4F              LD      C,A
@@ -1217,10 +1253,12 @@ update_scrolling_067A:
 0713: C2 06 07        JP      NZ,$0706            ;
 0716: C9              RET
 0717: C9              RET
-0718: CD 20 07        CALL    $0720               ;
-071B: C3 40 07        JP      $0740               ;
+do_game_selected_routines_0718:
+0718: CD 20 07        CALL    select_game_jump_routine_0720               ;
+071B: C3 40 07        JP      select_game_jump_routine_0740               ;
 
 071E: E6 EF           AND     $EF
+select_game_jump_routine_0720:
 0720: 0A              LD      A,(BC)
 0721: 67              LD      H,A
 0722: E6 10           AND     $10
@@ -1247,6 +1285,7 @@ update_scrolling_067A:
 0737: 8A              ADC     A,D
 
 table_0738:
+jump_table_0738:
 0738: .byte	$63       ; $763
 0739: .byte	$79       ; $779
 073A: .byte	$FF       ;
@@ -1257,6 +1296,7 @@ table_0738:
 073F: .byte	$FF       ;
 
 ; looks like random? not sure
+select_game_jump_routine_0740:
 0740: 0A              LD      A,(BC)
 0741: 67              LD      H,A
 0742: E6 08           AND     $08
@@ -1285,6 +1325,7 @@ table_0738:
 075A: 0A              LD      A,(BC)
 
 table_075B:
+jump_table_075B:
 075B: .byte	$6D      ; $76D
 075C: .byte	$88      ; $788
 075D: .byte	$FF      ;
@@ -1295,6 +1336,7 @@ table_075B:
 0762: .byte	$FF      ;
 
 
+erase_shots_0763:
 0763: EB              EX      DE,HL
 0764: 56              LD      D,(HL)
 0765: 23              INC     HL
@@ -1308,6 +1350,7 @@ table_075B:
 076C: EB
 
 
+animate_appearing_birds_076d:
 076D: EB              EX      DE,HL
 076E: 23              INC     HL
 076F: 23              INC     HL
@@ -1320,6 +1363,7 @@ table_075B:
 0776: C9              RET
 0777: 12              LD      (DE),A
 0778: 23              INC     HL
+erase_remaining_char_0779:
 0779: EB              EX      DE,HL
 077A: 56              LD      D,(HL)
 077B: 23              INC     HL
@@ -1334,6 +1378,7 @@ table_075B:
 0786: C9              RET
 0787: 23              INC     HL
 
+animate_bird_in_swarm_0788:
 0788: EB              EX      DE,HL
 0789: 23              INC     HL
 078A: 23              INC     HL
@@ -1353,6 +1398,7 @@ table_075B:
 079B: C9              RET
 079C: FF              RST     0X38
 079D: EB              EX      DE,HL
+erase_attacking_birds_079E:
 079E: EB              EX      DE,HL
 079F: 56              LD      D,(HL)
 07A0: 23              INC     HL
@@ -1366,6 +1412,7 @@ table_075B:
 07A8: C9              RET
 07A9: FF              RST     0X38
 
+display_attacking_birds_07AA:
 07AA: EB              EX      DE,HL
 07AB: 23              INC     HL
 07AC: 23              INC     HL
@@ -1385,6 +1432,7 @@ table_075B:
 07BB: C9              RET
 07BC: 23              INC     HL
 07BD: 13              INC     DE
+erase_remaining_char_07BE:
 07BE: EB              EX      DE,HL
 07BF: 56              LD      D,(HL)
 07C0: 23              INC     HL
@@ -1403,6 +1451,7 @@ table_075B:
 07CF: C9              RET
 07D0: CD 4C
 
+display_attacking_bird_07D2:
 07D2: EB              EX      DE,HL
 07D3: 23              INC     HL
 07D4: 23              INC     HL
@@ -1412,6 +1461,7 @@ table_075B:
 07D8: 0A              LD      A,(BC)
 07D9: 6F              LD      L,A
 07DA: 26 14           LD      H,$14
+write_2x2_chars_07dc:
 07DC: 7E              LD      A,(HL)
 07DD: 12              LD      (DE),A
 07DE: 23              INC     HL
@@ -1484,9 +1534,9 @@ transition_to_birds_level_0834:
 083B: 7E              LD      A,(HL)
 083C: FE 15           CP      $15
 083E: D0              RET     NC
-083F: CD 5A 08        CALL    $085A               ;
-0842: CD FA 05        CALL    $05FA               ;
-0845: CD 50 0A        CALL    $0A50               ;
+083F: CD 5A 08        CALL    select_birds_params_depending_on_phase_085a               ;
+0842: CD FA 05        CALL    set_birds_params_05fa               ;
+0845: CD 50 0A        CALL    birds_stuff_0a50               ;
 0848: 21 B4 43        LD      HL,unknown_43B4
 084B: 7E              LD      A,(HL)
 084C: A7              AND     A
@@ -1501,6 +1551,7 @@ transition_to_birds_level_0834:
 0857: FF              RST     0X38
 0858: FF              RST     0X38
 0859: FF              RST     0X38
+select_birds_params_depending_on_phase_085a:
 085A: 11 6C 08        LD      DE,$086C
 085D: FE 11           CP      $11
 085F: D0              RET     NC
@@ -1521,14 +1572,16 @@ transition_to_birds_level_0834:
 0874: FF              RST     0X38
 0875: FF              RST     0X38
 
-0876: CD 00 07        CALL    $0700               ;
-0879: CD 86 08        CALL    $0886               ;
-087C: CD A0 08        CALL    $08A0               ;
-087F: CD A0 09        CALL    $09A0               ;
-0882: CD 7A 09        CALL    $097A               ;
+common_game_routines_0876:
+0876: CD 00 07        CALL    display_player_ship_and_shots_0700               ;
+0879: CD 86 08        CALL    erase_player_shots_0886               ;
+087C: CD A0 08        CALL    handle_player_shots_08a0               ;
+087F: CD A0 09        CALL    display_player_ship_and_shots_09a0               ;
+0882: CD 7A 09        CALL    compute_player_ship_boundaries_097a               ;
 0885: C9              RET
 
 ; copies byte pairs 2 bytes below
+erase_player_shots_0886:
 0886: 21 EB 43        LD      HL,unknown_43EB
 0889: 06 03           LD      B,$03
 088B: 56              LD      D,(HL)
@@ -1550,17 +1603,19 @@ transition_to_birds_level_0834:
 089D: FF              RST     0X38
 089E: FF              RST     0X38
 089F: FF              RST     0X38
-08A0: CD C4 08        CALL    $08C4               ;
+handle_player_shots_08a0:
+08A0: CD C4 08        CALL    handle_player_controls_08c4               ;
 08A3: 21 C4 43        LD      HL,player_shot_1_structure_43C4
-08A6: CD 30 09        CALL    $0930               ;
+08A6: CD 30 09        CALL    handle_player_shot_0930               ;
 08A9: 3A B8 43        LD      A,(current_stage_43B8)
 08AC: E6 0F           AND     $0F
 08AE: FE 03           CP      $03
 08B0: C0              RET     NZ      ; nop to get 2 bullets all the time
 08B1: 21 C8 43        LD      HL,player_shot_2_structure_43C8
-08B4: CD 30 09        CALL    $0930               ;
+08B4: CD 30 09        CALL    handle_player_shot_0930               ;
 08B7: C9              RET
 
+handle_player_controls_08c4:
 08C4: 21 C0 43        LD      HL,unknown_43C0
 08C7: 7E              LD      A,(HL)
 08C8: E6 08           AND     $08
@@ -1592,7 +1647,7 @@ read_controls_to_move_ship_0900:
 0904: E6 60           AND     $60
 0906: C8              RET     Z
 0907: E6 40           AND     $40
-0909: CA 17 09        JP      Z,$0917             ;
+0909: CA 17 09        JP      Z,player_move_right_requested_0917             ;
 090C: 7E              LD      A,(HL)
 090D: FE 0D           CP      $0D
 090F: D8              RET     C
@@ -1600,6 +1655,7 @@ read_controls_to_move_ship_0900:
 0911: 3E FF           LD      A,$FF
 0913: 32 60 43        LD      (unknown_4360),A
 0916: C9              RET
+player_move_right_requested_0917:
 0917: 7E              LD      A,(HL)
 0918: FE C0           CP      $C0
 091A: D0              RET     NC
@@ -1617,6 +1673,7 @@ read_controls_to_move_ship_0900:
 092D: 77              LD      (HL),A
 092E: C9              RET
 092F: FF              RST     0X38
+handle_player_shot_0930:
 0930: 7E              LD      A,(HL)
 0931: E6 08           AND     $08
 0933: C2 64 09        JP      NZ,$0964            ;
@@ -1655,6 +1712,7 @@ read_controls_to_move_ship_0900:
 096A: 77              LD      (HL),A
 096B: FE 1F           CP      $1F
 096D: D0              RET     NC
+disable_player_shot_096e:
 096E: 2D              DEC     L
 096F: 2D              DEC     L
 0970: 2D              DEC     L
@@ -1663,6 +1721,7 @@ read_controls_to_move_ship_0900:
 0974: 77              LD      (HL),A
 0975: C9              RET
 
+compute_player_ship_boundaries_097a:
 097A: 3A C2 43        LD      A,(player_ship_x_43C2)
 097D: 47              LD      B,A
 097E: E6 07           AND     $07
@@ -1681,6 +1740,7 @@ read_controls_to_move_ship_0900:
 0992: 32 9F 43        LD      (player_ship_right_x_439F),A
 0995: C9              RET
 
+display_player_ship_and_shots_09a0:
 09A0: 01 C2 43        LD      BC,player_ship_x_43C2
 09A3: 11 E2 43        LD      DE,screen_address_43E2
 09A6: CD BA 09        CALL    $09BA               ;
@@ -1716,10 +1776,11 @@ read_controls_to_move_ship_0900:
 09D0: 12              LD      (DE),A
 09D1: C9              RET
 
+birds_stuff_0a50:
 0A50: 01 70 4B        LD      BC,bird_data_4B70
 0A53: 11 B0 4B        LD      DE,unknown_4BB0
 0A56: C5              PUSH    BC
-0A57: CD 18 07        CALL    $0718               ;
+0A57: CD 18 07        CALL    do_game_selected_routines_0718               ;
 0A5A: C1              POP     BC
 0A5B: 79              LD      A,C
 0A5C: C6 04           ADD     $04
@@ -1731,6 +1792,7 @@ read_controls_to_move_ship_0900:
 0A64: C2 56 0A        JP      NZ,$0A56            ;
 0A67: C9              RET
 
+draw_birds_0a6c:
 0A6C: 01 70 4B        LD      BC,bird_data_4B70
 0A6F: 11 B3 4B        LD      DE,unknown_4BB3
 0A72: C5              PUSH    BC
@@ -1783,8 +1845,9 @@ read_controls_to_move_ship_0900:
 0ABE: 07              RLCA
 0ABF: 85              ADD     A,L
 0AC0: 6F              LD      L,A
-0AC1: C3 D6 0A        JP      $0AD6               ;
+0AC1: C3 D6 0A        JP      copy_block_to_screen_0ad6               ;
 
+copy_block_to_screen_0ad6:
 0AD6: D5              PUSH    DE
 0AD7: C5              PUSH    BC
 0AD8: 7E              LD      A,(HL)
@@ -1797,7 +1860,7 @@ read_controls_to_move_ship_0900:
 0AE1: D1              POP     DE
 0AE2: CD 17 02        CALL    SubtractOneRow_0217      ;
 0AE5: 0D              DEC     C
-0AE6: C2 D6 0A        JP      NZ,$0AD6            ;
+0AE6: C2 D6 0A        JP      NZ,copy_block_to_screen_0ad6            ;
 0AE9: C9              RET
 
 ; called all the time player is exploding
@@ -1844,7 +1907,7 @@ player_hit_0AEA:
 0B2D: C9              RET
 
 
-0B48: CD D6 0A        CALL    $0AD6               ;
+0B48: CD D6 0A        CALL    copy_block_to_screen_0ad6               ;
 0B4B: 21 C0 43        LD      HL,unknown_43C0
 0B4E: 36 0C           LD      (HL),$0C
 0B50: 2C              INC     L
@@ -1914,6 +1977,7 @@ game_over_0B60:
 0BC1: DA 70 20        JP      C,$2070             ;
 0BC4: C3 E8 20        JP      $20E8               ;
 
+draw_bird_extended_winds_0bca:
 0BCA: 21 D0 42        LD      HL,unknown_42D0
 0BCD: 01 DF FF        LD      BC,$FFDF
 0BD0: 36 64           LD      (HL),$64
@@ -1922,13 +1986,13 @@ game_over_0B60:
 0BD4: 36 65           LD      (HL),$65
 0BD6: 21 F2 42        LD      HL,unknown_42F2
 0BD9: 11 40 0A        LD      DE,$0A40
-0BDC: CD 38 35        CALL    $3538               ;
+0BDC: CD 38 35        CALL    copy_4_columns_to_screen_3538               ;
 0BDF: 21 15 4B        LD      HL,unknown_4B15
 0BE2: 11 00 3C        LD      DE,$3C00
-0BE5: CD 28 35        CALL    $3528               ;
+0BE5: CD 28 35        CALL    copy_6_columns_to_screen_3528               ;
 0BE8: 21 D8 4A        LD      HL,unknown_4AD8
 0BEB: 11 48 0A        LD      DE,$0A48
-0BEE: CD 48 35        CALL    $3548               ;
+0BEE: CD 48 35        CALL    copy_2_columns_to_screen_3548               ;
 0BF1: C9              RET
 
 moving_bird_shot_0C00:
@@ -2002,9 +2066,9 @@ moving_bird_shot_0C00:
 0C92: C6 04           ADD     $04
 0C94: 77              LD      (HL),A
 0C95: FE F9           CP      $F9
-0C97: D2 6E 09        JP      NC,$096E            ;
+0C97: D2 6E 09        JP      NC,disable_player_shot_096e            ;
 0C9A: 2D              DEC     L
-0C9B: CD B4 0C        CALL    $0CB4               ;
+0C9B: CD B4 0C        CALL    player_vs_enemy_collision_0cb4               ;
 0C9E: 54              LD      D,H
 0C9F: 7D              LD      A,L
 0CA0: C6 20           ADD     $20
@@ -2017,9 +2081,10 @@ moving_bird_shot_0C00:
 0CA8: EB              EX      DE,HL
 0CA9: 2C              INC     L
 0CAA: FE E8           CP      $E8
-0CAC: D2 6E 09        JP      NC,$096E            ;
+0CAC: D2 6E 09        JP      NC,disable_player_shot_096e            ;
 0CAF: C9              RET
 
+player_vs_enemy_collision_0cb4:
 0CB4: FE DC           CP      $DC
 0CB6: D8              RET     C
 0CB7: FE E9           CP      $E9
@@ -2030,6 +2095,7 @@ moving_bird_shot_0C00:
 0CBF: 3A 9E 43        LD      A,(player_ship_left_x_439E)
 0CC2: BE              CP      (HL)
 0CC3: D0              RET     NC
+player_hit_0cc4:
 0CC4: 3E 04           LD      A,$04
 0CC6: 32 A4 43        LD      (game_state_43A4),A           ;
 0CC9: 3E 60           LD      A,$60
@@ -2041,7 +2107,7 @@ moving_bird_shot_0C00:
 0CD8: 01 CC 43        LD      BC,player_shot_3_structure_43CC
 0CDB: 11 EC 43        LD      DE,unknown_43EC
 0CDE: C5              PUSH    BC
-0CDF: CD 18 07        CALL    $0718               ;
+0CDF: CD 18 07        CALL    do_game_selected_routines_0718               ;
 0CE2: C1              POP     BC
 0CE3: 79              LD      A,C
 0CE4: C6 04           ADD     $04
@@ -2130,7 +2196,7 @@ moving_bird_shot_0C00:
 
 0D70: 01 70 4B        LD      BC,bird_data_4B70
 0D73: 21 50 4B        LD      HL,unknown_4B50
-0D76: CD 86 0D        CALL    $0D86               ;
+0D76: CD 86 0D        CALL    animate_birds_0d86               ;
 0D79: 79              LD      A,C
 0D7A: C6 04           ADD     $04
 0D7C: 4F              LD      C,A
@@ -2139,6 +2205,7 @@ moving_bird_shot_0C00:
 0D80: C2 76 0D        JP      NZ,$0D76            ;
 0D83: C9              RET
 
+animate_birds_0d86:
 0D86: 56              LD      D,(HL)
 0D87: 23              INC     HL
 0D88: 5E              LD      E,(HL)
@@ -2354,6 +2421,7 @@ swarm_bird_close_to_shot_0E90:
 bird_shot_0EA4:
 ; position ourselves on the previous enemy/shot, those are the
 ; ones we need to deactivate
+bird_shot_0EA4:
 0EA4: 2B              DEC     HL
 0EA5: 2B              DEC     HL
 0EA6: 0B              DEC     BC
@@ -2475,7 +2543,7 @@ bird_shot_0EA4:
 0F43: D0              RET     NC
 0F44: B8              CP      B
 0F45: D8              RET     C
-0F46: CD C4 0C        CALL    $0CC4               ;
+0F46: CD C4 0C        CALL    player_hit_0cc4               ;
 0F49: 11 04 0D        LD      DE,$0D04
 0F4C: 2B              DEC     HL
 0F4D: 2B              DEC     HL
@@ -2579,7 +2647,7 @@ bird_shot_0EA4:
 0FEF: 6E              LD      L,(HL)
 0FF0: EB              EX      DE,HL
 0FF1: 01 DF FF        LD      BC,$FFDF
-0FF4: C3 40 35        JP      $3540               ;
+0FF4: C3 40 35        JP      copy_3_columns_to_screen_3540               ;
 
 0FF7: 68              LD      L,B
 0FF8: 3E 05           LD      A,$05
@@ -2758,7 +2826,7 @@ screen_copyright_check_1df0:
 1DF9: 76              HALT
 
 1EE0: 11 3D 43        LD      DE,unknown_433D
-1EE3: 01 1A 00        LD      BC,$001A
+1EE3: 01 1A 00        LD      BC,mainloop_001A
 1EE6: 1A              LD      A,(DE)
 1EE7: 80              ADD     A,B
 1EE8: 47              LD      B,A
@@ -2775,9 +2843,9 @@ screen_copyright_check_1df0:
 1EFA: C9              RET
 
 birds_level_2000:
-2000: CD 76 08        CALL    $0876               ;
+2000: CD 76 08        CALL    common_game_routines_0876               ;
 2003: CD F0 0D        CALL    player_shots_vs_birds_collision_0DF0               ;
-2006: CD A0 24        CALL    $24A0               ;
+2006: CD A0 24        CALL    mothership_shot_collision_24a0               ;
 2009: 21 5F 43        LD      HL,unknown_435F
 200C: 7E              LD      A,(HL)
 200D: E6 03           AND     $03
@@ -2870,7 +2938,7 @@ birds_level_2000:
 2093: 91              SUB     C
 2094: 3E 43           LD      A,$43
 2096: 98              SBC     B
-2097: D2 B0 20        JP      NC,$20B0            ;
+2097: D2 B0 20        JP      NC,player_exploding_20b0            ;
 209A: 23              INC     HL
 209B: 23              INC     HL
 209C: 7B              LD      A,E
@@ -2884,6 +2952,7 @@ birds_level_2000:
 20A7: 47              LD      B,A
 20A8: C3 91 20        JP      $2091               ;
 
+player_exploding_20b0:
 20B0: C5              PUSH    BC
 20B1: 7E              LD      A,(HL)
 20B2: E3              EX      (SP),HL
@@ -2947,8 +3016,9 @@ birds_level_2000:
 2108: 6E              LD      L,(HL)
 2109: 67              LD      H,A
 210A: 01 04 04        LD      BC,$0404
-210D: C3 D6 0A        JP      $0AD6               ;
+210D: C3 D6 0A        JP      copy_block_to_screen_0ad6               ;
 
+wrap_scroll_value_211C:
 211C: 21 B9 43        LD      HL,current_scroll_value_43B9
 211F: 7E              LD      A,(HL)
 2120: FE 10           CP      $10
@@ -2979,11 +3049,11 @@ birds_level_2000:
 214E: F0              RET     P
 * doesn't seem reached throughout the whole game!
 214F: F9              LD      SP,HL
-2150: CD 50 0A        CALL    $0A50               ;
-2153: CD 00 30        CALL    $3000               ;
+2150: CD 50 0A        CALL    birds_stuff_0a50               ;
+2153: CD 00 30        CALL    handle_small_birds_attacks_3000               ;
 2156: C3 00 0F        JP      $0F00               ;
 
-2160: CD C4 24        CALL    $24C4               ;
+2160: CD C4 24        CALL    animate_mothership_24c4               ;
 2163: CD 40 0C        CALL    $0C40               ;
 2166: CD 1C 0D        CALL    $0D1C               ;
 2169: C3 C0 0F        JP      $0FC0               ;
@@ -2991,29 +3061,29 @@ birds_level_2000:
 2170: CD 70 0D        CALL    $0D70               ;
 2173: C3 60 25        JP      $2560               ;
 
-2180: CD C4 24        CALL    $24C4               ;
+2180: CD C4 24        CALL    animate_mothership_24c4               ;
 2183: CD 40 0C        CALL    $0C40               ;
-2186: CD 6C 0A        CALL    $0A6C               ;
+2186: CD 6C 0A        CALL    draw_birds_0a6c               ;
 2189: C3 C0 0F        JP      $0FC0               ;
 
-2190: CD 50 0A        CALL    $0A50               ;
-2193: CD 00 30        CALL    $3000               ;
+2190: CD 50 0A        CALL    birds_stuff_0a50               ;
+2193: CD 00 30        CALL    handle_small_birds_attacks_3000               ;
 2196: CD 00 0F        CALL    $0F00               ;
 2199: CD 60 25        CALL    $2560               ;
 219C: C3 40 0C        JP      $0C40               ;
 
 21A5: CD 1C 0D        CALL    $0D1C               ;
 21A8: CD 70 0D        CALL    $0D70               ;
-21AB: CD 6C 0A        CALL    $0A6C               ;
+21AB: CD 6C 0A        CALL    draw_birds_0a6c               ;
 21AE: CD C0 0F        CALL    $0FC0               ;
-21B1: C3 C4 24        JP      $24C4               ;
+21B1: C3 C4 24        JP      animate_mothership_24c4               ;
 
 21BA: 78              LD      A,B
 21BB: 0F              RRCA
 21BC: D2 04 22        JP      NC,$2204            ;
 21BF: CD 40 0C        CALL    $0C40               ;
 21C2: CD C0 0F        CALL    $0FC0               ;
-21C5: CD C4 24        CALL    $24C4               ;
+21C5: CD C4 24        CALL    animate_mothership_24c4               ;
 21C8: 3A B8 43        LD      A,(current_stage_43B8)
 21CB: E6 0F           AND     $0F
 21CD: FE 0B           CP      $0B
@@ -3023,6 +3093,7 @@ birds_level_2000:
 21D7: C3 26 05        JP      $0526               ;
 21DA: FF              RST     0X38
 21DB: FF              RST     0X38
+animate_title_vulture_21dc:
 21DC: 7E              LD      A,(HL)
 21DD: 00              NOP
 21DE: 47              LD      B,A
@@ -3044,7 +3115,7 @@ birds_level_2000:
 21F5: 16 23           LD      D,$23
 21F7: 1A              LD      A,(DE)
 21F8: 77              LD      (HL),A
-21F9: CD C0 34        CALL    $34C0               ;
+21F9: CD C0 34        CALL    animate_vulture_34c0               ;
 21FC: C3 E0 1E        JP      $1EE0               ;
 
 2204: 21 B6 43        LD      HL,unknown_43B6
@@ -3085,13 +3156,13 @@ transition_to_vultures_and_last_level_2230:
 2236: 0F              RRCA
 2237: E6 3F           AND     $3F
 2239: FE 0D           CP      $0D
-223B: CA 92 22        JP      Z,$2292             ;
+223B: CA 92 22        JP      Z,setup_boss_background_sceen_2292             ;
 223E: 06 1F           LD      B,$1F
-2240: DA 60 22        JP      C,$2260             ;
+2240: DA 60 22        JP      C,fill_screen_2260             ;
 2243: 06 00           LD      B,$00
 2245: D6 0E           SUB     $0E
 2247: FE 0D           CP      $0D
-2249: C2 60 22        JP      NZ,$2260            ;
+2249: C2 60 22        JP      NZ,fill_screen_2260            ;
 
 224C: 21 B8 43        LD      HL,current_stage_43B8
 224F: 34              INC     (HL)
@@ -3103,6 +3174,7 @@ transition_to_vultures_and_last_level_2230:
 2258: 36 02           LD      (HL),$02
 225A: C9              RET
 
+fill_screen_2260:
 2260: 4F              LD      C,A
 2261: 0F              RRCA
 2262: 0F              RRCA
@@ -3143,6 +3215,7 @@ transition_to_vultures_and_last_level_2230:
 228D: 1D              DEC     E
 228E: C2 7A 22        JP      NZ,$227A            ;
 2291: C9              RET
+setup_boss_background_sceen_2292:
 2292: 21 B8 43        LD      HL,current_stage_43B8
 2295: 7E              LD      A,(HL)
 2296: E6 08           AND     $08
@@ -3235,8 +3308,9 @@ mothership_level_22CA:
 232F: 26 1B           LD      H,$1B
 2331: 11 A6 49        LD      DE,unknown_49A6
 2334: 01 02 04        LD      BC,$0402
-2337: C3 D6 0A        JP      $0AD6               ;
+2337: C3 D6 0A        JP      copy_block_to_screen_0ad6               ;
 
+handle_player_shot_vs_mothership_2351:
 2351: 1A              LD      A,(DE)
 2352: E6 08           AND     $08
 2354: C8              RET     Z
@@ -3319,13 +3393,14 @@ mothership_level_22CA:
 23D1: 36 FF           LD      (HL),$FF
 23D3: C9              RET
 
+play_stage_ambient_sound_23d6:
 23D6: 21 B8 43        LD      HL,current_stage_43B8
 23D9: 7E              LD      A,(HL)
 23DA: E6 0F           AND     $0F
 23DC: FE 01           CP      $01
-23DE: CA 98 3A        JP      Z,$3A98             ;
+23DE: CA 98 3A        JP      Z,birds_ambient_sound_3a98             ;
 23E1: FE 03           CP      $03
-23E3: CA 98 3A        JP      Z,$3A98             ;
+23E3: CA 98 3A        JP      Z,birds_ambient_sound_3a98             ;
 23E6: FE 05           CP      $05
 23E8: CA D0 3A        JP      Z,vultures_background_sound_3ad0             ;
 23EB: FE 07           CP      $07
@@ -3333,16 +3408,16 @@ mothership_level_22CA:
 23F0: FE 09           CP      $09
 23F2: D8              RET     C
 23F3: FE 0B           CP      $0B
-23F5: DA 02 3B        JP      C,$3B02             ;
-23F8: CD 02 3B        CALL    $3B02               ;
-23FB: C3 98 3A        JP      $3A98               ;
+23F5: DA 02 3B        JP      C,boss_ambient_sound_3b02             ;
+23F8: CD 02 3B        CALL    boss_ambient_sound_3b02               ;
+23FB: C3 98 3A        JP      birds_ambient_sound_3a98               ;
 
 boss_stage_completed_2400:
 2400: CD 2C 24        CALL    $242C               ;
 2403: CA 52 25        JP      Z,$2552             ;
 2406: FE 20           CP      $20
 2408: DA 6A 24        JP      C,$246A             ;
-240B: CA 20 25        JP      Z,$2520             ;
+240B: CA 20 25        JP      Z,display_boss_score_2520             ;
 240E: 47              LD      B,A
 240F: 0F              RRCA
 2410: 00              NOP
@@ -3406,10 +3481,10 @@ end_of_level_transition_244C:
 246A: 01 14 09        LD      BC,$0914
 246D: 11 C6 4A        LD      DE,unknown_4AC6
 2470: 21 00 1C        LD      HL,$1C00
-2473: C3 D6 0A        JP      $0AD6               ;
+2473: C3 D6 0A        JP      copy_block_to_screen_0ad6               ;
 2476: 78              LD      A,B
 2477: 81              ADD     A,C
-2478: CD 95 24        CALL    $2495               ;
+2478: CD 95 24        CALL    compute_direction_change_timer_2495               ;
 247B: 2E D3           LD      L,$D3
 247D: 77              LD      (HL),A
 247E: 21 BB 43        LD      HL,unknown_43BB
@@ -3427,6 +3502,7 @@ end_of_level_transition_244C:
 2490: 32 D1 4B        LD      (vultures_aggressivity_4BD1),A
 2493: C9              RET
 2494: 1F              RRA
+compute_direction_change_timer_2495:
 2495: 80              ADD     A,B
 2496: 0D              DEC     C
 2497: C8              RET     Z
@@ -3438,21 +3514,23 @@ end_of_level_transition_244C:
 249D: C8              RET     Z
 249E: 87              ADD     A,A
 249F: C9              RET
+mothership_shot_collision_24a0:
 24A0: 3A B8 43        LD      A,(current_stage_43B8)
 24A3: E6 0F           AND     $0F
 24A5: FE 08           CP      $08
 24A7: D8              RET     C
 24A8: 11 C4 43        LD      DE,player_shot_1_structure_43C4
 24AB: 21 E6 43        LD      HL,ram_pointer_on_flying_enemies_table_43E6
-24AE: CD 51 23        CALL    $2351               ;
+24AE: CD 51 23        CALL    handle_player_shot_vs_mothership_2351               ;
 24B1: 3A 9B 43        LD      A,(random_seed_counter_value_439B)       ;
 24B4: E6 03           AND     $03
 24B6: FE 03           CP      $03
 24B8: C0              RET     NZ
 24B9: C3 F2 24        JP      $24F2               ;
-24BC: CD 51 23        CALL    $2351               ;
+24BC: CD 51 23        CALL    handle_player_shot_vs_mothership_2351               ;
 24BF: C9              RET
 
+animate_mothership_24c4:
 24C4: 3A B8 43        LD      A,(current_stage_43B8)
 24C7: E6 0F           AND     $0F
 24C9: FE 08           CP      $08
@@ -3474,7 +3552,7 @@ end_of_level_transition_244C:
 24EB: D8              RET     C
 24EC: C3 7A 06        JP      update_scrolling_067A               ;
 24EF: FA 22 C3        JP      M,$C322
-24F2: CD AA 30        CALL    $30AA               ;
+24F2: CD AA 30        CALL    get_random_value_30aa               ;
 24F5: C6 60           ADD     $60
 24F7: 00              NOP
 24F8: 47              LD      B,A
@@ -3499,8 +3577,9 @@ end_of_level_transition_244C:
 2517: 4F              LD      C,A
 2518: E5              PUSH    HL
 2519: E5              PUSH    HL
-251A: C3 B7 25        JP      $25B7               ;
+251A: C3 B7 25        JP      enemy_starts_shooting_25b7               ;
 
+display_boss_score_2520:
 2520: D5              PUSH    DE
 2521: CD 80 03        CALL    clear_foreground_tiles_0380               ;
 2524: D1              POP     DE
@@ -3527,7 +3606,7 @@ end_of_level_transition_244C:
 2548: D6 5E           SUB     $5E
 254A: 5F              LD      E,A
 254B: 06 04           LD      B,$04
-254D: C3 C4 00        JP      $00C4 
+254D: C3 C4 00        JP      write_digits_to_screen_00c4 
 
 2552: 2E A4           LD      L,$A4      
 2554: 36 07           LD      (HL),$07
@@ -3600,6 +3679,7 @@ end_of_level_transition_244C:
 25B4: 4F              LD      C,A
 25B5: 2D              DEC     L
 25B6: 46              LD      B,(HL)
+enemy_starts_shooting_25b7:
 25B7: 3A B8 43        LD      A,(current_stage_43B8)
 25BA: 16 03           LD      D,$03
 25BC: FE 10           CP      $10
@@ -3650,6 +3730,7 @@ end_of_level_transition_244C:
 ; y positionning that can't be achieved with chars only, or we'd need a lot more
 ; chars
 
+handle_vultures_y_2600:
 2600: 00              NOP
 2601: 00              NOP
 2602: 00              NOP
@@ -3668,7 +3749,7 @@ end_of_level_transition_244C:
 2616: BE              CP      (HL)
 ;up or down, the delta y to move all vultures vertically
 ;uses a table in ROM from 0x3ED0
-2617: DA 50 26        JP      C,$2650             ;
+2617: DA 50 26        JP      C,vultures_go_up_2650             ;
 ; vultures go down
 261A: 3A D5 4B        LD      A,(unknown_vulture_value_4BD5)
 261D: 57              LD      D,A
@@ -3690,13 +3771,15 @@ end_of_level_transition_244C:
 2634: 57              LD      D,A
 2635: 3A B9 43        LD      A,(current_scroll_value_43B9)
 2638: 92              SUB     D
+set_vultures_scroll_value_2639:
 2639: 32 B9 43        LD      (current_scroll_value_43B9),A
 263C: 32 00 58        LD      ($5800),A           ; 58xx scroll register
 263F: 3A 9B 43        LD      A,(random_seed_counter_value_439B)       ;
 2642: 0F              RRCA
-2643: D2 D0 26        JP      NC,$26D0            ;
+2643: D2 D0 26        JP      NC,compute_vulture_swarm_dimensions_26d0            ;
 2646: CD 68 26        CALL    $2668               ;
-2649: C3 AA 26        JP      $26AA               ;
+2649: C3 AA 26        JP      update_vulture_random_26aa               ;
+vultures_go_up_2650:
 2650: 2C              INC     L
 2651: 3A B9 43        LD      A,(current_scroll_value_43B9)
 2654: 07              RLCA
@@ -3708,7 +3791,7 @@ end_of_level_transition_244C:
 265C: 26 3E           LD      H,$3E
 265E: 3A B9 43        LD      A,(current_scroll_value_43B9)
 2661: 86              ADD     A,(HL)
-2662: C3 39 26        JP      $2639               ;
+2662: C3 39 26        JP      set_vultures_scroll_value_2639               ;
 
 2665: D2 AE 26        JP      NC,$26AE            ; not reachable
 
@@ -3747,6 +3830,7 @@ end_of_level_transition_244C:
 26A7: C9              RET
 26A8: 00              NOP
 26A9: 58              LD      E,B
+update_vulture_random_26aa:
 26AA: 21 D3 4B        LD      HL,swarm_vertical_direction_change_timer_4BD3
 26AD: 7E              LD      A,(HL)
 26AE: 35              DEC     (HL)
@@ -3773,8 +3857,9 @@ end_of_level_transition_244C:
 26CB: 4F              LD      C,A
 26CC: C3 76 24        JP      $2476               ;
 26CF: C9              RET
+compute_vulture_swarm_dimensions_26d0:
 26D0: 21 A8 4B        LD      HL,unknown_4BA8
-26D3: 01 00 08        LD      BC,$0800
+26D3: 01 00 08        LD      BC,game_playing_0800
 26D6: 11 00 80        LD      DE,$8000
 26D9: 7E              LD      A,(HL)
 26DA: A7              AND     A
@@ -3814,7 +3899,7 @@ end_of_level_transition_244C:
 270F: 3E FF           LD      A,$FF
 2711: 32 97 43        LD      (unknown_4397),A
 2714: 11 70 43        LD      DE,slot_for_regular_animation_4370
-2717: CD 48 27        CALL    $2748               ;
+2717: CD 48 27        CALL    award_enemy_score_if_needed_2748               ;
 271A: 1C              INC     E
 271B: 1C              INC     E
 271C: 1C              INC     E
@@ -3835,12 +3920,13 @@ end_of_level_transition_244C:
 2739: 3A 97 43        LD      A,(unknown_4397)
 273C: A7              AND     A
 273D: CC 68 27        CALL    Z,$2768             ;
-2740: CD A8 27        CALL    $27A8               ;
+2740: CD A8 27        CALL    handle_sounds_27a8               ;
 2743: C3 10 3A        JP      $3A10               ;
 
 2746: FF              RST     0X38
 2747: FF              RST     0X38
 
+award_enemy_score_if_needed_2748:
 2748: 1A              LD      A,(DE)
 2749: 1C              INC     E
 274A: FE 01           CP      $01
@@ -3873,7 +3959,7 @@ end_of_level_transition_244C:
 2771: A7              AND     A
 2772: CA 78 27        JP      Z,$2778             ;
 2775: 11 21 40        LD      DE,unknown_4021
-2778: CD C4 00        CALL    $00C4               ;
+2778: CD C4 00        CALL    write_digits_to_screen_00c4               ;
 277B: E1              POP     HL
 277C: 11 BD 43        LD      DE,unknown_43BD
 277F: EB              EX      DE,HL
@@ -3883,7 +3969,7 @@ end_of_level_transition_244C:
 2783: C8              RET     Z
 2784: 2C              INC     L
 2785: EB              EX      DE,HL
-2786: CD 14 03        CALL    $0314               ;
+2786: CD 14 03        CALL    compare_scores_0314               ;
 2789: D0              RET     NC
 278A: 3A A3 43        LD      A,(current_player_is_p2_43A3)
 278D: C6 90           ADD     $90
@@ -3905,6 +3991,7 @@ end_of_level_transition_244C:
 27A5: FF              RST     0X38
 27A6: FF              RST     0X38
 27A7: FF              RST     0X38
+handle_sounds_27a8:
 27A8: 21 8C 43        LD      HL,sound_buffer_438C
 27AB: 7E              LD      A,(HL)
 27AC: 32 00 60        LD      (unknown_6000),A           ; 60xx sound A
@@ -3918,6 +4005,7 @@ end_of_level_transition_244C:
 27BA: C9              RET
 27BB: FF              RST     0X38
 27BC: FF              RST     0X38
+noise_generation_27bd:
 27BD: 21 63 43        LD      HL,unknown_4363
 27C0: 7E              LD      A,(HL)
 27C1: A7              AND     A
@@ -3950,6 +4038,7 @@ end_of_level_transition_244C:
 27EC: 36 8F           LD      (HL),$8F
 27EE: C9              RET
 
+handle_small_birds_attacks_3000:
 3000: 21 93 43        LD      HL,birds_attack_counter_4393
 3003: 7E              LD      A,(HL)
 3004: 34              INC     (HL)
@@ -4056,12 +4145,13 @@ jump_table_3018:
 309D: 3E 10           LD      A,$10
 309F: 81              ADD     A,C
 30A0: 4F              LD      C,A
-30A1: CD AA 30        CALL    $30AA               ;
+30A1: CD AA 30        CALL    get_random_value_30aa               ;
 30A4: E6 07           AND     $07
 30A6: 81              ADD     A,C
 30A7: 4F              LD      C,A
 30A8: C9              RET
 30A9: FF              RST     0X38
+get_random_value_30aa:
 30AA: 21 9B 43        LD      HL,random_seed_counter_value_439B
 30AD: 7E              LD      A,(HL)
 30AE: 07              RLCA
@@ -4161,7 +4251,7 @@ jump_table_3018:
 313D: 2E 57           LD      L,$57
 313F: 96              SUB     (HL)
 3140: 47              LD      B,A
-3141: CD AA 30        CALL    $30AA               ;
+3141: CD AA 30        CALL    get_random_value_30aa               ;
 3144: 3C              INC     A
 3145: B8              CP      B
 3146: DA 4B 31        JP      C,$314B             ;
@@ -4174,7 +4264,7 @@ jump_table_3018:
 315D: 7E              LD      A,(HL)
 315E: FE 02           CP      $02
 3160: C0              RET     NZ
-3161: CD AA 30        CALL    $30AA               ;
+3161: CD AA 30        CALL    get_random_value_30aa               ;
 3164: 00              NOP
 3165: 47              LD      B,A
 3166: 07              RLCA
@@ -4270,7 +4360,7 @@ jump_table_3018:
 31F4: 6F              LD      L,A
 31F5: 26 33           LD      H,$33
 31F7: 4E              LD      C,(HL)
-31F8: CD AA 30        CALL    $30AA               ;
+31F8: CD AA 30        CALL    get_random_value_30aa               ;
 31FB: E6 06           AND     $06
 31FD: 81              ADD     A,C
 31FE: 6F              LD      L,A
@@ -4410,12 +4500,12 @@ jump_table_3018:
 32DE: 3A B8 43        LD      A,(current_stage_43B8)
 32E1: 0F              RRCA
 32E2: 0F              RRCA
-32E3: D2 E0 05        JP      NC,$05E0            ;
+32E3: D2 E0 05        JP      NC,copy_memory_05e0            ;
 32E6: 7D              LD      A,L
 32E7: C6 40           ADD     $40
 32E9: 6F              LD      L,A
-32EA: C3 E0 05        JP      $05E0               ;
-32ED: CD E0 05        CALL    $05E0               ;
+32EA: C3 E0 05        JP      copy_memory_05e0               ;
+32ED: CD E0 05        CALL    copy_memory_05e0               ;
 32F0: C3 A0 03        JP      clear_background_tiles_03a0               ;
 
 		 ; probably bogus instructions
@@ -4442,9 +4532,9 @@ jump_table_3018:
 33FE: 2E 90           LD      L,$90
 
 vultures_level_3400:
-3400: CD 76 08        CALL    $0876               ;
+3400: CD 76 08        CALL    common_game_routines_0876               ;
 3403: CD 00 38        CALL    player_shots_vs_vultures_collision_3800               ;
-3406: CD 00 26        CALL    $2600               ;
+3406: CD 00 26        CALL    handle_vultures_y_2600               ;
 3409: CD 00 38        CALL    player_shots_vs_vultures_collision_3800               ;
 340C: CD 80 39        CALL    $3980               ;
 340F: 3A BB 43        LD      A,(unknown_43BB)
@@ -4452,28 +4542,28 @@ vultures_level_3400:
 3413: CA 62 34        JP      Z,$3462             ;
 3416: FE 04           CP      $04
 3418: D2 38 34        JP      NC,$3438            ;
-341B: CD 74 34        CALL    $3474               ;
-341E: CD 86 34        CALL    $3486               ;
-3421: CD 60 35        CALL    $3560               ;
+341B: CD 74 34        CALL    animate_vultures_3474               ;
+341E: CD 86 34        CALL    animate_vultures_3486               ;
+3421: CD 60 35        CALL    animate_vulture_wings_3560               ;
 3424: CD 98 34        CALL    $3498               ;
 3427: CD AA 34        CALL    $34AA               ;
 342A: 3A 9B 43        LD      A,(random_seed_counter_value_439B)       ;
 342D: 0F              RRCA
 342E: DA C0 0F        JP      C,$0FC0             ;
-3431: CD 30 39        CALL    $3930               ;
+3431: CD 30 39        CALL    vultures_shoot_decision_3930               ;
 3434: C3 40 0C        JP      $0C40               ;
 3437: FF              RST     0X38
 3438: 3A 9B 43        LD      A,(random_seed_counter_value_439B)       ;
 343B: 0F              RRCA
 343C: DA 52 34        JP      C,$3452             ;
-343F: CD 74 34        CALL    $3474               ;
-3442: CD 60 35        CALL    $3560               ;
+343F: CD 74 34        CALL    animate_vultures_3474               ;
+3442: CD 60 35        CALL    animate_vulture_wings_3560               ;
 3445: CD 98 34        CALL    $3498               ;
-3448: CD 30 39        CALL    $3930               ;
+3448: CD 30 39        CALL    vultures_shoot_decision_3930               ;
 344B: C3 40 0C        JP      $0C40               ;
 
-3452: CD 86 34        CALL    $3486               ;
-3455: CD 60 35        CALL    $3560               ;
+3452: CD 86 34        CALL    animate_vultures_3486               ;
+3455: CD 60 35        CALL    animate_vulture_wings_3560               ;
 3458: CD AA 34        CALL    $34AA               ;
 345B: C3 C0 0F        JP      $0FC0               ;
 
@@ -4484,9 +4574,10 @@ vultures_level_3400:
 346A: CD C0 0F        CALL    $0FC0               ;
 346D: C3 04 22        JP      $2204               ;
 
+animate_vultures_3474:
 3474: 21 70 4B        LD      HL,bird_data_4B70
 3477: E5              PUSH    HL
-3478: CD C0 34        CALL    $34C0               ;
+3478: CD C0 34        CALL    animate_vulture_34c0               ;
 347B: E1              POP     HL
 347C: 7D              LD      A,L
 347D: C6 08           ADD     $08
@@ -4494,9 +4585,10 @@ vultures_level_3400:
 3480: FE 90           CP      $90
 3482: C2 77 34        JP      NZ,$3477            ;
 3485: C9              RET
+animate_vultures_3486:
 3486: 21 90 4B        LD      HL,unknown_4B90
 3489: E5              PUSH    HL
-348A: CD C0 34        CALL    $34C0               ;
+348A: CD C0 34        CALL    animate_vulture_34c0               ;
 348D: E1              POP     HL
 348E: 7D              LD      A,L
 348F: C6 08           ADD     $08
@@ -4506,7 +4598,7 @@ vultures_level_3400:
 3497: C9              RET
 3498: 21 70 4B        LD      HL,bird_data_4B70
 349B: E5              PUSH    HL
-349C: CD B0 35        CALL    $35B0               ;
+349C: CD B0 35        CALL    evolve_vultures_35b0               ;
 349F: E1              POP     HL
 34A0: 7D              LD      A,L
 34A1: C6 08           ADD     $08
@@ -4516,7 +4608,7 @@ vultures_level_3400:
 34A9: C9              RET
 34AA: 21 90 4B        LD      HL,unknown_4B90
 34AD: E5              PUSH    HL
-34AE: CD B0 35        CALL    $35B0               ;
+34AE: CD B0 35        CALL    evolve_vultures_35b0               ;
 34B1: E1              POP     HL
 34B2: 7D              LD      A,L
 34B3: C6 08           ADD     $08
@@ -4525,6 +4617,7 @@ vultures_level_3400:
 34B8: C2 AD 34        JP      NZ,$34AD            ;
 34BB: C9              RET
 
+animate_vulture_34c0:
 34C0: 7E              LD      A,(HL)
 34C1: A7              AND     A
 34C2: C8              RET     Z
@@ -4551,6 +4644,7 @@ vultures_level_3400:
 34DB: 2C              INC     L
 34DC: 6E              LD      L,(HL)
 34DD: 67              LD      H,A
+display_clipped_vulture_34de:
 34DE: 7A              LD      A,D
 34DF: FE 4B           CP      $4B
 34E1: C2 0C 35        JP      NZ,$350C            ;
@@ -4590,6 +4684,7 @@ vultures_level_3400:
 3519: C9              RET				; jump to address
 ; kind of Duff's device/switch case
 
+copy_7_columns_to_screen_3520:
 3520: 1A              LD      A,(DE)
 3521: 77              LD      (HL),A
 3522: 13              INC     DE
@@ -4598,6 +4693,7 @@ vultures_level_3400:
 3525: 77              LD      (HL),A
 3526: 13              INC     DE
 3527: 09              ADD     HL,BC
+copy_6_columns_to_screen_3528:
 3528: 1A              LD      A,(DE)
 3529: 77              LD      (HL),A
 352A: 13              INC     DE
@@ -4606,6 +4702,7 @@ vultures_level_3400:
 352D: 77              LD      (HL),A
 352E: 13              INC     DE
 352F: 09              ADD     HL,BC
+copy_5_columns_to_screen_3530:
 3530: 1A              LD      A,(DE)
 3531: 77              LD      (HL),A
 3532: 13              INC     DE
@@ -4614,6 +4711,7 @@ vultures_level_3400:
 3535: 77              LD      (HL),A
 3536: 13              INC     DE
 3537: 09              ADD     HL,BC
+copy_4_columns_to_screen_3538:
 3538: 1A              LD      A,(DE)
 3539: 77              LD      (HL),A
 353A: 13              INC     DE
@@ -4622,6 +4720,7 @@ vultures_level_3400:
 353D: 77              LD      (HL),A
 353E: 13              INC     DE
 353F: 09              ADD     HL,BC
+copy_3_columns_to_screen_3540:
 3540: 1A              LD      A,(DE)
 3541: 77              LD      (HL),A
 3542: 13              INC     DE
@@ -4630,6 +4729,7 @@ vultures_level_3400:
 3545: 77              LD      (HL),A
 3546: 13              INC     DE
 3547: 09              ADD     HL,BC
+copy_2_columns_to_screen_3548:
 3548: 1A              LD      A,(DE)
 3549: 77              LD      (HL),A
 354A: 13              INC     DE
@@ -4638,6 +4738,7 @@ vultures_level_3400:
 354D: 77              LD      (HL),A
 354E: 13              INC     DE
 354F: 09              ADD     HL,BC
+copy_1_column_to_screen_3550:
 3550: 1A              LD      A,(DE)
 3551: 77              LD      (HL),A
 3552: 13              INC     DE
@@ -4646,12 +4747,14 @@ vultures_level_3400:
 3555: 77              LD      (HL),A
 3556: 13              INC     DE
 3557: 09              ADD     HL,BC
+clear_1_column_from_screen_3558:
 3558: 36 00           LD      (HL),$00
 355A: 23              INC     HL
 355B: 36 00           LD      (HL),$00
 355D: C9              RET
 
-3560: CD AA 30        CALL    $30AA               ;
+animate_vulture_wings_3560:
+3560: CD AA 30        CALL    get_random_value_30aa               ;
 3563: 47              LD      B,A
 3564: 07              RLCA
 3565: 07              RLCA
@@ -4692,6 +4795,7 @@ vultures_level_3400:
 359F: 32 6D 43        LD      (unknown_436D),A
 35A2: C9              RET
 
+evolve_vultures_35b0:
 35B0: 7E              LD      A,(HL)
 35B1: A7              AND     A
 35B2: C8              RET     Z
@@ -4710,8 +4814,8 @@ vultures_level_3400:
 35C1: 07              RLCA
 35C2: 07              RLCA
 35C3: 07              RLCA					; times 8
-35C4: 6F              LD      L,A			; lsb of jump table $3F00
-35C5: 26 3F           LD      H,$3F			; msb of jump table $3F00
+35C4: 6F              LD      L,A			; lsb of jump table jump_table_chain_3F00
+35C5: 26 3F           LD      H,$3F			; msb of jump table jump_table_chain_3F00
 35C7: 46              LD      B,(HL)
 35C8: 23              INC     HL
 35C9: 4E              LD      C,(HL)
@@ -4736,6 +4840,7 @@ vultures_level_3400:
 35DB: C9              RET
 
 ; called in vulture stage but from where?
+vulture_command_move_vultures_laterally_35e0:
 35E0: 2C              INC     L
 35E1: 2C              INC     L
 35E2: 7E              LD      A,(HL)
@@ -4898,6 +5003,7 @@ vultures_level_3400:
 36BC: 77              LD      (HL),A
 36BD: C9              RET
 
+vulture_command_36c0:
 36C0: 7E              LD      A,(HL)
 36C1: 0F              RRCA
 36C2: D8              RET     C
@@ -4908,12 +5014,14 @@ vultures_level_3400:
 36C8: 77              LD      (HL),A
 36C9: C9              RET
 
+end_chained_calls_36cc:
 36CC: D1              POP     DE
 36CD: C1              POP     BC
 36CE: E1              POP     HL
 36CF: C9              RET
 
 * called by who?
+vulture_command_36d2:
 36D2: D1              POP     DE
 36D3: C1              POP     BC
 36D4: E1              POP     HL
@@ -4932,6 +5040,7 @@ vultures_level_3400:
 36E6: C9              RET
 
 command_36ea:
+vulture_command_36ea:
 36EA: D1              POP     DE		; get param
 36EB: C1              POP     BC		; get param
 36EC: E1              POP     HL
@@ -4957,6 +5066,7 @@ command_36ea:
 3706: C9              RET
 
 command_370a:
+vulture_command_370a:
 370A: D1              POP     DE		; get param
 370B: C1              POP     BC		; get param
 370C: E1              POP     HL
@@ -5015,7 +5125,7 @@ command_370a:
 3759: A7              AND     A
 375A: C8              RET     Z
 375B: 35              DEC     (HL)
-375C: CA CC 37        JP      Z,$37CC             ;
+375C: CA CC 37        JP      Z,clear_two_screen_rows_37cc             ;
 375F: 7E              LD      A,(HL)
 3760: 0F              RRCA
 3761: D2 B0 37        JP      NC,$37B0            ;
@@ -5034,9 +5144,10 @@ command_370a:
 3772: F5              PUSH    AF
 3773: D5              PUSH    DE
 3774: 01 DF FF        LD      BC,$FFDF
-3777: CD 96 37        CALL    $3796               ;
+3777: CD 96 37        CALL    explosion_special_animation_left_3796               ;
 377A: D1              POP     DE
 377B: F1              POP     AF
+explosion_special_animation_right_377c:
 377C: 2F              CPL
 377D: 6F              LD      L,A
 377E: 26 FF           LD      H,$FF
@@ -5052,8 +5163,9 @@ command_370a:
 378E: 23              INC     HL
 378F: 36 00           LD      (HL),$00
 3791: 09              ADD     HL,BC
-3792: C3 40 35        JP      $3540               ;
+3792: C3 40 35        JP      copy_3_columns_to_screen_3540               ;
 3795: FF              RST     0X38
+explosion_special_animation_left_3796:
 3796: C6 60           ADD     $60
 3798: 6F              LD      L,A
 3799: 26 00           LD      H,$00
@@ -5066,7 +5178,7 @@ command_370a:
 37A5: D8              RET     C
 37A6: EB              EX      DE,HL
 37A7: 11 D0 17        LD      DE,$17D0
-37AA: C3 40 35        JP      $3540               ;
+37AA: C3 40 35        JP      copy_3_columns_to_screen_3540               ;
 
 37B0: 2C              INC     L
 37B1: 7E              LD      A,(HL)
@@ -5084,8 +5196,9 @@ command_370a:
 37C0: 12              LD      (DE),A
 37C1: CD 10 02        CALL    AddOneRow_0210           ;
 37C4: 06 02           LD      B,$02
-37C6: C3 C4 00        JP      $00C4               ;
+37C6: C3 C4 00        JP      write_digits_to_screen_00c4               ;
 
+clear_two_screen_rows_37cc:
 37CC: 2C              INC     L
 37CD: 2C              INC     L
 37CE: 2C              INC     L
@@ -5095,7 +5208,7 @@ command_370a:
 37D4: 6F              LD      L,A
 37D5: 26 43           LD      H,$43
 37D7: 01 DF FF        LD      BC,$FFDF
-37DA: 11 1A 00        LD      DE,$001A
+37DA: 11 1A 00        LD      DE,mainloop_001A
 37DD: 72              LD      (HL),D
 37DE: 23              INC     HL
 37DF: 72              LD      (HL),D
@@ -5145,7 +5258,7 @@ player_shots_vs_vultures_collision_3800:
 383B: 78              LD      A,B
 383C: FE 50           CP      $50
 383E: DC 44 38        CALL    C,$3844             ;
-3841: C3 1C 39        JP      $391C               ;
+3841: C3 1C 39        JP      vulture_shot_sound_391c               ;
 3844: C6 60           ADD     $60
 3846: 6F              LD      L,A
 3847: 26 3B           LD      H,$3B
@@ -5173,7 +5286,7 @@ player_shots_vs_vultures_collision_3800:
 386B: 01 10 10        LD      BC,$1010
 386E: 7B              LD      A,E
 386F: FE 0F           CP      $0F
-3871: CA FB 38        JP      Z,$38FB             ;
+3871: CA FB 38        JP      Z,vulture_hit_38fb             ;
 3874: 7A              LD      A,D
 3875: 0F              RRCA
 3876: E6 7C           AND     $7C
@@ -5181,22 +5294,22 @@ player_shots_vs_vultures_collision_3800:
 387A: 4F              LD      C,A
 387B: 7B              LD      A,E
 387C: FE 0E           CP      $0E
-387E: CA FB 38        JP      Z,$38FB             ;
+387E: CA FB 38        JP      Z,vulture_hit_38fb             ;
 3881: 79              LD      A,C
 3882: 0F              RRCA
 3883: 4F              LD      C,A
 3884: 7B              LD      A,E
 3885: FE 0C           CP      $0C
-3887: D2 FB 38        JP      NC,$38FB            ;
+3887: D2 FB 38        JP      NC,vulture_hit_38fb            ;
 388A: 79              LD      A,C
 388B: 0F              RRCA
 388C: 4F              LD      C,A
-388D: C3 FB 38        JP      $38FB               ;
+388D: C3 FB 38        JP      vulture_hit_38fb               ;
 
 3894: 01 05 0D        LD      BC,$0D05
 3897: 3E FF           LD      A,$FF
 3899: 32 64 43        LD      (killed_sfx_flag_4364),A
-389C: C3 F8 38        JP      $38F8               ;
+389C: C3 F8 38        JP      vulture_simple_hit_38f8               ;
 
 38A1: D5              PUSH    DE
 38A2: 0E 20           LD      C,$20
@@ -5209,7 +5322,7 @@ player_shots_vs_vultures_collision_3800:
 38AC: C6 DE           ADD     $DE
 38AE: 6F              LD      L,A
 38AF: 26 17           LD      H,$17
-38B1: CD DE 34        CALL    $34DE               ;
+38B1: CD DE 34        CALL    display_clipped_vulture_34de               ;
 38B4: D1              POP     DE
 38B5: C9              RET
 38B6: 35              DEC     (HL)
@@ -5249,9 +5362,11 @@ player_shots_vs_vultures_collision_3800:
 38E9: 3E FF           LD      A,$FF
 38EB: 32 66 43        LD      (unknown_4366),A
 38EE: 01 02 07        LD      BC,$0702
-38F1: C3 F8 38        JP      $38F8               ;
+38F1: C3 F8 38        JP      vulture_simple_hit_38f8               ;
 
+vulture_simple_hit_38f8:
 38F8: 21 70 43        LD      HL,slot_for_regular_animation_4370
+vulture_hit_38fb:
 38FB: AF              XOR     A
 38FC: BE              CP      (HL)
 38FD: CA 06 39        JP      Z,$3906             ;
@@ -5274,6 +5389,7 @@ player_shots_vs_vultures_collision_3800:
 3916: E6 F7           AND     $F7
 3918: 32 C4 43        LD      (player_shot_1_structure_43C4),A
 391B: C9              RET
+vulture_shot_sound_391c:
 391C: 78              LD      A,B
 391D: FE 20           CP      $20
 391F: D2 BC 38        JP      NC,$38BC            ;
@@ -5288,6 +5404,7 @@ player_shots_vs_vultures_collision_3800:
 392D: C9              RET
 392E: C9              RET
 
+vultures_shoot_decision_3930:
 3930: 3A D2 4B        LD      A,(unknown_4BD2)
 3933: E6 1E           AND     $1E
 3935: C6 C0           ADD     $C0
@@ -5338,7 +5455,7 @@ player_shots_vs_vultures_collision_3800:
 3977: 07              RLCA
 3978: C6 08           ADD     $08
 397A: 4F              LD      C,A
-397B: C3 B7 25        JP      $25B7               ;
+397B: C3 B7 25        JP      enemy_starts_shooting_25b7               ;
 
 3980: 3A D2 4B        LD      A,(unknown_4BD2)
 3983: D6 0C           SUB     $0C
@@ -5348,14 +5465,14 @@ player_shots_vs_vultures_collision_3800:
 3989: 21 C4 43        LD      HL,player_shot_1_structure_43C4
 398C: 11 C0 4B        LD      DE,unknown_4BC0
 398F: 06 04           LD      B,$04
-3991: CD E0 05        CALL    $05E0               ;
+3991: CD E0 05        CALL    copy_memory_05e0               ;
 3994: 2E E6           LD      L,$E6
 3996: 06 02           LD      B,$02
-3998: CD E0 05        CALL    $05E0               ;
+3998: CD E0 05        CALL    copy_memory_05e0               ;
 399B: 2E E2           LD      L,$E2
 399D: 11 E6 43        LD      DE,ram_pointer_on_flying_enemies_table_43E6
 39A0: 06 02           LD      B,$02
-39A2: CD E0 05        CALL    $05E0               ;
+39A2: CD E0 05        CALL    copy_memory_05e0               ;
 39A5: 2E C4           LD      L,$C4
 39A7: 36 08           LD      (HL),$08
 39A9: 11 9E 43        LD      DE,player_ship_left_x_439E
@@ -5387,15 +5504,15 @@ player_shots_vs_vultures_collision_3800:
 39DB: 21 C0 4B        LD      HL,unknown_4BC0
 39DE: 11 C4 43        LD      DE,player_shot_1_structure_43C4
 39E1: 06 04           LD      B,$04
-39E3: CD E0 05        CALL    $05E0               ;
+39E3: CD E0 05        CALL    copy_memory_05e0               ;
 39E6: 1E E6           LD      E,$E6
 39E8: 06 02           LD      B,$02
-39EA: C3 E0 05        JP      $05E0               ;
+39EA: C3 E0 05        JP      copy_memory_05e0               ;
 
 39F0: 2E A6           LD      L,$A6
 39F2: 7E              LD      A,(HL)
 39F3: FE C0           CP      $C0
-39F5: DA C4 0C        JP      C,$0CC4             ;
+39F5: DA C4 0C        JP      C,player_hit_0cc4             ;
 39F8: D6 01           SUB     $01
 39FA: 77              LD      (HL),A
 39FB: C3 DB 39        JP      $39DB               ;
@@ -5492,9 +5609,10 @@ player_shots_vs_vultures_collision_3800:
 3A93: 7E              LD      A,(HL)
 3A94: A7              AND     A
 3A95: C3 23 39        JP      $3923               ;
+birds_ambient_sound_3a98:
 3A98: 21 70 4B        LD      HL,bird_data_4B70
-3A9B: 01 00 08        LD      BC,$0800
-3A9E: 11 B0 03        LD      DE,$03B0
+3A9B: 01 00 08        LD      BC,game_playing_0800
+3A9E: 11 B0 03        LD      DE,rest_of_intro_sequence_03b0
 3AA1: 7E              LD      A,(HL)
 3AA2: 2C              INC     L
 3AA3: A0              AND     B
@@ -5562,6 +5680,7 @@ vultures_background_sound_3ad0:
 3AFF: 77              LD      (HL),A
 3B00: C9              RET
 3B01: 8E              ADC     A,(HL)
+boss_ambient_sound_3b02:
 3B02: 21 9A 43        LD      HL,counter_439A
 3B05: 7E              LD      A,(HL)
 3B06: FE 02           CP      $02
@@ -5609,11 +5728,11 @@ vultures_background_sound_3ad0:
 3B43: 21 A4 43        LD      HL,game_state_43A4
 3B46: 7E              LD      A,(HL)
 3B47: FE 03           CP      $03
-3B49: CC D6 23        CALL    Z,$23D6             ;
+3B49: CC D6 23        CALL    Z,play_stage_ambient_sound_23d6             ;
 3B4C: CD 33 3B        CALL    $3B33               ;
 3B4F: CD 1B 3B        CALL    $3B1B               ;
 3B52: CD 1D 3A        CALL    $3A1D               ;
-3B55: CD BD 27        CALL    $27BD               ;
+3B55: CD BD 27        CALL    noise_generation_27bd               ;
 3B58: CD 82 3A        CALL    $3A82               ;
 3B5B: C3 90 3A        JP      $3A90               ;
 
@@ -5638,76 +5757,76 @@ jump_table_chain_3F00:
 	
 	.word	$20FF 		; slot 1
 	.word	$02FF 
-	.word	$36D2 
-	.word	$36C0
+	.word	vulture_command_36d2 
+	.word	vulture_command_36c0
 	
 	.word	$20FF 		; slot 2
 	.word	$03FF 
-	.word	$36D2 
-	.word	$35E0 
+	.word	vulture_command_36d2 
+	.word	vulture_command_move_vultures_laterally_35e0 
 	
 	.word	$30FF 		; slot 3 
 	.word	$04FF 
-	.word	$36D2 
-	.word	$35E0
+	.word	vulture_command_36d2 
+	.word	vulture_command_move_vultures_laterally_35e0
 	
 	.word	$10FF  		; slot 4
 	.word	$05FF 
 	.word	command_36ea
-	.word	$35E0
+	.word	vulture_command_move_vultures_laterally_35e0
 	
 	.word	$10FF 		; slot 5
 	.word	$06FF
 	.word	command_36ea
-	.word	$36C0
+	.word	vulture_command_36c0
 	
 	.word	$1060 		; slot 6
 	.word	$071F 
 	.word	command_370a 
-	.word	$36C0 
+	.word	vulture_command_36c0 
 	
 	.word	$F010 		; slot 7
 	.word	$0B1A		; skips the last bogus address (0B25 pops HL)
-	.word	$370A
-	.word	$36C0
+	.word	vulture_command_370a
+	.word	vulture_command_36c0
 	
 	.word	$40FF 		; slot 8, bogus  
 	.word	$04FF 
 	.word	command_36ea
-	.word	$36C0
+	.word	vulture_command_36c0
 	
 	.word	$10FF 		; slot 9
 	.word	$08FF
 	.word	command_36ea
-	.word	$36C0
+	.word	vulture_command_36c0
 	
 	.word	$4010 		; slot 10
 	.word	$0F17 
 	.word	command_370a
-	.word	$36C0 
+	.word	vulture_command_36c0 
 	
 	.word	$10FF 		; slot 11
 	.word	$0AFF
 	.word	command_36ea
-	.word	$35E0 
+	.word	vulture_command_move_vultures_laterally_35e0 
 	
 	.word	$FFFF 		; slot 12
 	.word	$FFFF
-	.word	$36CC		; no further calls
-	.word	$35E0
+	.word	end_chained_calls_36cc		; no further calls
+	.word	vulture_command_move_vultures_laterally_35e0
 	
 	.word	$FFFF 		; slot 14
 	.word	$FFFF
-	.word	$36CC		; no further calls
-	.word	$35E0
+	.word	end_chained_calls_36cc		; no further calls
+	.word	vulture_command_move_vultures_laterally_35e0
 	
 	.word	$10FF  		; slot 15
 	.word	$06FF 
 	.word	command_36ea 
-	.word	$35E0
+	.word	vulture_command_move_vultures_laterally_35e0
 	
 	.word	$1010 		; slot 16
-	.word	$0779
+	.word	erase_remaining_char_0779
 	.word	command_370a 
-	.word	$35E0
+	.word	vulture_command_move_vultures_laterally_35e0
 ; 3F80

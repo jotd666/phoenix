@@ -1,11 +1,9 @@
 logic:
 
-- crash on birds stage check .whdl_dump
 - demo ship not moving
 - when restarting, status bar is erased at first (bank switch at 02b9 ?)
 - debug copy_bank (2player) atm 2P disabled
-- save/load highscore
-- pause game
+
 
 colors:
 

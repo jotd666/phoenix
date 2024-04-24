@@ -22,7 +22,7 @@ BACK_SCREEN_ADDRESS = 0x4800
 TOTAL_NB_COLORS = 8
 
 
-SCORE_FILE_SIZE = 0x50
+SCORE_FILE_SIZE = 3
 
 
 ROSE_COPYRIGHT_COPPER_LONGWORD = ((color+28)<<16)+0xFCC
@@ -1084,6 +1084,9 @@ force_tile_redraw:
 	rts
 	
 osd_wait_for_vblank:
+	tst.b	pause_flag
+	bne.b	osd_wait_for_vblank
+	
 	addq.b	#1,vb_ticks_count
 	cmp.b	#5,vb_ticks_count
 	bne.b	0f
@@ -1675,6 +1678,7 @@ handle_keyboard:
 
 	
 0:
+
 	cmp.b	#0x51,d0	| F2 key
 	bne.b	0f
 	st.b	cheat_used
@@ -1751,9 +1755,13 @@ handle_keyboard:
 	
 toggle_pause:
 	* pause only within game
-
-	eor.b   #1,pause_flag
+	cmp.b	#0x19,d0	| P key
+	bne.b	0f
+	tst.b	game_in_play_43A2
+	beq.b	0f			| no pause if game not in play
+	eor.b	#1,pause_flag
 0:
+
 	rts
 	
     
