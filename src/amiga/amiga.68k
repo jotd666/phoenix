@@ -1583,7 +1583,6 @@ osd_read_inputs:
 		
 osd_read_high_scores:
 	movem.l	d0-d7/a0-a6,-(a7)
-	move.l	a0,a4
 	move.l	_resload(pc),d0
 	beq.b	0f
 	move.l	d0,a2
@@ -1595,10 +1594,7 @@ osd_read_high_scores:
 	bsr		get_hiscore_name
 	move.l	a3,a1
 	jsr		resload_LoadFile(a2)
-	* set highest score entry
-    move.b    (a3)+,(a4)+
-    move.b    (a3)+,(a4)+
-    move.b    (a3)+,(a4)+		
+
 	bra.b	1f
 0:
 	tst.b	highscore_loaded
