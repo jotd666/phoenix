@@ -40,6 +40,9 @@ _config
 	dc.b    "C1:X:infinite lives:1;"
 	dc.b    "C1:X:cheat keys:4;"
 	dc.b    "C3:X:only button 2 enables shield:0;"
+	IFD		CHIP_ONLY
+	dc.b	"C3:X:break at startup:31;"
+	ENDC
 	dc.b    "C5:L:start lives:default,3,4,5,6;"
 	dc.b	0
 

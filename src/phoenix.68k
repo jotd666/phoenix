@@ -475,6 +475,11 @@ l_0000:
 	move.l	#game_rom,0x100
 	move.l	#fg_videoram_4000,0x104
 	move.l	#player_scores_buffer_4380,0x108
+	tst.b	break_at_startup_flag
+	beq.b	0f
+	jbsr	osd_break
+0:
+	
 	.endif
 												| [$0000: NOP] Start/restart and interrupts end up at 0008
 												| [$0001: NOP]
@@ -1330,7 +1335,9 @@ jump_table_040E:
 * bpset 0406,(A==0)                     	|| (A==1)|| (A==2)|| (A==6)|| (A==7),{printf "%d",A;g}
 
 * selects one of the two available palettes
+* and select proper bank too
 set_proper_stage_palette_041E:
+	jbsr	osd_break
 	move.b	current_player_is_p2_43A3,d0                 	| [$041e: LD      A,(current_player_is_p2_43A3)] seems to store memory bank bit with other things
 	and.b	#0x01,d0                         	| [$0421: AND     $01]
 	move.b	d0,d1                           	| [$0423: LD      B,A]
@@ -1356,21 +1363,21 @@ init_new_play_0430:
 0:
 	move.b	d0,(a0)                         	| [$0440: LD      (HL),A]
 	                           	| [$0441: DEC     L]
-	move.b	-(a0),d0                         	| [$0442: LD      A,(HL)]
+	move.b	(-1,a0),d0                         	| [$0442: LD      A,(HL)]
 	cmp.b	#0x01,d0                         	| [$0443: CP      $01]
 	bne.b	0f                               	| [...]
 	rts                                    	| [$0445: RET     Z] [...]
 0:
-	addq.w	#1,a0                           	| [$0446: INC     L]
+											| [$0446: INC     L]
 	move.b	(a0),d0                         	| [$0447: LD      A,(HL)]
 	                               	| [$0448: AND     A]
-	jeq	l_04a0                             	| [$0449: JP      Z,$04A0]
+	jeq	set_p2_as_current_player_04a0                             	| [$0449: JP      Z,$04A0]
 	lea	nb_lives_p1_4390,a0                        	| [$044c: LD      L,$90]
 	move.b	(a0),d0                         	| [$044e: LD      A,(HL)]
 	                               	| [$044f: AND     A]
-	bne.b	0f                               	| [...]
+	bne.b	set_p1_as_current_player_0451                               	| [...]
 	rts                                    	| [$0450: RET     Z] [...]
-0:
+set_p1_as_current_player_0451:
 	lea	current_player_is_p2_43A3,a0                        	| [$0451: LD      L,$A3]
 	clr.b	(a0)                             	| [$0453: LD      (HL),$00]
 	move.w	#0x0100,d1                      	| [$0455: LD      BC,$0100]
@@ -1385,51 +1392,56 @@ init_new_play_0430:
 * Starts at 4320
 copy_bank_0460:
 	LOAD_D1D2_FROM_D1_16
-	illegal
-	**jbsr	osd_copy_bank
-	rts
-
+	move.b	d2,d0
+	jbsr	osd_get_bank_memory
+	move.l	a0,a1		| destination bank
+	move.b	d1,d0
+	jbsr	osd_get_bank_memory
+	
 * copy 4 bytes from 4320-4323, then 4300-4303 ... until reaching 42E0
 * (video memory)
+	
+	                      	| [$0460: LD      HL,$5000] 50xx video register
+    move.w	#0x320,d3      	| [$0463: LD      DE,unknown_4320]
+          	| [$0463: LD      DE,unknown_4320]
 
-*	lea	l_5000,a0                      	| [$0460: LD      HL,$5000] 50xx video register
-*	lea	unknown_4320,a1                	| [$0463: LD      DE,unknown_4320]
-*l_0466:
-*	move.b	d1,(a0)                         	| [$0466: LD      (HL),B]
-*	move.b	(a1),d0                         	| [$0467: LD      A,(DE)]
-*	move.b	d2,(a0)                         	| [$0468: LD      (HL),C]
-*	move.b	d0,(a1)                         	| [$0469: LD      (DE),A]
-*	addq.w	#1,a1                           	| [$046a: INC     E]
-*            ^^^^ check inc register d4 or a1
-*	move.b	d4,d0                           	| [$046b: LD      A,E]
-*	and.b	#0x03,d0                         	| [$046c: AND     $03]
-*	jne	l_0466                             	| [$046e: JP      NZ,$0466]
-**
-*	move.b	d4,d0                           	| [$0471: LD      A,E]
-*	and.b	#0xF0,d0                         	| [$0472: AND     $F0]
-*	sub.b	#0x20,d0                         	| [$0474: SUB     $20]
-*	move.b	d0,d4                           	| [$0476: LD      E,A]
-*	jcc	l_0466                             	| [$0477: JP      NC,$0466]
-*      
-*	subq.b	#1,d3                           	| [$047a: DEC     D]
-*	move.b	d3,d0                           	| [$047b: LD      A,D]
-*	cmp.b	#0x3F,d0                         	| [$047c: CP      $3F]
-*	jne	l_0466                             	| [$047e: JP      NZ,$0466]
+l_0466:
+	                         	| [$0466: LD      (HL),B]
+	move.b	(a0,d3.w),d0                         	| [$0467: LD      A,(DE)]
+	                         	| [$0468: LD      (HL),C]
+	move.b	d0,(a1,d3.w)                         	| [$0469: LD      (DE),A]
+	addq.w	#1,d3                           	| [$046a: INC     E]
+	
+	                           	| [$046b: LD      A,E]
+	and.b	#0x03,d3                         	| [$046c: AND     $03]
+	jne	l_0466                             	| [$046e: JP      NZ,$0466]
+
+	                           	| [$0471: LD      A,E]
+	and.b	#0xF0,d3                         	| [$0472: AND     $F0]
+	sub.b	#0x20,d3                         	| [$0474: SUB     $20]
+	                           	| [$0476: LD      E,A]
+	jcc	l_0466                             	| [$0477: JP      NC,$0466]
+      
+	sub.w	#0x100,d3                           	| [$047a: DEC     D]
+	                        	| [$047b: LD      A,D]
+	
+	                         	| [$047c: CP      $3F]
+	jpl	l_0466                             	| [$047e: JP      NZ,$0466]
 
 * then copies 4380 => 43B8 (player/game state)
-*	lea	player_scores_buffer_4380,a1                	| [$0481: LD      DE,player_scores_buffer_4380]
-*l_0484:
-*	move.b	d1,(a0)                         	| [$0484: LD      (HL),B]
-*	move.b	(a1),d0                         	| [$0485: LD      A,(DE)]
-*	move.b	d2,(a0)                         	| [$0486: LD      (HL),C]
-*	move.b	d0,(a1)                         	| [$0487: LD      (DE),A]
-*	addq.w	#1,a1                           	| [$0488: INC     E]
-*           
-*	move.b	d4,d0                           	| [$0489: LD      A,E]
-*	cmp.b	#0xB8,d0                         	| [$048a: CP      $B8]
-*	jne	l_0484                             	| [$048c: JP      NZ,$0484]
-**
-* 4BC0 => 4C00 (stack area!)
+	move.w	#0x380,d3                	| [$0481: LD      DE,player_scores_buffer_4380]
+l_0484:
+	                         	| [$0484: LD      (HL),B]
+	move.b	(a0,d3.w),d0                         	| [$0485: LD      A,(DE)]
+	                         	| [$0486: LD      (HL),C]
+	move.b	d0,(a1,d3.w)                         	| [$0487: LD      (DE),A]
+	addq.w	#1,d3                           	| [$0488: INC     E]
+           
+	                           	| [$0489: LD      A,E]
+	cmp.b	#0xB8,d3                         	| [$048a: CP      $B8]
+	jne	l_0484                             	| [$048c: JP      NZ,$0484]
+*
+* 4BC0 => 4C00 (stack area!) skip this!
 *	lea	unknown_4BC0,a1                	| [$048f: LD      DE,unknown_4BC0]
 *l_0492:
 *	move.b	d1,(a0)                         	| [$0492: LD      (HL),B]
@@ -1441,11 +1453,11 @@ copy_bank_0460:
 *	move.b	d4,d0                           	| [$0497: LD      A,E]
 *	                               	| [$0498: CP      $00]
 *	jne	l_0492                             	| [$049a: JP      NZ,$0492]
-*	rts                                    	| [$049d: RET]
+	rts                                    	| [$049d: RET]
 
 
 
-l_04a0:
+set_p2_as_current_player_04a0:
 											| [$04a0: LD      L,$A3]
 	move.b	#0x01,current_player_is_p2_43A3                      	| [$04a2: LD      (HL),$01]
 	move.w	#0x0001,d1                      	| [$04a4: LD      BC,$0001] 1

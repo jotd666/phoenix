@@ -2,8 +2,9 @@ logic:
 
 - demo ship not moving
 - when restarting, status bar is erased at first (bank switch at 02b9 ?)
-- debug copy_bank (2player) atm 2P disabled
-
+- debug copy_bank / 2P mode (around set_proper_stage_palette_041E
+  doesn't seem to set banks properly or switch players like it should
+  in _04A2
 
 colors:
 

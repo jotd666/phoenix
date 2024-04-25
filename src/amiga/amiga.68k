@@ -126,12 +126,7 @@ start:
 		.global _demo_end
 
 * osd layer		
-		.global osd_disable_display
-		.global osd_enable_display
-		.global osd_ack_vblank_interrupt
-		.global	osd_is_vblank_interrupt_enabled
 		.global osd_break		| for debug	
-		*.global osd_calibrate_display		| for debug
 		.global osd_w_videoram
 		.global osd_read_dipswitches
 		.global osd_read_inputs
@@ -142,6 +137,7 @@ start:
 		.global osd_sound_stop
 		.global osd_sound_loop_stop
 		.global	osd_write_5000
+		.global	osd_get_bank_memory
 		.global	osd_wait_for_vblank
 
 	
@@ -306,6 +302,8 @@ _user:
 	btst	#0,misc_options+3
 	sne		only_b2_shield_flag
 	
+	btst	#7,misc_options
+	sne		break_at_startup_flag
 	
 	jsr	 _detect_controller_types 
 	clr.b	controller_joypad_0
@@ -986,6 +984,14 @@ platform_init:
 	
     rts
 
+osd_get_bank_memory:
+	lea		fg_videoram,a0
+	tst.b	d0
+	beq.b	0f
+	lea		bank_1,a0
+0:
+	rts
+	
 * < D0: bit 0: palette 0/1, we'll ignore that, and will use level info
 * < D0: bit 1: rom bank: check current/previous bank and swap memory 
 * & video if needed
@@ -1503,10 +1509,10 @@ osd_read_inputs:
 	beq.b	0f
 	bclr	#BIT_START_1,d0
 0:
-*	tst.b	(2,a0)		| "2" key like in MAME
-*	beq.b	0f
-*	bclr	#BIT_START_2,d0
-*0:	
+	tst.b	(2,a0)		| "2" key like in MAME
+	beq.b	0f
+	bclr	#BIT_START_2,d0
+0:	
 	tst.b	(0x4F,a0)		| "<-" key
 	beq.b	0f
 	bclr	#BIT_LEFT,d0
@@ -1563,11 +1569,11 @@ osd_read_inputs:
 	beq.b	0f
 	bclr	#BIT_START_1,d0
 0:
-*	* game not in play, accept start 2P game with "down"
-*	btst	#JPB_BTN_DOWN,d1
-*	beq.b	0f
-*	bclr	#BIT_START_2,d0
-*0:
+	* game not in play, accept start 2P game with "down"
+	btst	#JPB_BTN_DOWN,d1
+	beq.b	0f
+	bclr	#BIT_START_2,d0
+0:
 	btst	#JPB_BTN_RED,d1
 	beq.b	0f
 	* game not in play, accept insert coin with fire

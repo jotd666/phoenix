@@ -20,7 +20,7 @@
 	.ifndef	RELEASE
 	.global fast_forward_flag
 	.global fast_forward_counter
-
+	.global	break_at_startup_flag
 	.endif
 	.else
 	* Neogeo: needs different writable section from ROM code
@@ -74,6 +74,8 @@ start_level:
 highscores_need_saving:
 	.byte	0
 vb_ticks_count:
+	.byte	0
+break_at_startup_flag:
 	.byte	0
 current_ticks_count:
 	.byte	0
