@@ -1216,6 +1216,8 @@ write_back_videoram:
 	cmp.b	(a1),d0
 	beq.b	2f		| already the proper value
 
+	.ifndef	AGA
+
 	cmp.w	#0x2B8,d7
 	bne.b	1f
 	cmp.b	#0x75,d0
@@ -1226,6 +1228,9 @@ write_back_videoram:
 0:
 	move.w	#PURPLE_ALIEN_HEAD_COPPER_LONGWORD>>16,alien_purple_score_screen
 1:
+	.endif
+	
+	
 	move.b	d0,(a1)	| update logical grid
 	
 	move.l		bg_drawed_screen_ptr,a1
@@ -1254,6 +1259,7 @@ write_fore_videoram:
 	beq.b	0f		| already the proper value
 
 
+	.ifndef	AGA
 	cmp.w	#8,d7
 	bne.b	1f
 
@@ -1265,7 +1271,8 @@ write_fore_videoram:
 0:
 	move.w	#ROSE_COPYRIGHT_COPPER_LONGWORD>>16,copyright_pink_title_screen
 1:
-
+	.endif
+	
 	move.b	d0,(a1)	| update logical grid
 	
 	move.l		fg_drawed_screen_ptr,a1
@@ -1944,8 +1951,11 @@ _end_of_ng_code:
 		
 	.align 2
 
-	.include "palette.68k"
-
+	.ifdef	AGA
+	.include "palette_aga.68k"
+	.else
+	.include "palette_ocs.68k"	
+	.endif
 	
 	
 	* on amiga, this file is included in phoenix.68k file
@@ -2057,6 +2067,7 @@ sprites:
     .word    sprpt+28,0
     .word    sprpt+30,0
 
+	.ifndef	AGA
     .word  0x6001,0xFFFE
 copyright_pink_title_screen:
 	.long	ROSE_COPYRIGHT_COPPER_LONGWORD		| alien purple
@@ -2066,6 +2077,9 @@ alien_purple_score_screen:
 	.long	PURPLE_ALIEN_HEAD_COPPER_LONGWORD		| alien purple
 yellow_ship:
 	.long	YELLOW_SHIP_COPPER_LONGWORD
+	.endif
+	
+	
 	* pal limit
     .word  0xFFDF,0xFFFE       | PAL wait
     .word  0x0401,0xFFFE
