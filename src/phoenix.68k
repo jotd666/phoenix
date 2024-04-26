@@ -1337,7 +1337,7 @@ jump_table_040E:
 * selects one of the two available palettes
 * and select proper bank too
 set_proper_stage_palette_041E:
-	jbsr	osd_break
+	**jbsr	osd_break
 	move.b	current_player_is_p2_43A3,d0                 	| [$041e: LD      A,(current_player_is_p2_43A3)] seems to store memory bank bit with other things
 	and.b	#0x01,d0                         	| [$0421: AND     $01]
 	move.b	d0,d1                           	| [$0423: LD      B,A]

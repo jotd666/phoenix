@@ -13,13 +13,14 @@
 AttnFlags = 0x128
 AFB_68010 = 0
 AFB_68020 = 1
+	.ifndef		AGA
 NO68020 = 1
-
+	.endif
+	
 
 FORE_SCREEN_ADDRESS = 0x4000
 BACK_SCREEN_ADDRESS = 0x4800
 
-TOTAL_NB_COLORS = 8
 
 
 SCORE_FILE_SIZE = 3
@@ -50,7 +51,13 @@ _custom = 0xDFF000
 
 REAL_VIDEO_SIZE = 0x340	
 
+	.ifdef	AGA
+NB_PLAYFIELD_PLANES = 4	
+NB_PLAYFIELD_COLORS = 16
+	.else
 NB_PLAYFIELD_PLANES = 3
+NB_PLAYFIELD_COLORS = 8
+	.endif
 NB_BYTES_PER_ROW = 40
 NB_LINES = 256
 NB_PLAYFIELD_LINES = NB_LINES
@@ -903,12 +910,16 @@ platform_init:
     move.w #0x2381,diwstop(a5)
     move.w #0x0038,ddfstrt(a5)
     move.w #0x00D0,ddfstop(a5)
+     move.w #0x0064,bplcon2(a5)
+	.ifdef	AGA
+    move.w #0x0610,bplcon0(a5) | 8 bitplanes, dual playfield
+    move.w #(1<<12),bplcon3(a5)     | dpf second playfield palette starts at color 16!
+	.else
     move.w #0x6600,bplcon0(a5) | 6 bitplanes DPF
-    move.w #0x0064,bplcon2(a5)
-	* AGA-compatible ECS default values
     move.w #0x0C00,bplcon3(a5)     | no AGA specificities, default ECS
     move.w #0x0011,bplcon4(a5)     | ECS default for sprite colors
     move.w #0,fmode(a5)			
+	.endif
 	
 
     move.w #0,bplcon1(a5)    | foreground tiles
@@ -950,7 +961,7 @@ platform_init:
     * init sprite, bitplane, whatever dma
 
     move.w #0x83E0,dmacon(a5)
-    *move.w #0x20,dmacon(a5)
+
 
 	* install keyboard and vblank/copper handler
 	pea		level2_interrupt(pc)
@@ -971,15 +982,6 @@ platform_init:
 	move.l	system_vbr(pc),a0
 	moveq	#1,d0	| PAL
 	jsr		_mt_install_cia
-
-	.ifne	OPT_ENABLE_PROFILING
-	* init profiling if enabled
-	lea		0x180000,a0
-	move.l	#0x20000,d0
-	lea		0x100,a1
-	bsr		init_fixed_address
-	bsr		install_profiler_vbl_hook
-	.endif
 
 	
     rts
@@ -1021,9 +1023,10 @@ osd_write_5000:
 	movem.l	(a7)+,a0/a1/d0-d1
 	rts
 	
-* < D0: 0 or 1 but we'll ignore that for Amiga
+* < D0: 0 or 1 but we'll ignore that for ECS
 set_palette:
 	movem.l	d0-d2/d7/a0-a1,-(a7)
+	move.b	d0,d1		| save for AGA
 	moveq	#0,d2
 	bsr		get_current_stage
 	move.b	d0,d2
@@ -1032,11 +1035,16 @@ set_palette:
 	* intermissions are a good time to stop looped sounds
 	jbsr	osd_sound_loop_stop
 0:
+	.ifdef	AGA
+	move.b	d1,d2		| AGA: 0 or 1
+	lsr.b	#1,d2
+	.endif
 	move.b	current_palette,d1
 	cmp.b	d2,d1
 	beq.b	2f
 	move.b	d2,current_palette
 	
+	.ifndef	AGA
 	move.w	#0x1FE,yellow_ship
 	* set or clear dynamic copper change for cyan color
 	* if level 3 (vultures)
@@ -1044,13 +1052,15 @@ set_palette:
 	bne.b	0f
 	move.w	#YELLOW_SHIP_COPPER_LONGWORD>>16,yellow_ship
 0:
+	.endif
 	
-	add.w	d2,d2
-	add.w	d2,d2
 	lea		back_palettes,a0
+	add.w	d2,d2
+	add.w	d2,d2
 	move.l	(a0,d2.w),a0
 
-	move.w	#TOTAL_NB_COLORS-1,d1
+	
+	move.w	#NB_PLAYFIELD_COLORS-1,d1
 	lea		bg_colors+2,a1
 1:
 	move.w	(a0)+,(a1)+
@@ -1060,7 +1070,7 @@ set_palette:
 	lea		fore_palettes,a0
 	move.l	(a0,d2.w),a0
 
-	move.w	#TOTAL_NB_COLORS-1,d1
+	move.w	#NB_PLAYFIELD_COLORS-1,d1
 	lea		fg_colors+2,a1
 1:
 	move.w	(a0)+,(a1)+
@@ -1284,6 +1294,7 @@ write_fore_videoram:
 	movem.l	(a7)+,d0-d5/d7/a0-a2
 	rts
 
+
 get_current_stage:
 	moveq	#0,D0
 	move.b	current_stage_43B8,d0
@@ -1294,6 +1305,7 @@ get_current_stage:
 	move.b	#9,d0
 20:
 	rts
+
 	
 * d7: screen offset
 * d0: tile code
@@ -1330,18 +1342,26 @@ update_tile:
 	tst.b	d0
 	jeq	11f
 
+	moveq	#0,d2
+	.ifndef	AGA
 	exg		d0,d2
 	bsr		get_current_stage
 	exg		d0,d2
 	lsr.b	#1,d2
-	
+	.else
+	move.b	current_palette,d2
+	.endif
 	
 	add.w	d2,d2
 	add.w	d2,d2
 	move.l	(a0,d2.w),a0	| tile table
+	.ifdef	NO68020
 	add.w	d0,d0
 	add.w	d0,d0
 	move.l	(a0,d0.w),a0	| tile data
+	.else
+	move.l	(a0,d0.w*4),a0
+	.endif
 4:
 	.set	offset,0
 	.rept	8
@@ -2034,13 +2054,13 @@ copperlist:
     *.word   0x1801,0xFFFE	
 
 bg_bitplanes:
-	DECL_EVEN_BITPLANES	0,3
+	DECL_EVEN_BITPLANES	0,NB_PLAYFIELD_PLANES
 fg_bitplanes:
-	DECL_EVEN_BITPLANES	4,3
+	DECL_EVEN_BITPLANES	4,NB_PLAYFIELD_PLANES
 bg_colors:
-	DECL_COLORS	0,8
+	DECL_COLORS	0,NB_PLAYFIELD_COLORS
 fg_colors:
-	DECL_COLORS	8,8
+	DECL_COLORS	NB_PLAYFIELD_COLORS,NB_PLAYFIELD_COLORS
 sprites:
     * #0
     .word    sprpt+0,0
