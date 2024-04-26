@@ -301,10 +301,15 @@ _user:
 
 	move.l	cheat_flags,d0
 	btst	#0,d0
-	sne		invincible_flag
+	beq.b	0f
+	st		invincible_flag
+	st		cheat_used
+0:
 	btst	#1,d0
-	sne		infinite_lives_flag
-	btst	#2,d0
+	beq.b	0f
+	st		infinite_lives_flag
+	st		cheat_used
+0:
 
 	btst	#0,misc_options+3
 	sne		only_b2_shield_flag
@@ -1704,7 +1709,7 @@ handle_keyboard:
 	bne.b	0f
 	move.w	#0x0FF,_custom+color
 	st.b	cheat_used
-
+	eor.b	#0xFF,invincible_flag
 	
 0:
 
@@ -1712,7 +1717,7 @@ handle_keyboard:
 	bne.b	0f
 	st.b	cheat_used
 	move.w	#0x0FF,_custom+color
-	eor.b	#1,invincible_flag
+	eor.b	#0xFF,infinite_lives_flag
 	
 0:
 	cmp.b	#0x52,d0	| F3 key

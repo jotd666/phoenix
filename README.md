@@ -1,8 +1,9 @@
 # phoenix500
-remake of Phoenix for ECS Amiga
+remake of Phoenix for ECS/AGA Amiga
 
 jotd: reverse-engineering, transcode, graphics conversion
 no9: music
+Toni Galvez: AGA recolored graphics
 Christopher from http://www.computerarcheology.com/Arcade/Phoenix/: Z80 disassembly and small RE
 PascalDe73: amiga icons
 mrv2k: flyer
@@ -10,6 +11,7 @@ mrv2k: flyer
 Features:
 
 - 99% same gameplay (see below for the 1% difference)
+- enhanced colors for AGA version
 - updating highscore is now done in real-time not when restarting a game
 - applied Don Hodges fix to avoid score corruption when shooting 3 flying birds
 
@@ -23,6 +25,12 @@ left/right joystick/arrows: move ship
 fire/ctrl: shoot
 2nd button/down/alt: shield
 
+Cheat keys:
+
+F1: toggle invincibility
+F2: toggle infinite lives
+
+F4: skip level
 
 Vulture vertical movement:
 

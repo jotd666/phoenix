@@ -8,7 +8,8 @@ logic:
 
 colors:
 
-- create a 16+16 AGA DPF version
+- fmode=3 for AGA
+- integrate Toni graphics
 
 sounds:
 
