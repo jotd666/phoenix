@@ -10,11 +10,6 @@ colors:
 - fmode=3 for AGA
 - integrate Toni graphics
 
-sounds:
-
-- extra life beeps
-
-
 
 
   

@@ -1733,8 +1733,19 @@ handle_keyboard:
 	cmp.b	#0x52,d0	| F3 key
 	bne.b	0f
 	st.b	cheat_used
-	* add 10000 points
-
+	movem.w	d0-d1,-(a7)
+	moveq	#0,d0
+	sub.b	d0,d0		| clear X flag
+	moveq	#5,d0
+	move.b	player_2_score_end_4383-1,d1
+	* add 500 points
+	abcd	d0,d1
+	move.b	d1,player_2_score_end_4383-1
+	moveq	#0,d0
+	move.b	player_2_score_end_4383-2,d1
+	abcd	d0,d1
+	move.b	d1,player_2_score_end_4383-2
+	movem.w	(a7)+,d0-d1
 0:
 	cmp.b	#0x53,d0	| F4 key, skip level
 	bne.b	0f

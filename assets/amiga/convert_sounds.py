@@ -35,9 +35,9 @@ sound_dict = {
 "SHOT_BOUNCES_2_SND"             :{"index":2,"channel":kills,"sample_rate":hq_sample_rate,"priority":1},
 "SHIELD_SND"             :{"index":3,"channel":other,"sample_rate":hq_sample_rate,"priority":1},
 "EXPLOSION_SND"             :{"index":4,"channel":other,"sample_rate":hq_sample_rate,"priority":1},
-"BIRD_SHOT_SND"             :{"index":5,"channel":kills,"sample_rate":hq_sample_rate,"priority":1},
+"BIRD_SHOT_SND"             :{"index":5,"channel":kills,"sample_rate":hq_sample_rate,"priority":2},
 "ATTACK_LOOP_SND"             :{"index":6,"channel":loop,"sample_rate":hq_sample_rate,"priority":1,"loops":True},
-"VULTURE_SHOT_SND"             :{"index":7,"channel":kills,"sample_rate":hq_sample_rate,"priority":1},
+"VULTURE_SHOT_SND"             :{"index":7,"channel":kills,"sample_rate":hq_sample_rate,"priority":2},
 "VULTURE_BACK_1_SND"             :{"index":8,"channel":loop,"sample_rate":hq_sample_rate,"priority":1},
 "VULTURE_BACK_2_SND"             :{"index":9,"channel":loop,"sample_rate":hq_sample_rate,"priority":1},
 "BOSS_SND"             :{"index":10,"channel":loop,"sample_rate":hq_sample_rate,"priority":1},
@@ -45,6 +45,7 @@ sound_dict = {
 "BOSS_SHIELD_SHOT_2_SND"             :{"index":12,"channel":noise,"sample_rate":hq_sample_rate,"priority":1},
 "START_MUSIC_SND"             :{"index":13,"pattern":2,"loops":False,"volume":32,"ticks":1000},
 "BOSS_END_MUSIC_SND"             :{"index":14,"pattern":0,"loops":False,"volume":32,"ticks":500},
+"EXTRA_LIFE_SND"             :{"index":15,"channel":kills,"sample_rate":hq_sample_rate,"priority":1},
 
 }
 

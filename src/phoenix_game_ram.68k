@@ -32,7 +32,7 @@
 	.global	unknown_4367
 	.global	unknown_4368
 	.global	unknown_4369
-	.global	unknown_436A
+	.global	extra_life_beep_timer_436A
 	.global	unknown_436B
 	.global	unknown_436D
 	.global	unknown_436E
@@ -80,8 +80,8 @@
 	.global	unknown_43B6
 	.global	nb_vultures_to_kill_before_stage_completed_43BB
 	.global	unknown_43BC
-	.global	unknown_43BD
-	.global	extra_life_at_43BE
+	.global	score_to_award_extra_life_43BD
+	.global	extra_life_at_thousands_43BE
 	.global	unknown_43C0
 	.global	unknown_43C6
 	.global	unknown_43CE
@@ -165,7 +165,7 @@ unknown_4368:
 	.skip	1
 unknown_4369:
 	.skip	1
-unknown_436A:
+extra_life_beep_timer_436A:
 	.skip	1
 unknown_436B:
 	.skip	2
@@ -277,9 +277,9 @@ nb_vultures_to_kill_before_stage_completed_43BB:
 	.skip	1
 unknown_43BC:
 	.skip	1
-unknown_43BD:
+score_to_award_extra_life_43BD:
 	.skip	1
-extra_life_at_43BE:
+extra_life_at_thousands_43BE:
 	.skip	2
 unknown_43C0:
 	.skip	2

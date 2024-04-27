@@ -275,7 +275,7 @@ init_new_play_0140:
 0158: CD D8 05        CALL    clear_area_05D8               ;
 015B: 2E BA           LD      L,$BA
 015D: 36 10           LD      (HL),$10
-015F: 2E BE           LD      L,$BE				; extra_life_at_43BE
+015F: 2E BE           LD      L,$BE				; extra_life_at_thousands_43BE
 0161: 3A 00 78        LD      A,($7800)           ; 78xx DSW0
 0164: E6 0C           AND     $0C                 ; Bonus lives
 0166: 07              RLCA
@@ -3961,7 +3961,7 @@ award_enemy_score_if_needed_2748:
 2775: 11 21 40        LD      DE,unknown_4021
 2778: CD C4 00        CALL    write_digits_to_screen_00c4               ;
 277B: E1              POP     HL
-277C: 11 BD 43        LD      DE,unknown_43BD
+277C: 11 BD 43        LD      DE,score_to_award_extra_life_43BD
 277F: EB              EX      DE,HL
 2780: 7E              LD      A,(HL)
 2781: 2C              INC     L
@@ -3977,7 +3977,7 @@ award_enemy_score_if_needed_2748:
 2790: 34              INC     (HL)
 2791: CD 67 03        CALL    display_players_lives_0367               ;
 2794: 3E FF           LD      A,$FF
-2796: 32 6A 43        LD      (unknown_436A),A
+2796: 32 6A 43        LD      (extra_life_beep_timer_436A),A
 2799: 2E BE           LD      L,$BE
 279B: 7E              LD      A,(HL)
 279C: 36 00           LD      (HL),$00
@@ -5714,7 +5714,7 @@ boss_ambient_sound_3b02:
 3B30: 77              LD      (HL),A
 3B31: C9              RET
 
-3B33: 21 6A 43        LD      HL,unknown_436A
+3B33: 21 6A 43        LD      HL,extra_life_beep_timer_436A
 3B36: 7E              LD      A,(HL)
 3B37: A7              AND     A
 3B38: C8              RET     Z

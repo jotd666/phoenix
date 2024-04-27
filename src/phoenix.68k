@@ -731,7 +731,7 @@ init_new_play_0140:
 	jbsr	clear_area_05D8                   	| [$0158: CALL    clear_area_05D8]
 	lea	nb_birds_to_kill_before_stage_completed_43BA,a0                        	| [$015b: LD      L,$BA]
 	move.b	#0x10,(a0)                      	| [$015d: LD      (HL),$10]
-	lea	extra_life_at_43BE,a0                        	| [$015f: LD      L,$BE]
+	lea	extra_life_at_thousands_43BE,a0                        	| [$015f: LD      L,$BE]
 	jbsr	osd_read_dipswitches                       	| [$0161: LD      A,($7800)] 78xx DSW0
 	and.b	#0x0C,d0                         	| [$0164: AND     $0C] Bonus lives
 	rol.b	#2,d0                            	| [$0166: RLCA] * 2
@@ -5008,7 +5008,7 @@ l_2768:
 l_2778:
 	jbsr	write_digits_to_screen_00c4                            	| [$2778: CALL    $00C4]
 	move.l	(sp)+,a0                        	| [$277b: POP     HL]
-	lea	unknown_43BD,a1                	| [$277c: LD      DE,unknown_43BD]
+	lea	score_to_award_extra_life_43BD,a1                	| [$277c: LD      DE,score_to_award_extra_life_43BD]
 	exg	a1,a0                              	| [$277f: EX      DE,HL]
 	move.b	(a0)+,d0                         	| [$2780: LD      A,(HL)]
 	                           	| [$2781: INC     L]
@@ -5022,7 +5022,7 @@ l_2778:
 	bcs.b	0f                               	| [...]
 	rts                                    	| [$2789: RET     NC] [...]
 0:
-	* reached when last boss is killed, add one life to current player
+	* score milestone reached, add one life to current player
 	moveq	#0,d0
 	move.b	current_player_is_p2_43A3,d0                 	| [$278a: LD      A,(current_player_is_p2_43A3)]
 												| [$278d: ADD     $90]
@@ -5030,11 +5030,12 @@ l_2778:
 	add.w	d0,a0                           	| [$278f: LD      L,A]
 	addq.b	#1,(a0)                         	| [$2790: INC     (HL)]
 	jbsr	display_players_lives_0367                            	| [$2791: CALL    $0367]
-	st.b	d0                                	| [$2794: LD      A,$FF]
-	move.b	d0,unknown_436A                 	| [$2796: LD      (unknown_436A),A]
-	lea	extra_life_at_43BE,a0                        	| [$2799: LD      L,$BE]
+	                                	| [$2794: LD      A,$FF]
+	st.b	extra_life_beep_timer_436A                 	| [$2796: LD      (extra_life_beep_timer_436A),A]
+	lea	extra_life_at_thousands_43BE,a0                        	| [$2799: LD      L,$BE]
 	move.b	(a0),d0                         	| [$279b: LD      A,(HL)]
 	clr.b	(a0)                             	| [$279c: LD      (HL),$00]
+	* multiply by 10 (BCD), if at 3000, next life at 30000, if at 30000... never
 	ror.b	#4,d0                            	| [$279e: RRCA] * 4
 	                           	| [$27a2: DEC     L]
 	move.b	d0,-(a0)                         	| [$27a3: LD      (HL),A]
@@ -7064,18 +7065,24 @@ l_3b28:
 	move.b	d0,(a0)                         	| [$3b30: LD      (HL),A]
 	rts                                    	| [$3b31: RET]
 
-l_3b33:
-	lea	unknown_436A,a0                	| [$3b33: LD      HL,unknown_436A]
+play_extra_life_beep_timer_if_needed_3b33:
+	lea	extra_life_beep_timer_436A,a0                	| [$3b33: LD      HL,extra_life_beep_timer_436A]
 	move.b	(a0),d0                         	| [$3b36: LD      A,(HL)]
 	                               	| [$3b37: AND     A]
 	bne.b	0f                               	| [...]
 	rts                                    	| [$3b38: RET     Z] [...]
 0:
 	subq.b	#1,(a0)                         	| [$3b39: DEC     (HL)]
-	and.b	#0x08,d0                         	| [$3b3a: AND     $08]
-	or.b	#0x07,d0                          	| [$3b3c: OR      $07]
-	lea	sound_control_438D,a0                        	| [$3b3e: LD      L,$8D]
-	move.b	d0,(a0)                         	| [$3b40: LD      (HL),A]
+	* adapted to play a sample every 16 calls
+	and.b	#0x0F,d0                         	| [$3b3a: AND     $08]
+	bne.b	0f
+*	or.b	#0x07,d0                          	| [$3b3c: OR      $07]
+	* play the extra life sound beep
+*	lea	sound_control_438D,a0                        	| [$3b3e: LD      L,$8D]
+*	move.b	d0,(a0)                         	| [$3b40: LD      (HL),A]
+	move.w	#EXTRA_LIFE_SND,d0
+	jbsr	osd_sound_start
+0:
 	rts                                    	| [$3b41: RET]
 l_3b43:
 	lea	game_state_43A4,a0             	| [$3b43: LD      HL,game_state_43A4]
@@ -7084,7 +7091,7 @@ l_3b43:
 	bne.b	0f                               	| [...]
 	jbsr	play_stage_ambient_sound_23d6                            	| [$3b49: CALL    Z,$23D6]
 0:
-	jbsr	l_3b33                            	| [$3b4c: CALL    $3B33]
+	jbsr	play_extra_life_beep_timer_if_needed_3b33                            	| [$3b4c: CALL    $3B33]
 	jbsr	l_3b1b                            	| [$3b4f: CALL    $3B1B]
 	jbsr	l_3a1d                            	| [$3b52: CALL    $3A1D]
 	jbsr	noise_generation_27bd                            	| [$3b55: CALL    $27BD]
