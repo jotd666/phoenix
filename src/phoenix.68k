@@ -7,6 +7,8 @@
 
 * a few values explained
 *4364   if != 0 the "killed bird" sound is played
+*4390   player 1 lives
+*4391   player 2 lives
 *43A0 	IN0Current_43a0 	Current value of IN0
 *43A1 	IN0Previous 	Previous value of IN0
 *43A2 	game_in_play_43A2  0 game not playing, !=0: playing, 1 or 2 nb players
@@ -1337,13 +1339,13 @@ jump_table_040E:
 	.long	init_new_play_step_2_0515
 	.long	game_playing_0800
 	.long	player_hit_0AEA
-	.long	game_over_0B60
+	.long	player_turn_over_0B60
 	.long	boss_stage_completed_2400
 	.long	end_of_level_transition_244C
 * bpset 0406,(A==0)                     	|| (A==1)|| (A==2)|| (A==6)|| (A==7),{printf "%d",A;g}
 
 * selects one of the two available palettes
-* and select proper bank too
+* and select proper bank too according to player
 set_proper_stage_palette_041E:
 	move.b	current_player_is_p2_43A3,d0                 	| [$041e: LD      A,(current_player_is_p2_43A3)] seems to store memory bank bit with other things
 	and.b	#0x01,d0                         	| [$0421: AND     $01]
@@ -1400,22 +1402,29 @@ set_p1_as_current_player_0451:
 
 
 
-* Copy memory bank to bank
+* Copy memory bank to bank and switch when switching players
 * D1=from bank number, D2=to bank number
 * used to swap player memory on 2P mode (never called on 1P mode)
 * Starts at 4320
+* it keeps in sync shared game state variables, preserving the player
+* specific state (level, enemy status...) in the separate banks
 * I've called that switch_to_other_bank_0460 just not "copy" because
 * it also has a side effect: ends with current bank as value in D2
 * so when called with $0100, in the end bank is 0
 
 
 switch_to_other_bank_0460:
+	* we decode from/to arg but we don't use source
+	* as we know that source is CURRENT bank
+	* we still need destination (d2) to switch to that bank
 	LOAD_D1D2_FROM_D1_16
-	move.b	d2,d0
-	jbsr	osd_get_bank_memory
-	move.l	a0,a1		| destination bank
-	move.b	d1,d0
-	jbsr	osd_get_bank_memory
+	* note that fg_videoram can contain bank 0 or 1 depending on
+	* the mem swap that was done when calling osd_write_5000
+	* the call is always done to sync from current bank to other bank
+	* then bank is switched to other bank
+	lea		fg_videoram,a0
+	lea		bank_1,a1
+
 	
 * copy 4 bytes from 4320-4323, then 4300-4303 ... until reaching 42E0
 * (video memory)
@@ -1473,12 +1482,9 @@ l_0484:
 *	                               	| [$0498: CP      $00]
 *	jne	l_0492                             	| [$049a: JP      NZ,$0492]
 
-	* now sets proper bank, for that we need to borrow some code for the palette
-	move.b	current_stage_43B8,d0           	| [$0424: LD      A,(current_stage_43B8)]
-	and.b	#0x02,d0                         	| [$0427: AND     $02]
-	or.b	d2,d0
-	jbsr	osd_break
-	jbsr	osd_write_5000
+
+	jbsr	osd_swap_banks
+	jbsr	osd_full_screen_redraw
 	rts                                    	| [$049d: RET]
 
 
@@ -2625,12 +2631,13 @@ player_hit_0AEA:
 	
 l_0b15:
 	                         	| [$0b15: DEC     L]
-	move.b	#0x05,-(a0)                      	| [$0b16: LD      (HL),$05]
-	                           	| [$0b18: DEC     L]		not useful!
-	add.b	#0x90,d0                         	| [$0b1a: ADD     $90]
-	lea		timer_43A5-0xA5,a0
-	and.w	#0xFF,d0
-	add.w	d0,a0		                   	| [$0b1c: LD      L,A]  changes A0 lower nibble
+	move.b	#0x05,-(a0)                      	| [$0b16: LD      (HL),$05] sets game state to 05: lose a life, switch player
+	lea		nb_lives_p1_4390,a0
+	tst.b	current_player_is_p2_43A3                           	| [$0b18: DEC     L]
+	beq.b	0f            	| [$0b1a: ADD     $90]
+	lea		nb_lives_p2_4391,a0
+0:
+	          	| [$0b1c: LD      L,A]  selects 
 	move.b	(a0),d0                         	| [$0b1d: LD      A,(HL)]
 	                               	| [$0b1e: AND     A]
 	bne.b	0f                               	| [...]
@@ -2670,7 +2677,8 @@ l_0b48:
 	DECL_ADDRESS	b60
 
 * called during "game over" screen
-game_over_0B60:
+* but also when a player loses a life, with possible switch to other player
+player_turn_over_0B60:
 	tst.b	highscores_beaten_flag
 	beq.b	0f
 	lea		highest_score_438B-2,a0

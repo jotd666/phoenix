@@ -1,9 +1,8 @@
 logic:
 
 - demo ship not moving: player controls it during the demo!!
-- debug copy_bank / 2P mode (around set_proper_stage_palette_041E
-  doesn't seem to set banks properly or switch players like it should
-  in _04A2 +04A3
+- 2P mode switch: videoram seems not updated! check address of say
+  lives and check value (42C2=7F)
 - AGA: crash character update D0=0x22, D2=0x7F
 - AGA: scroll not working
 
