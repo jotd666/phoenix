@@ -30,8 +30,6 @@
 	.align	2
 
 
-bank_1:
-	.skip	0x1000
 	
 	
 *VARIABLES_START:
@@ -41,9 +39,11 @@ bank_1:
 *VARIABLES_END:
 
 	.align	2
+bank_1:
+	.skip	0x1000
+
 	
-last_played_sound_timer_table:
-	ds.w	20
+
 zero_added:
 	.word	0
 sound_timer:

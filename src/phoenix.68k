@@ -475,6 +475,8 @@ l_0000:
 	move.l	#game_rom,0x100
 	move.l	#fg_videoram_4000,0x104
 	move.l	#bank_1,0x108
+	move.l	#fg_videoram_4000+0x3A3,0x10C
+	move.l	#bank_1+0x3A3,0x110
 	tst.b	break_at_startup_flag
 	beq.b	0f
 	jbsr	osd_break
@@ -1388,10 +1390,12 @@ start_new_life_0430:
 	rts                                    	| [$0450: RET     Z] [...]
 	
 set_p1_as_current_player_0451:
+	* we coming back from player 2, we're still with bank selector high (bank 1)
 	lea	current_player_is_p2_43A3,a0                        	| [$0451: LD      L,$A3]
 	clr.b	(a0)                             	| [$0453: LD      (HL),$00]
+	* now we propagate state from current bank (bank 1) to bank 0.
 	move.w	#0x0100,d1                      	| [$0455: LD      BC,$0100]
-	jbsr	copy_bank_0460                    	| [$0458: CALL    copy_bank_0460]
+	jbsr	switch_to_other_bank_0460                    	| [$0458: CALL    switch_to_other_bank_0460]
 	rts                                    	| [$045b: RET]
 
 
@@ -1400,7 +1404,12 @@ set_p1_as_current_player_0451:
 * D1=from bank number, D2=to bank number
 * used to swap player memory on 2P mode (never called on 1P mode)
 * Starts at 4320
-copy_bank_0460:
+* I've called that switch_to_other_bank_0460 just not "copy" because
+* it also has a side effect: ends with current bank as value in D2
+* so when called with $0100, in the end bank is 0
+
+
+switch_to_other_bank_0460:
 	LOAD_D1D2_FROM_D1_16
 	move.b	d2,d0
 	jbsr	osd_get_bank_memory
@@ -1463,6 +1472,13 @@ l_0484:
 *	move.b	d4,d0                           	| [$0497: LD      A,E]
 *	                               	| [$0498: CP      $00]
 *	jne	l_0492                             	| [$049a: JP      NZ,$0492]
+
+	* now sets proper bank, for that we need to borrow some code for the palette
+	move.b	current_stage_43B8,d0           	| [$0424: LD      A,(current_stage_43B8)]
+	and.b	#0x02,d0                         	| [$0427: AND     $02]
+	or.b	d2,d0
+	jbsr	osd_break
+	jbsr	osd_write_5000
 	rts                                    	| [$049d: RET]
 
 
@@ -1471,7 +1487,7 @@ set_p2_as_current_player_04a0:
 											| [$04a0: LD      L,$A3]
 	move.b	#0x01,current_player_is_p2_43A3                      	| [$04a2: LD      (HL),$01]
 	move.w	#0x0001,d1                      	| [$04a4: LD      BC,$0001] 1
-	jbsr	copy_bank_0460                    	| [$04a7: CALL    copy_bank_0460]
+	jbsr	switch_to_other_bank_0460                    	| [$04a7: CALL    switch_to_other_bank_0460]
 	rts                                    	| [$04aa: RET]
 
 
@@ -2694,7 +2710,7 @@ game_over_0B60:
 0:
 	clr.b	(a0)                             	| [$0b8c: LD      (HL),$00]
 	move.w	#0x100,d1                      	| [$0b8e: LD      BC,$0100]
-	jbsr	copy_bank_0460                    	| [$0b91: CALL    copy_bank_0460]
+	jbsr	switch_to_other_bank_0460                    	| [$0b91: CALL    switch_to_other_bank_0460]
 	rts                                    	| [$0b94: RET]
 l_0b95:
 	jbsr	draw_game_status_01d0                            	| [$0b95: CALL    $01D0]

@@ -364,8 +364,9 @@ vulture_swarm_height_in_chars_4BD7:
 	.skip	33
 unknown_4BF8:
 	.skip	8
+	.skip	0x400
 	* make sure we occupy exactly 0x1000 bytes
-	* triggers a "zero" warning so it's correct!!
+	* triggers a "zero" warning when no warning if +4
 	*.skip	.-game_ram-0x1000
 
 	

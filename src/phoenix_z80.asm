@@ -839,7 +839,7 @@ init_new_play_0430:
 0451: 2E A3           LD      L,$A3
 0453: 36 00           LD      (HL),$00
 0455: 01 00 01        LD      BC,$0100
-0458: CD 60 04        CALL    copy_bank_0460               ;
+0458: CD 60 04        CALL    switch_to_other_bank_0460               ;
 045B: C9              RET
 
 045C: FF FF FF FF
@@ -849,7 +849,10 @@ init_new_play_0430:
 ; used to swap player memory on 2P mode (never called on 1P mode, even
 ; if bank switching actually occurs at startup)
 ; Starts at 4320
-copy_bank_0460:
+; also has a side effect: ends with current bank as value in C
+; so when called with $0100, in the end bank is 0
+
+switch_to_other_bank_0460:
 0460: 21 00 50        LD      HL,$5000            ; 50xx video register
 0463: 11 20 43        LD      DE,unknown_4320	  ; start of ram to copy
 0466: 70              LD      (HL),B			 ; set start bank
@@ -897,7 +900,7 @@ copy_bank_0460:
 04A0: 2E A3           LD      L,$A3
 04A2: 36 01           LD      (HL),$01
 04A4: 01 01 00        LD      BC,$0001
-04A7: CD 60 04        CALL    copy_bank_0460               ;
+04A7: CD 60 04        CALL    switch_to_other_bank_0460               ;
 04AA: C9              RET
 
 04AB: FF
@@ -1950,7 +1953,7 @@ game_over_0B60:
 0B8B: C8              RET     Z
 0B8C: 36 00           LD      (HL),$00
 0B8E: 01 00 01        LD      BC,$0100
-0B91: CD 60 04        CALL    copy_bank_0460               ;
+0B91: CD 60 04        CALL    switch_to_other_bank_0460               ;
 0B94: C9              RET
 0B95: CD D0 01        CALL    draw_game_status_01d0               ;
 0B98: CD E4 01        CALL    $01E4               ;
