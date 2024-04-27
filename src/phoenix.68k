@@ -7,7 +7,7 @@
 
 * a few values explained
 *4364   if != 0 the "killed bird" sound is played
-*43A0 	IN0Current 	Current value of IN0
+*43A0 	IN0Current_43a0 	Current value of IN0
 *43A1 	IN0Previous 	Previous value of IN0
 *43A2 	game_in_play_43A2  0 game not playing, !=0: playing, 1 or 2 nb players
 *43A4 	game_state_43A4 	Function table jump
@@ -474,7 +474,7 @@ l_0000:
 	* store base addresses
 	move.l	#game_rom,0x100
 	move.l	#fg_videoram_4000,0x104
-	move.l	#player_scores_buffer_4380,0x108
+	move.l	#bank_1,0x108
 	tst.b	break_at_startup_flag
 	beq.b	0f
 	jbsr	osd_break
@@ -494,7 +494,7 @@ l_0000:
 
 	moveq	#0,d0
 	jbsr	osd_write_5000                 	| [$000b: LD      H,$50] 50xx video register
-											| [$000d: LD      (HL),$00] Select the first bank of RAM
+											| [$000d: LD      (HL),$00] Select the first bank of RAM & first palette
 	jbsr	InitSoundScreen_0050              	| [$000f: CALL    InitSoundScreen_0050] Turn sound off and clear both screen areas
 	
 	
@@ -1062,7 +1062,7 @@ l_02a7:
 
 	moveq	#1,d0			
 	jbsr	osd_write_5000                      	| [$02bc: LD      H,$50] 50xx video register
-	                      	| [$02be: LD      (HL),$01] set bank 1
+	                      	| [$02be: LD      (HL),$01] set bank 1, init new play for player 2???
 	jbsr	init_new_play_0140                            	| [$02c0: CALL    $0140]
 	moveq	#0,d0                        	| [$02c3: LD      H,$50] 50xx video register
 	jbsr	osd_write_5000                             	| [$02c5: LD      (HL),$00] set bank 0
@@ -1330,7 +1330,7 @@ in_game_scheduler_0400:
 
 * Notice these addresses are MSB:LSB (backwards from the processors endianness)
 jump_table_040E:
-	.long	init_new_play_0430
+	.long	start_new_life_0430
 	.long	init_new_play_clear_screen_04AC
 	.long	init_new_play_step_2_0515
 	.long	game_playing_0800
@@ -1343,7 +1343,6 @@ jump_table_040E:
 * selects one of the two available palettes
 * and select proper bank too
 set_proper_stage_palette_041E:
-	**jbsr	osd_break
 	move.b	current_player_is_p2_43A3,d0                 	| [$041e: LD      A,(current_player_is_p2_43A3)] seems to store memory bank bit with other things
 	and.b	#0x01,d0                         	| [$0421: AND     $01]
 	move.b	d0,d1                           	| [$0423: LD      B,A]
@@ -1354,22 +1353,26 @@ set_proper_stage_palette_041E:
 	rts                                    	| [$042d: RET]
 
 
-* initialize new play or demo
-init_new_play_0430:
+* initialize game or demo for current player
+start_new_life_0430:
+	move.b	#55,0x200
+	
 	lea	game_state_43A4,a0             	| [$0430: LD      HL,game_state_43A4] Next function to run ...
 	move.b	#0x01,(a0)+                      	| [$0433: LD      (HL),$01] ... is 1 ??
 	                           	| [$0435: INC     L]
 	move.b	#0x80,(a0)                      	| [$0436: LD      (HL),$80]
-	lea	current_player_is_p2_43A3,a0                        	| [$0438: LD      L,$A3]
+	lea	current_player_is_p2_43A3,a0            | [$0438: LD      L,$A3]
 	move.b	(a0),d0                         	| [$043a: LD      A,(HL)]
-	clr.b	(a0)                             	| [$043b: LD      (HL),$00] set 0 to current_player_is_p2_43A3
+	clr.b	(a0)                             	| [$043b: LD      (HL),$00]
 	cmp.b	#0x02,d0                         	| [$043d: CP      $02]
 	bne.b	0f                               	| [...]
+	* it was 2 (undetermined?), now it's 0: first player
 	rts                                    	| [$043f: RET     Z] [...]
 0:
+	* restore value in current_player_is_p2_43A3 if it was not 2 (can be 0 or 1)
 	move.b	d0,(a0)                         	| [$0440: LD      (HL),A]
 	                           	| [$0441: DEC     L]
-	move.b	(-1,a0),d0                         	| [$0442: LD      A,(HL)]
+	move.b	(-1,a0),d0                         	| [$0442: LD      A,(HL)] check game_in_play_43A2 for current player
 	cmp.b	#0x01,d0                         	| [$0443: CP      $01]
 	bne.b	0f                               	| [...]
 	rts                                    	| [$0445: RET     Z] [...]
@@ -1377,12 +1380,13 @@ init_new_play_0430:
 											| [$0446: INC     L]
 	move.b	(a0),d0                         	| [$0447: LD      A,(HL)]
 	                               	| [$0448: AND     A]
-	jeq	set_p2_as_current_player_04a0                             	| [$0449: JP      Z,$04A0]
+	jeq	set_p2_as_current_player_04a0   | [$0449: JP      Z,$04A0] it was player 1, set player 2
 	lea	nb_lives_p1_4390,a0                        	| [$044c: LD      L,$90]
 	move.b	(a0),d0                         	| [$044e: LD      A,(HL)]
 	                               	| [$044f: AND     A]
-	bne.b	set_p1_as_current_player_0451                               	| [...]
+	bne.b	set_p1_as_current_player_0451     | player 1 still has lives, set player 1                	| [...]
 	rts                                    	| [$0450: RET     Z] [...]
+	
 set_p1_as_current_player_0451:
 	lea	current_player_is_p2_43A3,a0                        	| [$0451: LD      L,$A3]
 	clr.b	(a0)                             	| [$0453: LD      (HL),$00]
@@ -1416,7 +1420,7 @@ l_0466:
 	move.b	(a0,d3.w),d0                         	| [$0467: LD      A,(DE)]
 	                         	| [$0468: LD      (HL),C]
 	move.b	d0,(a1,d3.w)                         	| [$0469: LD      (DE),A]
-	addq.w	#1,d3                           	| [$046a: INC     E]
+	addq.b	#1,d3                           	| [$046a: INC     E]
 	
 	                           	| [$046b: LD      A,E]
 	and.b	#0x03,d3                         	| [$046c: AND     $03]
@@ -1424,11 +1428,11 @@ l_0466:
 
 	                           	| [$0471: LD      A,E]
 	and.b	#0xF0,d3                         	| [$0472: AND     $F0]
-	sub.b	#0x20,d3                         	| [$0474: SUB     $20]
+	sub.w	#0x20,d3                         	| [$0474: SUB     $20]
 	                           	| [$0476: LD      E,A]
-	jcc	l_0466                             	| [$0477: JP      NC,$0466]
+	                             	| [$0477: JP      NC,$0466]
       
-	sub.w	#0x100,d3                           	| [$047a: DEC     D]
+	                           	| [$047a: DEC     D]
 	                        	| [$047b: LD      A,D]
 	
 	                         	| [$047c: CP      $3F]
@@ -1441,7 +1445,7 @@ l_0484:
 	move.b	(a0,d3.w),d0                         	| [$0485: LD      A,(DE)]
 	                         	| [$0486: LD      (HL),C]
 	move.b	d0,(a1,d3.w)                         	| [$0487: LD      (DE),A]
-	addq.w	#1,d3                           	| [$0488: INC     E]
+	addq.b	#1,d3                           	| [$0488: INC     E]
            
 	                           	| [$0489: LD      A,E]
 	cmp.b	#0xB8,d3                         	| [$048a: CP      $B8]
@@ -2313,7 +2317,7 @@ l_08eb:
 	DECL_ADDRESS	900
 	
 read_controls_to_move_ship_0900:
-	jbsr	osd_read_inputs                   	| [$0900: LD      A,(IN0Current)]
+	move.b	current_input_value_43A0,d0                   	| [$0900: LD      A,(current_input_value_43A0)]
 	not.b	d0                               	| [$0903: CPL] inverted logic
 	and.b	#0x60,d0                         	| [$0904: AND     $60]
 	bne.b	0f                               	| [...] a bit is set, test it
@@ -2331,6 +2335,7 @@ read_controls_to_move_ship_0900:
 	st.b	d0                                	| [$0911: LD      A,$FF]
 	move.b	d0,unknown_4360                 	| [$0913: LD      (unknown_4360),A]
 	rts                                    	| [$0916: RET]
+	
 player_move_right_requested_0917:
 	move.b	(a0),d0                         	| [$0917: LD      A,(HL)]
 	cmp.b	#0xC0,d0                         	| [$0918: CP      $C0]

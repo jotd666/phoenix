@@ -15,7 +15,6 @@ Features:
 - updating highscore is now done in real-time not when restarting a game
 - applied Don Hodges fix to avoid score corruption when shooting 3 flying birds
 
-
 Instructions:
 
 5/fire: insert coin
@@ -25,13 +24,23 @@ left/right joystick/arrows: move ship
 fire/ctrl: shoot
 2nd button/down/alt: shield
 
+Extra life at 3000 and 30000 (easiest dipswitch setting)
+
 Cheat keys:
 
 F1: toggle invincibility
 F2: toggle infinite lives
-
+F3: add 500 points
 F4: skip level
 
+Command line options:
+
+INVINCIBLE: can't be killed
+INFLIVES: infinite lives
+CHEATKEYS: enable cheatkeys (see above)
+B2SHIELD: disable shield with joy up/down, just use 2nd button
+STARTLIVES: configure number of lives at start (matches dipswitches)
+	
 Vulture vertical movement:
 
 I spent too much time trying to understand why vultures didn't go up or at least

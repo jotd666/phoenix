@@ -1,12 +1,15 @@
 logic:
 
-- demo ship not moving
+- demo ship not moving: player controls it during the demo!!
 - debug copy_bank / 2P mode (around set_proper_stage_palette_041E
   doesn't seem to set banks properly or switch players like it should
   in _04A2
+- AGA: crash character update D0=0x22, D2=0x7F
+- AGA: scroll not working
 
 colors:
 
+- palette is completely off after one round of demo (title): check current level
 - fmode=3 for AGA
 - integrate Toni graphics
 

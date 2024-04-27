@@ -120,17 +120,7 @@ w\@:
 	blitz_bypass
 .endm
 
-start:
-	move.l	a7,old_stack
-	bra	_user
-    
-	
 
-* exports
-
-	  .global _user
-		.global _player_start
-		.global _demo_end
 
 * osd layer		
 		.global osd_break		| for debug	
@@ -151,18 +141,10 @@ start:
 	
 	.include	"ReadJoypad.i"
 	.include	"whdload_funcs.i"
-		.text
-
-
-.list
-
-	.ifne	OPT_ENABLE_PROFILING
-	* init profiling if enabled
-	.include	"profiler.68k"
-	.endif
-
-	    
-_user:
+	
+start:
+	move.l	a7,old_stack
+  
     * if D0 contains "WHDL"
     * A0 contains resload
         
@@ -284,6 +266,18 @@ _user:
 	move.l	#-1,184(A0)	| pr_WindowPtr: no more system requesters (insert volume, write protected...)
 
 .no_forbid:
+	* align bitplanes
+	lea		fg_screen_buffer,a0
+	bsr		align_for_fmode_3
+	move.l	a0,fg_drawed_screen_ptr
+	move.l	a0,fg_displayed_screen_ptr
+	
+	lea		bg_screen_buffer,a0
+	bsr		align_for_fmode_3
+	move.l	a0,bg_drawed_screen_ptr
+	move.l	a0,bg_displayed_screen_ptr
+
+
 	move.b	dip_switches,d0
 	
 	move.b	dip_switch_start_lives+3(pc),d1
@@ -325,6 +319,14 @@ _user:
 	jra		demo_game
 
 
+* so memory is aligned on 8 bytes (not trusting .align directives)
+align_for_fmode_3:
+	add.w	#0x10,a0
+	move.l	a0,d0
+	and.b	#0xF8,d0
+	move.l	d0,a0
+	rts
+	
 * < D0: bcpl string (with leading size byte)
 * < A1: dest C string
 bcpl_arg_string_copy:
@@ -603,9 +605,6 @@ _vblank:
 	
 	* TODO set vb sync flag
 	
-	.ifne  OPT_ENABLE_DOUBLE_BUFFERING_BG
-	bsr		switch_screen_buffers
-	.endif
 23:
 	* now we check copper interrupt again
 	move.w	_custom+intreqr,d0
@@ -768,27 +767,6 @@ osd_sound_stop:
 	
 
 
-switch_screen_buffers:	
-	.ifne	OPT_ENABLE_DOUBLE_BUFFERING_BG
-	* let's switch screen buffers, background (chars)
-	* toggle fg planes (double buffering)
-	lea		bg_drawed_screen_ptr(pc),a0
-	lea		bg_displayed_screen_ptr(pc),a4
-	lea		bg_screen_data_1,a1
-	lea		bg_screen_data_2,a5
-	* also switch previous state memory
-	cmp.l	(a0),a1
-	bne.b	2f
-	* screen data 1 is displayed screen
-	* set it to drawn screen
-	exg		a1,a5
-2:
-	move.l	a1,(a0)
-	move.l	a5,(a4)
-	jbsr		set_bg_bitplanes
-	.endif
-	
-	rts
 
 	
 store_system:
@@ -914,22 +892,26 @@ platform_init:
 	*         VVHH
     move.w #0x1C99+0x18,diwstrt(a5)
     move.w #0x2381,diwstop(a5)
-    move.w #0x0038,ddfstrt(a5)
-    move.w #0x00D0,ddfstop(a5)
      move.w #0x0064,bplcon2(a5)
 	.ifdef	AGA
     move.w #0x0610,bplcon0(a5) | 8 bitplanes, dual playfield
     move.w #(1<<12),bplcon3(a5)     | dpf second playfield palette starts at color 16!
+    move.w #3,fmode(a5)				| more bandwidth for chip writes	
+    move.w #0x0038,ddfstrt(a5)
+    move.w #0x00D0,ddfstop(a5)
+	move.w	#-8,d0			| modulo
 	.else
+    move.w #0x0038,ddfstrt(a5)
+    move.w #0x00D0,ddfstop(a5)
     move.w #0x6600,bplcon0(a5) | 6 bitplanes DPF
     move.w #0x0C00,bplcon3(a5)     | no AGA specificities, default ECS
     move.w #0x0011,bplcon4(a5)     | ECS default for sprite colors
     move.w #0,fmode(a5)			
+	move.w	#0,d0
 	.endif
 	
 
     move.w #0,bplcon1(a5)    | foreground tiles
-	move.w	#0,d0
     move.w d0,bpl1mod(a5)
     move.w d0,bpl2mod(a5)
 
@@ -1941,21 +1923,14 @@ delay_timer:
 only_b2_shield_flag:
 	.word	0
 bg_drawed_screen_ptr:
-	.long	bg_screen_data_1
+	.long	0
 bg_displayed_screen_ptr:
-	.ifne	OPT_ENABLE_DOUBLE_BUFFERING_BG
-	.long	bg_screen_data_2
-	.else
-	.long	bg_screen_data_1
-	.endif
+	.long	0
 fg_drawed_screen_ptr:
-	.long	fg_screen_data_1
+	.long	0
 fg_displayed_screen_ptr:
-	.ifne	OPT_ENABLE_DOUBLE_BUFFERING_BG
-	.long	fg_screen_data_2
-	.else
-	.long	fg_screen_data_1
-	.endif
+	.long	0
+
 
 
 	.include	"sound_entries.68k"
@@ -2144,22 +2119,14 @@ yellow_ship:
 	
 		.section .bsschip
 
-bg_screen_data_1:
+bg_screen_buffer:
 	ds.b	BG_SCREEN_SIZE
 	ds.b	NB_BYTES_PER_ROW*12*3
-	.ifne  OPT_ENABLE_DOUBLE_BUFFERING_BG
-bg_screen_data_2:
-	ds.b	BG_SCREEN_SIZE
-	ds.b	NB_BYTES_PER_ROW*12*3
-	.endif
-fg_screen_data_1:
+
+
+fg_screen_buffer:
 	ds.b	FG_SCREEN_SIZE
 	ds.b	NB_BYTES_PER_ROW*12*3
-	.ifne  OPT_ENABLE_DOUBLE_BUFFERING_FG
-fg_screen_data_2:
-	ds.b	FG_SCREEN_SIZE
-	ds.b	NB_BYTES_PER_ROW*12*3
-	.endif
-	.align	8
+
 
 		

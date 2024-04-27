@@ -6,7 +6,7 @@
 ;
 ; a few values explained
 ;4364   if != 0 the "killed bird" sound is played
-;43A0 	IN0Current 	Current value of IN0
+;43A0 	IN0Current_43a0 	Current value of IN0
 ;43A1 	IN0Previous 	Previous value of IN0
 ;43A2 	game_in_play_43A2  0 game not playing, !=0: playing, 1 or 2 nb players
 ;43A4 	game_state_43A4 	Function table jump
@@ -1642,7 +1642,7 @@ handle_player_controls_08c4:
 08F3: C3 26 09        JP      $0926               ;
 
 read_controls_to_move_ship_0900:
-0900: 3A A0 43        LD      A,(IN0Current)      ;
+0900: 3A A0 43        LD      A,(IN0Current_43a0)      ;
 0903: 2F              CPL
 0904: E6 60           AND     $60
 0906: C8              RET     Z
