@@ -18,11 +18,14 @@ Features:
 Instructions:
 
 5/fire: insert coin
-1/up: start 1P game
+1/up/2nd button: start 1P game
 
 left/right joystick/arrows: move ship
 fire/ctrl: shoot
 2nd button/down/alt: shield
+
+If 2nd button is pressed once (to start game or to trigger shield) then the game
+will disable down for shield.
 
 Extra life at 3000 and 30000 (easiest dipswitch setting)
 

@@ -5,12 +5,12 @@ logic:
   lives and check value (42C2=7F)
 - AGA: crash character update D0=0x22, D2=0x7F
 - AGA: scroll not working
+- explosion: ship parts seem not right
 
 colors:
 
 - palette is completely off after one round of demo (title): check current level
 - fmode=3 for AGA
-- integrate Toni graphics
 
 
 

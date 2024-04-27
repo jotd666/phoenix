@@ -3,6 +3,7 @@ import shutil
 
 sox = "sox"
 gamename = "phoenix"
+module_name = gamename
 
 if not shutil.which("sox"):
     raise Exception("sox command not in path, please install it")
@@ -18,13 +19,15 @@ src_dir = os.path.join(this_dir,"../../src/amiga")
 outfile = os.path.join(src_dir,"sounds.68k")
 sndfile = os.path.join(src_dir,"sound_entries.68k")
 
-hq_sample_rate = 22050
+hq_sample_rate = 24000
 
 
 noise = 2
 loop = 3
 kills = 1
 other = 0
+
+music_volume = 28
 
 EMPTY_SND = "EMPTY_SND"
 sound_dict = {
@@ -43,8 +46,8 @@ sound_dict = {
 "BOSS_SND"             :{"index":10,"channel":loop,"sample_rate":hq_sample_rate,"priority":1},
 "BOSS_SHIELD_SHOT_1_SND"             :{"index":11,"channel":noise,"sample_rate":hq_sample_rate,"priority":1},
 "BOSS_SHIELD_SHOT_2_SND"             :{"index":12,"channel":noise,"sample_rate":hq_sample_rate,"priority":1},
-"START_MUSIC_SND"             :{"index":13,"pattern":2,"loops":False,"volume":32,"ticks":1000},
-"BOSS_END_MUSIC_SND"             :{"index":14,"pattern":0,"loops":False,"volume":32,"ticks":500},
+"START_MUSIC_SND"             :{"index":13,"pattern":2,"loops":False,"volume":music_volume,"ticks":1000},
+"BOSS_END_MUSIC_SND"             :{"index":14,"pattern":0,"loops":False,"volume":music_volume,"ticks":500},
 "EXTRA_LIFE_SND"             :{"index":15,"channel":kills,"sample_rate":hq_sample_rate,"priority":1},
 
 }
@@ -97,6 +100,11 @@ with open(sndfile,"w") as fst,open(outfile,"w") as fw:
     fw.write("\t.section\t.datachip\n")
     fw.write("\t.global\t{}\n".format(music_module_label))
 
+    with open(os.path.join(sound_dir,f"{module_name}_conv.mod"),"rb") as f:
+        contents = f.read()
+    fw.write("{}:".format(music_module_label))
+    write_asm(contents,fw)
+    fw.write("\t.align\t8\n")
     for wav_file,details in sound_dict.items():
         wav_name = os.path.basename(wav_file).lower()[:-4]
         if details.get("channel") is not None:
@@ -137,9 +145,8 @@ with open(sndfile,"w") as fst,open(outfile,"w") as fw:
             amp_ratio = max(maxsigned,abs(minsigned))/64
 
             wav = os.path.splitext(wav_name)[0]
-            volume = int(64*amp_ratio)
-            # for this game I'm sticking all sounds to the max
-            volume = 64
+            volume = min(64,int(128*amp_ratio))
+
             sound_table[sound_index] = "    SOUND_ENTRY {},{},{},{},{},{}\n".format(wav,len(signed_data)//2,channel,used_sampling_rate,volume,used_priority)
             sound_table_set[sound_index] = f"\t.word\t1,{int(details.get('loops',0))}\n\t.long\t{wav}_sound"
 
@@ -148,6 +155,8 @@ with open(sndfile,"w") as fst,open(outfile,"w") as fw:
             else:
                 maxed_contents = signed_data
 
+            print("{}: ratio: {}, min: {}/128, max: {}/127".format(wav_name,amp_ratio,
+                                                    min(maxed_contents),max(maxed_contents)))
             signed_contents = bytes([x if x >= 0 else 256+x for x in maxed_contents])
             # pre-pad with 0W, used by ptplayer for idling
             if signed_contents[0] != b'\x00' and signed_contents[1] != b'\x00':
@@ -169,11 +178,6 @@ with open(sndfile,"w") as fst,open(outfile,"w") as fw:
                 raise Exception(f"Sound {wav_entry} is too long")
             write_asm(contents,fw)
 
-    with open(os.path.join(sound_dir,f"{gamename}_conv.mod"),"rb") as f:
-        contents = f.read()
-    fw.write("{}:".format(music_module_label))
-    write_asm(contents,fw)
-    fw.write("\t.align\t8\n")
 
 
     fst.writelines(sound_table)

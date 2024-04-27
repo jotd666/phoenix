@@ -594,27 +594,21 @@ _vblank:
 22:
 	move.b	d1,vb_ticks_count
     move.w  d0,vbl_counter
-	
+		
+		move.w	#0,0x200
 	* set scrolling
 	jbsr	set_bg_bitplanes
 	
-	tst.b	pause_flag
-	bne.b	23f
 
-	sub.w	d1,delay_timer
-	
-	* TODO set vb sync flag
-	
-23:
-	* now we check copper interrupt again
-	move.w	_custom+intreqr,d0
-	btst	#4,d0
-	beq.b	3f		| clear: ok
-	* copper interrupt has been called, which means that
-	* rendering was so slow that we couldn't cope within a frame
-	* skip a tick and ack again, we lose one update frame
-	addq.b	#ONE_TICK,vb_ticks_count
-	move.w	#0x10,_custom+intreq
+*	* now we check copper interrupt again
+*	move.w	_custom+intreqr,d0
+*	btst	#4,d0
+*	beq.b	3f		| clear: ok
+*	* copper interrupt has been called, which means that
+*	* rendering was so slow that we couldn't cope within a frame
+*	* skip a tick and ack again, we lose one update frame
+*	addq.b	#ONE_TICK,vb_ticks_count
+*	move.w	#0x10,_custom+intreq
 3:
     movem.l (a7)+,d0-d7/a0-a6
     rte
@@ -1557,10 +1551,7 @@ osd_read_inputs:
 	move.l	_joypad_state(pc),d1
 	tst.b	only_b2_shield_flag
 	bne.b	10f
-	btst	#JPB_BTN_UP,d1
-	beq.b	0f
-	bclr	#BIT_BLUE,d0
-0:
+
 	btst	#JPB_BTN_DOWN,d1
 	beq.b	0f
 	bclr	#BIT_BLUE,d0
@@ -1581,13 +1572,20 @@ osd_read_inputs:
 	btst	#JPB_BTN_BLU,d1
 	beq.b	0f
 	bclr	#BIT_BLUE,d0
+	* press once on b2 shield to disable up/down for shield
+	st.b	only_b2_shield_flag
 0:
 	* test all those flags to see if normal controls
 	* could be used to insert coins/start game
 
 	tst.b	game_in_play_43A2
 	bne.b	3f
-		
+	
+	btst	#JPB_BTN_BLU,d1
+	beq.b	0f
+	bclr	#BIT_START_1,d0
+	st.b	only_b2_shield_flag
+0:		
 	* game not in play, accept start 1P game with "up"
 	btst	#JPB_BTN_UP,d1
 	beq.b	0f
@@ -2098,16 +2096,17 @@ sprites:
 copyright_pink_title_screen:
 	.long	ROSE_COPYRIGHT_COPPER_LONGWORD		| alien purple
 
-    .word  0xE001,0xFFFE
 alien_purple_score_screen:
 	.long	PURPLE_ALIEN_HEAD_COPPER_LONGWORD		| alien purple
 yellow_ship:
 	.long	YELLOW_SHIP_COPPER_LONGWORD
+	.else
+	.word  0xE001,0xFFFE
 	.endif
 	
 	
 	* pal limit
-    .word  0xFFDF,0xFFFE       | PAL wait
+    .word  0xFFCF,0xFFFE       | PAL wait (fmode=3)
     .word  0x0401,0xFFFE
 	
     .word   0x1C01,0xFFFE
