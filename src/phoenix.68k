@@ -45,8 +45,8 @@
 
 *5000-53FF: video registers
 *50xx: write a value with bit 0 cleared to enable memory bank 0
-*      else bank 1 is shown
-*50xx: write a value with bit 0 cleared: select palette #1 else palette #2
+*      else bank 1 is mapped
+*50xx: write a value with bit 1 cleared: select palette #1 else palette #2
 *5800-5BFF: scroll registers
 *6000-63ff: sound
 *6800-6bff: sound
@@ -1059,13 +1059,19 @@ l_02a7:
 	jbsr	zero_player_scores_032e                            	| [$02b3: CALL    $032E]
 	jbsr	init_player_lives_0350                            	| [$02b6: CALL    $0350]
 	jbsr	init_new_play_0140                            	| [$02b9: CALL    $0140]
-	moveq	#1,d0
+
+	moveq	#1,d0			
 	jbsr	osd_write_5000                      	| [$02bc: LD      H,$50] 50xx video register
 	                      	| [$02be: LD      (HL),$01] set bank 1
 	jbsr	init_new_play_0140                            	| [$02c0: CALL    $0140]
 	moveq	#0,d0                        	| [$02c3: LD      H,$50] 50xx video register
 	jbsr	osd_write_5000                             	| [$02c5: LD      (HL),$00] set bank 0
 
+	* hack to also force screen refresh because switch to bank 1 also switched
+	* palette and redrawn a cleared screen, but it's not drawn back when reswitching
+	* to bank 0
+	jbsr	osd_full_screen_redraw
+	
 	clr.b	vulture_sound_toggle
 	move.w	#START_MUSIC_SND,d0
 	jbsr	osd_sound_start

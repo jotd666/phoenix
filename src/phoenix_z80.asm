@@ -43,7 +43,7 @@
 ;5000-53FF: video registers
 ;50xx: write a value with bit 0 cleared to enable memory bank 0
 ;      else bank 1 is shown
-;50xx: write a value with bit 0 cleared: select palette #1 else palette #2
+;50xx: write a value with bit 1 cleared: select palette #1 else palette #2
 ;5800-5BFF: scroll registers
 ;6000-63ff: sound
 ;6800-6bff: sound

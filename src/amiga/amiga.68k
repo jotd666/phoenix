@@ -144,6 +144,7 @@ start:
 		.global osd_sound_stop
 		.global osd_sound_loop_stop
 		.global	osd_write_5000
+		.global	osd_full_screen_redraw
 		.global	osd_get_bank_memory
 		.global	osd_wait_for_vblank
 
@@ -999,10 +1000,11 @@ osd_get_bank_memory:
 0:
 	rts
 	
-* < D0: bit 0: palette 0/1, we'll ignore that, and will use level info
-* < D0: bit 1: rom bank: check current/previous bank and swap memory 
+* < D0: bit 0: rom bank: check current/previous bank and swap memory 
+* < D0: bit 1: palette 0/1, we'll ignore that, and will use level info
 * & video if needed
 osd_write_5000:
+	
 	movem.l	a0/a1/d0-d1,-(a7)
 	btst	#0,d0
 	beq.b	0f
@@ -1030,7 +1032,7 @@ osd_write_5000:
 	
 * < D0: 0 or 1 but we'll ignore that for ECS
 set_palette:
-	movem.l	d0-d2/d7/a0-a1,-(a7)
+	movem.l	d0-d2/a0-a1,-(a7)
 	move.b	d0,d1		| save for AGA
 	moveq	#0,d2
 	bsr		get_current_stage
@@ -1084,19 +1086,27 @@ set_palette:
 	
 	* update full tilesets as palette has changed
 	* but bitmaps may be different
+	bsr		osd_full_screen_redraw
+2:		
+	movem.l	(a7)+,d0-d2/a0-a1
+	rts
+	
+osd_full_screen_redraw:
+	movem.l	d0/d7/a0,-(a7)
+
 	move.w	#0x4000,d7
 	lea		fg_videoram,a0
 	bsr		force_tile_redraw
 	move.w	#0x4800,d7
 	lea		bg_videoram,a0
 	bsr		force_tile_redraw
-2:		
-	movem.l	(a7)+,d0-d2/d7/a0-a1
+	movem.l	(a7)+,d0/d7/a0
 	rts
 	
 force_tile_redraw:
 	move.w	#REAL_VIDEO_SIZE-1,d1
 10:
+
 	move.b	(a0),d0
 	st		(a0)+
 	bsr		osd_w_videoram

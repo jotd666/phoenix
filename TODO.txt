@@ -1,7 +1,6 @@
 logic:
 
 - demo ship not moving
-- when restarting, status bar is erased at first (bank switch at 02b9 ?)
 - debug copy_bank / 2P mode (around set_proper_stage_palette_041E
   doesn't seem to set banks properly or switch players like it should
   in _04A2
@@ -19,8 +18,7 @@ sounds:
 
 
   
-converter: ADD     $DE] => add 0xA1 !!!! 38ac
-!!!!move.b	#0xa4,d6                        	| [$22d9: LD      L,$BC]
+converter: 
 detect: | [$3960: LD      A,L]
         | [$3961: ADD     $05]
         | [$3963: LD      L,A]
