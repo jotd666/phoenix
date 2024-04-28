@@ -3732,7 +3732,6 @@ l_2070:
 	move.w	#0x2900,d6                      	| [$207e: LD      HL,$2900]
 	                             	| [$2081: JP      $2085]
 l_2085:
-	* TODO fix issue with explosion D1/D2 vs D1.W
 	LOAD_D1_16_FROM_D1D2
 	sub.b	#0x20,d0                         	| [$2085: SUB     $20]
 	rol.b	#2,d0                            	| [$2087: RLCA] * 2
@@ -3744,9 +3743,11 @@ l_2085:
 	move.b	d0,d6                           	| [$2090: LD      L,A]
 l_2091:
 	move.b	#0x3F,d0                        	| [$2091: LD      A,$3F]
-	sub.b	d2,d0                            	| [$2093: SUB     C]
+	sub.b	d1,d0                            	| [$2093: SUB     C]
+	move.w	d1,d5
+	rol.w	#8,d5
 	move.b	#0x43,d0                        	| [$2094: LD      A,$43]
-	subx.b	d1,d0                           	| [$2096: SBC     B]
+	subx.b	d5,d0                           	| [$2096: SBC     B]
 	jcc	player_exploding_20b0                             	| [$2097: JP      NC,$20B0]
 	addq.w	#2,d6                           	| [$209a: INC     HL] * 2
 	                           	| [$209c: LD      A,E]
@@ -3770,20 +3771,18 @@ l_2091:
 	.endm
 	
 player_exploding_20b0:
-	* the routine swaps registers with the stack
-	* contents. It's meant to update d1/d2 (BC) on exit
+	* the routine swaps registers with the stack contents
+	* (D1.W is the top left corner address where the explosion debris can reach)
 	move.w	d1,-(sp)                    	| [$20b0: PUSH    BC]
-	* D1/D2 holds a ROM address. We're going to copy it in D7
-	LOAD_D1_16_FROM_D1D2
-	move.w	d1,d7		| d7 is d1+d2 now
 l_20b1:
 	bsr		load_rom_in_a0_from_d6w
 	move.b	(a0),d0                         	| [$20b1: LD      A,(HL)]
-	EX_HL_SP                            	| [$20b2: EX      (SP),HL]
-	move.b	#0x08,d1                        	| [$20b3: LD      B,$08]
+	EX_HL_SP                            	| [$20b2: EX      (SP),HL]  get upper corner
+	move.b	#0x08,d1                        	| [$20b3: LD      B,$08] do it 8 times
 l_20b5:
 	cmp.w	#RAM_START,d6
 	bcs.b	0f
+	* erase
 	move.w	d6,d7
 	exg		d5,d0                             	| [$20b5: LD      (HL),$00]
 	moveq	#0,d0
@@ -3794,12 +3793,13 @@ l_20b5:
 	jcc	l_20bf                             	| [$20b8: JP      NC,$20BF]
 	exg	d3,d6                              	| [$20bb: EX      DE,HL]
 	bsr		load_rom_in_a0_from_d6w
-	move.b	(a0),d2                         	| [$20bc: LD      C,(HL)]
+	move.b	(a0),d2                         	| [$20bc: LD      C,(HL)] get debris char
 	exg	d3,d6                              	| [$20bd: EX      DE,HL]
 	
 	move.w	d6,d7
-	move.b	d2,d0
-	jbsr	osd_w_videoram					| [$20be: LD      (HL),C]
+	exg	d2,d0
+	jbsr	osd_w_videoram					| [$20be: LD      (HL),C] write debris char
+	exg	d2,d0
 
 l_20bf:
 	addq.w	#1,d6                           	| [$20bf: INC     HL]
