@@ -1,17 +1,15 @@
 logic:
 
-- demo ship not moving: player controls it during the demo!!
 - 2P mode switch: videoram seems not updated! check address of say
   lives and check value (42C2=7F)
-- AGA: crash character update D0=0x22, D2=0x7F
-- AGA: scroll not working
 - explosion: ship parts seem not right
+- On the attract sequence, with the final boss and 1 alien flying around,
+  when alien is destroyed the explosion does not disappear and is left as part of the background, so to speak. 
 
 colors:
 
-- palette is completely off after one round of demo (title): check current level
-- fmode=3 for AGA
-
+- palette is completely off after one round of demo (title)
+  original game displays demo title with alternate palette
 
 
   

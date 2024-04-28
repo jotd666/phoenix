@@ -7,7 +7,7 @@
 
 _base	SLAVE_HEADER					; ws_security + ws_id
 	dc.w	17					; ws_version (was 10)
-	dc.w	WHDLF_NoError
+	dc.w	WHDLF_NoError|WHDLF_ReqAGA|WHDLF_Req68020
     IFD CHIP_ONLY
 	dc.l	$200000					; ws_basememsize
     ELSE
@@ -51,7 +51,7 @@ _config
 	ENDC
 
 DECL_VERSION:MACRO
-	dc.b	"1.0"
+	dc.b	"1.1"
 		dc.b	" "
 		INCBIN	"T:date"
 	ENDC

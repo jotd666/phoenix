@@ -465,6 +465,14 @@ copy_2_byte_column_to_screen:
 	rts
 
 
+STATE_START_NEW_LIFE = 0
+STATE_INIT_NEW_PLAY_CLEAR_SCREEN = 1
+STATE_INIT_NEW_PLAY_STEP_2 = 2
+STATE_GAME_PLAYING = 3
+STATE_PLAYER_HIT = 4
+STATE_PLAYER_TURN_OVER = 5
+STATE_BOSS_STAGE_COMPLETED = 6
+STATE_END_OF_LEVEL_TRANSITION = 7
 	DECL_ADDRESS	0
 	
 phoenix_reset:
@@ -1334,14 +1342,14 @@ in_game_scheduler_0400:
 
 * Notice these addresses are MSB:LSB (backwards from the processors endianness)
 jump_table_040E:
-	.long	start_new_life_0430
-	.long	init_new_play_clear_screen_04AC
-	.long	init_new_play_step_2_0515
-	.long	game_playing_0800
-	.long	player_hit_0AEA
-	.long	player_turn_over_0B60
-	.long	boss_stage_completed_2400
-	.long	end_of_level_transition_244C
+	.long	start_new_life_0430                  | STATE_START_NEW_LIFE = 0
+	.long	init_new_play_clear_screen_04AC      | STATE_INIT_NEW_PLAY_CLEAR_SCREEN = 1
+	.long	init_new_play_step_2_0515            | STATE_INIT_NEW_PLAY_STEP_2 = 2
+	.long	game_playing_0800                    | STATE_GAME_PLAYING = 3
+	.long	player_hit_0AEA                      | STATE_PLAYER_HIT = 4
+	.long	player_turn_over_0B60                | STATE_PLAYER_TURN_OVER = 5
+	.long	boss_stage_completed_2400            | STATE_BOSS_STAGE_COMPLETED = 6
+	.long	end_of_level_transition_244C         | STATE_END_OF_LEVEL_TRANSITION = 7
 * bpset 0406,(A==0)                     	|| (A==1)|| (A==2)|| (A==6)|| (A==7),{printf "%d",A;g}
 
 * selects one of the two available palettes
@@ -1362,7 +1370,7 @@ start_new_life_0430:
 	move.b	#55,0x200
 	
 	lea	game_state_43A4,a0             	| [$0430: LD      HL,game_state_43A4] Next function to run ...
-	move.b	#0x01,(a0)+                      	| [$0433: LD      (HL),$01] ... is 1 ??
+	move.b	#STATE_INIT_NEW_PLAY_CLEAR_SCREEN,(a0)+                      	| [$0433: LD      (HL),$01] ... is 1 ??
 	                           	| [$0435: INC     L]
 	move.b	#0x80,(a0)                      	| [$0436: LD      (HL),$80]
 	lea	current_player_is_p2_43A3,a0            | [$0438: LD      L,$A3]
@@ -1568,7 +1576,7 @@ l_0506:
 init_new_play_step_2_0515:
 	jbsr	set_proper_stage_palette_041E     	| [$0515: CALL    set_proper_stage_palette_041E]
 	lea	game_state_43A4,a0             	| [$0518: LD      HL,game_state_43A4]
-	move.b	#0x03,(a0)                      	| [$051b: LD      (HL),$03] advance state machine to "playing"
+	move.b	#STATE_GAME_PLAYING,(a0)                      	| [$051b: LD      (HL),$03] advance state machine to "playing"
 	jbsr	init_scrolling_data_0580                            	| [$051d: CALL    $0580]
 	jbsr	l_0547                            	| [$0520: CALL    $0547]
 	jbsr	display_player_ship_and_shots_09a0                            	| [$0523: CALL    $09A0]
@@ -2223,7 +2231,7 @@ l_0848:
 	lea	current_stage_43B8,a0                        	| [$084e: LD      L,$B8]
 	addq.b	#1,(a0)                         	| [$0850: INC     (HL)] next stage
 	lea	game_state_43A4,a0                        	| [$0851: LD      L,$A4]
-	move.b	#0x02,(a0)                      	| [$0853: LD      (HL),$02]
+	move.b	#STATE_INIT_NEW_PLAY_STEP_2,(a0)                      	| [$0853: LD      (HL),$02]
 	rts                                    	| [$0855: RET]
 
 	DECL_ADDRESS	85a
@@ -2631,7 +2639,7 @@ player_hit_0AEA:
 	
 l_0b15:
 	                         	| [$0b15: DEC     L]
-	move.b	#0x05,-(a0)                      	| [$0b16: LD      (HL),$05] sets game state to 05: lose a life, switch player
+	move.b	#STATE_PLAYER_TURN_OVER,-(a0)                      	| [$0b16: LD      (HL),$05] sets game state to 05: lose a life, switch player
 	lea		nb_lives_p1_4390,a0
 	tst.b	current_player_is_p2_43A3                           	| [$0b18: DEC     L]
 	beq.b	0f            	| [$0b1a: ADD     $90]
@@ -2656,7 +2664,7 @@ l_0b15:
 	rts                                    	| [$0b28: RET     Z] [...]
 0:
 	lea		game_state_43A4,a0			| [$0b29: LD      L,$A4]
-	clr.b	(a0)                             	| [$0b2b: LD      (HL),$00]
+	clr.b	(a0)                             	| [$0b2b: LD      (HL),$00] STATE_START_NEW_LIFE
 	rts                                    	| [$0b2d: RET]
 
 	DECL_ADDRESS	b48
@@ -2695,7 +2703,7 @@ player_turn_over_0B60:
 	cmp.b	#0x80,d0                         	| [$0b6f: CP      $80]
 	jne	l_0b95                             	| [$0b71: JP      NZ,$0B95]
 	lea	game_state_43A4,a0             	| [$0b74: LD      HL,game_state_43A4]
-	clr.b	(a0)                             	| [$0b77: LD      (HL),$00]
+	clr.b	(a0)                             	| [$0b77: LD      (HL),$00] STATE_START_NEW_LIFE
 	lea	nb_lives_p1_4390,a0                        	| [$0b79: LD      L,$90]
 	move.b	(a0)+,d0                         	| [$0b7b: LD      A,(HL)]
 	                           	| [$0b7c: INC     L]
@@ -2910,7 +2918,7 @@ player_hit_0cc4:
 	move.w	#EXPLOSION_SND,d0
 	jbsr	osd_sound_start
 	
-	move.b	#0x04,d0                        	| [$0cc4: LD      A,$04]
+	move.b	#STATE_PLAYER_HIT,d0                        	| [$0cc4: LD      A,$04]
 	move.b	d0,game_state_43A4              	| [$0cc6: LD      (game_state_43A4),A]
 	move.b	#0x60,d0                        	| [$0cc9: LD      A,$60]
 	move.b	d0,timer_43A5                   	| [$0ccb: LD      (timer_43A5),A]
@@ -3724,6 +3732,7 @@ l_2070:
 	move.w	#0x2900,d6                      	| [$207e: LD      HL,$2900]
 	                             	| [$2081: JP      $2085]
 l_2085:
+	* TODO fix issue with explosion D1/D2 vs D1.W
 	LOAD_D1_16_FROM_D1D2
 	sub.b	#0x20,d0                         	| [$2085: SUB     $20]
 	rol.b	#2,d0                            	| [$2087: RLCA] * 2
@@ -3761,7 +3770,7 @@ l_2091:
 	.endm
 	
 player_exploding_20b0:
-	* dthe routine swaps registers with the stack
+	* the routine swaps registers with the stack
 	* contents. It's meant to update d1/d2 (BC) on exit
 	move.w	d1,-(sp)                    	| [$20b0: PUSH    BC]
 	* D1/D2 holds a ROM address. We're going to copy it in D7
@@ -3985,7 +3994,7 @@ l_2204:
 	rts                                    	| [$220b: RET     NC] [...]
 0:
 	lea	game_state_43A4,a0                        	| [$220c: LD      L,$A4]
-	move.b	#0x02,(a0)                      	| [$220e: LD      (HL),$02]
+	move.b	#STATE_INIT_NEW_PLAY_STEP_2,(a0)                      	| [$220e: LD      (HL),$02]
 	lea	shield_timer_43A6,a0                        	| [$2210: LD      L,$A6]
 	clr.b	(a0)                             	| [$2212: LD      (HL),$00]
 	lea	current_stage_43B8,a0                        	| [$2214: LD      L,$B8]
@@ -4027,12 +4036,12 @@ l_224c:
 	lea	current_stage_43B8,a0          	| [$224c: LD      HL,current_stage_43B8]
 	addq.b	#1,(a0)                         	| [$224f: INC     (HL)]
 	lea	game_state_43A4,a0                        	| [$2250: LD      L,$A4]
-	move.b	#0x02,(a0)                      	| [$2252: LD      (HL),$02]
+	move.b	#STATE_INIT_NEW_PLAY_STEP_2,(a0)                      	| [$2252: LD      (HL),$02]
 	rts                                    	| [$2254: RET]
-	move.b	d1,d4                           	| [$2255: LD      E,B]
-	lea	game_state_43A4,a0                        	| [$2256: LD      L,$A4]
-	move.b	#0x02,(a0)                      	| [$2258: LD      (HL),$02]
-	rts                                    	| [$225a: RET]
+		| [$2255: LD      E,B]
+	      	| [$2256: LD      L,$A4]
+	                      	| [$2258: LD      (HL),$02]
+	| [$225a: RET]
 
 * used for star transitions
 fill_screen_2260_1:
@@ -4308,7 +4317,7 @@ l_23c0:
 	jbsr	osd_sound_start
 	
 	lea	game_state_43A4,a0             	| [$23c7: LD      HL,game_state_43A4]
-	move.b	#0x06,(a0)+                      	| [$23ca: LD      (HL),$06]
+	move.b	#STATE_BOSS_STAGE_COMPLETED,(a0)+                      	| [$23ca: LD      (HL),$06]
 	                           	| [$23cc: INC     L]
  	move.b	#0x60,(a0)                      	| [$23cd: LD      (HL),$60]
 	lea	unknown_4363,a0                        	| [$23cf: LD      L,$63]
@@ -4367,6 +4376,7 @@ l_242c:
 	and.b	#0xF8,d0                         	| [$2430: AND     $F8]
 	move.b	d0,(a0)                         	| [$2432: LD      (HL),A]
 	jbsr	osd_set_scroll_value                       	| [$2433: LD      ($5800),A] 58xx scroll register
+	* load a screen address
  	move.b	#0x41,d3                	| [$2436: LD      DE,unknown_41C6]
  	move.b	#0xc6,d4                	| [$2436: LD      DE,unknown_41C6]
 	ror.b	#3,d0                            	| [$2439: RRCA] * 3
@@ -4590,7 +4600,7 @@ l_253d:
 	* here HL=$43xx
 l_2552:
 	lea		game_state_43A4,a0                       	| [$2552: LD      L,$A4]
-	move.b	#0x07,(a0)+                      	| [$2554: LD      (HL),$07]
+	move.b	#STATE_END_OF_LEVEL_TRANSITION,(a0)+                      	| [$2554: LD      (HL),$07]
                            	| [$2556: INC     L]
 	move.b	#0x40,(a0)                      	| [$2557: LD      (HL),$40]
 	st.b		unknown_436B                        	| [$2559: LD      L,$6B]
@@ -4980,7 +4990,7 @@ l_2717:
 	jne	l_2717                             	| [$2720: JP      NZ,$2717]
 	lea		slot_for_regular_animation_4370+0x2D,a1                        	| [$2723: LD      E,$9D]
 	move.b	game_state_43A4,d0              	| [$2725: LD      A,(game_state_43A4)]
-	cmp.b	#0x06,d0                         	| [$2728: CP      $06]
+	cmp.b	#STATE_BOSS_STAGE_COMPLETED,d0                         	| [$2728: CP      $06]
 	jne	l_2739                             	| [$272a: JP      NZ,$2739]
 	* boss stage completed!
 	move.b	(a1),d0                         	| [$272d: LD      A,(DE)]
@@ -7116,7 +7126,7 @@ play_extra_life_beep_timer_if_needed_3b33:
 l_3b43:
 	lea	game_state_43A4,a0             	| [$3b43: LD      HL,game_state_43A4]
 	move.b	(a0),d0                         	| [$3b46: LD      A,(HL)]
-	cmp.b	#0x03,d0                         	| [$3b47: CP      $03]
+	cmp.b	#STATE_GAME_PLAYING,d0                         	| [$3b47: CP      $03]
 	bne.b	0f                               	| [...]
 	jbsr	play_stage_ambient_sound_23d6                            	| [$3b49: CALL    Z,$23D6]
 0:

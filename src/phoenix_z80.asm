@@ -61,6 +61,16 @@
 ;http://www.computerarcheology.com/Arcade/Phoenix/    where the Z80 disassembly code is
 ;http://www.donhodges.com/phoenix.htm				  proposes a fix for highscore corruption
 
+; game global states described below
+STATE_START_NEW_LIFE = 0
+STATE_INIT_NEW_PLAY_CLEAR_SCREEN = 1
+STATE_INIT_NEW_PLAY_STEP_2 = 2
+STATE_GAME_PLAYING = 3
+STATE_PLAYER_HIT = 4
+STATE_PLAYER_TURN_OVER = 5
+STATE_BOSS_STAGE_COMPLETED = 6
+STATE_END_OF_LEVEL_TRANSITION = 7
+
 0000: 00              NOP                         ; Start/restart and interrupts end up at 0008
 0001: 00              NOP
 0002: 00              NOP
