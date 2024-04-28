@@ -115,6 +115,11 @@
 	.include "phoenix_ram.68k"
 	.align	2
 	.endif	
+	
+	.ifdef	AGA
+MC68020 = 1
+	.endif
+	
 	.global	phoenix_reset
 	
 	.ifdef	RELEASE
@@ -741,6 +746,17 @@ init_new_play_0140:
 	lea	current_stage_43B8,a0                        	| [$0154: LD      L,$B8]
 	move.b	#0x08,d1                        	| [$0156: LD      B,$08]
 	jbsr	clear_area_05D8                   	| [$0158: CALL    clear_area_05D8]
+	
+	* to force reset of palette 0 after demo on ECS, as it's hacked
+	* to select palettes per level. Not required on AGA because it's much simpler
+	* and more faithful to the arcade palette system
+	.ifdef	__amiga__
+	.ifndef	AGA
+	moveq	#0,d0
+	jbsr	osd_write_5000
+	.endif
+	.endif
+	
 	lea	nb_birds_to_kill_before_stage_completed_43BA,a0                        	| [$015b: LD      L,$BA]
 	move.b	#0x10,(a0)                      	| [$015d: LD      (HL),$10]
 	lea	extra_life_at_thousands_43BE,a0                        	| [$015f: LD      L,$BE]
@@ -1334,12 +1350,16 @@ in_game_scheduler_0400:
 	                         	| [$0408: LD      L,A] ... into the table
 	                         	| [$0409: LD      A,(HL)] MSB of destination
 	                         	| [$040a: INC     L] Get the
+	.ifdef	MC68020
+	jmp		([a0,d0.w*4])
+	.else
 	add.w	d0,d0
 	add.w	d0,d0
 	move.l	(a0,d0.w),a0                         	| [$040b: LD      L,(HL)] ... LSB of destination
 	                           	| [$040c: LD      H,A] Now point to function
 	jra	(a0)                               	| [$040d: JP      (HL)] Jump to function
-
+	.endif
+	
 * Notice these addresses are MSB:LSB (backwards from the processors endianness)
 jump_table_040E:
 	.long	start_new_life_0430                  | STATE_START_NEW_LIFE = 0
@@ -1624,6 +1644,7 @@ init_scrolling_data_0580:
 	                                    	| [$0595: RET]
 
 
+	DECL_ADDRESS	05d8
 
 
 * < HL: start address
@@ -1638,6 +1659,8 @@ l_05d9:
 
 	rts                                    	| [$05df: RET]
 
+	DECL_ADDRESS	05e0
+	
 * < A0: source address
 * < A1: dest address
 * < D1: number of bytes to copy
@@ -1678,6 +1701,8 @@ l_0603:
 	jne	l_0603                             	| [$060a: JP      NZ,$0603]
 	rts                                    	| [$060d: RET]
 
+	DECL_ADDRESS	0610
+
 l_0610:
 	lea	game_rom+0x063A,a0                      	| [$0610: LD      HL,$063A]
 	move.b	current_stage_43B8,d0           	| [$0613: LD      A,(current_stage_43B8)]
@@ -1711,6 +1736,8 @@ l_062a:
 	jne	l_062a                             	| [$0635: JP      NZ,$062A]
 	rts                                    	| [$0638: RET]
 
+	DECL_ADDRESS	0650
+	
 l_0650:
 	lea	game_rom+0x1520,a0                      	| [$0650: LD      HL,$1520]
 	move.b	current_stage_43B8,d0           	| [$0653: LD      A,(current_stage_43B8)]
@@ -1885,10 +1912,14 @@ select_game_jump_routine_0720:
 	                        	| [$0730: LD      L,A]
 	                        	| [$0731: LD      H,$07]
 	                        	| [$0733: LD      L,(HL)]
-	add.w	d0,d0
-	add.w	d0,d0
 	lea		jump_table_0738(pc),a0
+	.ifdef	MC68020
+	move.l	(a0,d0.w*4),d7
+	.else
+	add.w	d0,d0
+	add.w	d0,d0
 	move.l	(a0,d0.w),d7
+	.endif
 	.ifndef		RELEASE
 	bpl.b	0f
 	lsr.w	#2,d0
@@ -1937,12 +1968,16 @@ select_game_jump_routine_0740:
 * some slots are illegal and aren't reached (else game reboots)
 * allowed states are 0,1,3,4 only
 	and.w	#0xFF,d0
-	add.w	d0,d0
-	add.w	d0,d0
 	lea		jump_table_075B(pc),a0
 	                       	| [$0754: LD      L,A]
 	                       	| [$0755: LD      H,$07]
+	.ifdef	MC68020
+	move.l	(a0,d0.w*4),d7
+	.else
+	add.w	d0,d0
+	add.w	d0,d0
 	move.l	(a0,d0.w),d7
+	.endif
 	.ifndef		RELEASE
 	bpl.b	0f
 	lsr.w	#2,d0
@@ -2178,6 +2213,9 @@ game_playing_0800:
 	rol.b	#1,d0                            	| [$0806: RLCA]
 	and.w	#0x1E,d0                         	| [$0807: AND     $1E]
 	
+	.ifdef	MC68020
+	jmp		([a0,d0.w*2])
+	.else
 	add.w	d0,d0
 	move.l	(a0,d0.w),a0
 	                 	| [$0809: ADD     A,L]
@@ -2188,7 +2226,9 @@ game_playing_0800:
 	                       	| [$080d: LD      L,(HL)]
 	                       	| [$080e: LD      H,A]
 	jra	(a0)                               	| [$080f: JP      (HL)]
-
+	.endif
+	
+	
 jump_table_0814:
 	.long	transition_to_birds_level_0834
 	.long	birds_level_2000
@@ -5142,6 +5182,9 @@ handle_small_birds_attacks_3000:
 	addq.b	#1,(a0)                         	| [$3004: INC     (HL)]
 	and.w	#0x07,d0                         	| [$3005: AND     $07]
 	lea	jump_table_3018,a0             	| [$3007: LD      HL,jump_table_3018]
+	.ifdef	MC68020
+	jmp		([a0,d0.w*4])
+	.else
 	add.w	d0,d0                         	| [$300a: RLCA]
 	add.w	d0,d0                         	| [$300b: ADD     A,L]
 	move.l	(a0,d0.w),a0               	| [$300c: LD      L,A]
@@ -5150,6 +5193,8 @@ handle_small_birds_attacks_3000:
 	                        	| [$300f: LD      L,(HL)]
 	                        	| [$3010: LD      H,A]
 	jra	(a0)                               	| [$3011: JP      (HL)]
+	.endif
+	
 l_3012:
 	rts                                    	| [$3012: RET]
 
@@ -5861,11 +5906,15 @@ l_350c:
 	sub.w	#0x20,d2
 	lsr.w	#3,d2
 	and.w	#0x07,d2
-	add.w	d2,d2
-	add.w	d2,d2
 	lea		jump_table_35xx(pc),a0
+	.ifdef	MC68020
+	jmp		([a0,d2.w*4])
+	.else
+	add.w	d2,d2
+	add.w	d2,d2
 	move.l	(a0,d2.w),a0                                    	| [$3519: RET]
 	jmp	(a0)
+	.endif
 	
 jump_table_35xx:
 	.long	copy_7_columns_to_screen_3520

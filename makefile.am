@@ -41,8 +41,8 @@ WHDASM = vasmm68k_mot -DDATETIME -I$(HDBASE)/amiga39_JFF_OS/include -I$(WHDBASE)
 
 
 # leave MAIN_OBJ first
-OBJS_OCS = $(OCS_MAIN_OBJ) game_rom.o sounds.o $(PROGNAME).o vbr.o graphics_ocs.o ReadJoyPad.o ptplayer.o 
-OBJS_AGA = $(AGA_MAIN_OBJ) game_rom.o sounds.o $(PROGNAME).o vbr.o graphics_aga.o ReadJoyPad.o ptplayer.o 
+OBJS_OCS = $(OCS_MAIN_OBJ) game_rom.o sounds.o $(PROGNAME)_ocs.o vbr.o graphics_ocs.o ReadJoyPad.o ptplayer.o 
+OBJS_AGA = $(AGA_MAIN_OBJ) game_rom.o sounds.o $(PROGNAME)_aga.o vbr.o graphics_aga.o ReadJoyPad.o ptplayer.o 
 
 
 all: $(MAIN_OCS) $(AMIGA_SHELL) $(WHDLOADER) $(WHDLOADER_CHIP) $(MAIN_AGA) $(WHDLOADER_AGA) $(WHDLOADER_AGA_CHIP) 
@@ -70,8 +70,11 @@ $(MAIN_OCS): $(OBJS_OCS)
 $(MAIN_AGA): $(OBJS_AGA)
 	$(GCC_BIN)m68k-amigaos-ld $(OPT_RELEASE_LINK) -o $(MAIN_AGA) $(OBJS_AGA)
 
-$(PROGNAME).o: $(PROGNAME).68k $(PROGNAME).inc $(PROGNAME)_ram.68k $(PROGNAME)_game_ram.68k
-	$(ASM) $(PROGNAME).68k -o $(PROGNAME).o
+$(PROGNAME)_aga.o: $(PROGNAME).68k $(PROGNAME).inc $(PROGNAME)_ram.68k $(PROGNAME)_game_ram.68k
+	$(ASM_020) --defsym AGA=1 $(PROGNAME).68k -o $(PROGNAME)_aga.o
+$(PROGNAME)_ocs.o: $(PROGNAME).68k $(PROGNAME).inc $(PROGNAME)_ram.68k $(PROGNAME)_game_ram.68k
+	$(ASM) $(PROGNAME).68k -o $(PROGNAME)_ocs.o
+
 ocs.o: $(AMIGA_SRC)/amiga.68k $(AMIGA_SRC)/graphics_ocs.68k $(AMIGA_SRC)/sound_entries.68k $(PROGNAME).inc $(AMIGA_SRC)/ReadJoyPad.i
 	$(ASM) -Iamiga -Iocs $(AMIGA_SRC)/amiga.68k -o $(OCS_MAIN_OBJ)
 aga.o: $(AMIGA_SRC)/amiga.68k $(AMIGA_SRC)/graphics_aga.68k $(AMIGA_SRC)/sound_entries.68k $(PROGNAME).inc $(AMIGA_SRC)/ReadJoyPad.i
