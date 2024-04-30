@@ -1,10 +1,7 @@
 logic:
 
-- 2P mode switch: videoram seems not updated! check address of say
-  lives and check value (42C2=7F)
 - Minor: On the attract sequence, with the final boss and 1 alien flying around,
   when alien is destroyed the explosion does not disappear and is left as part of the background, so to speak. 
-
 
   
 converter: 

@@ -746,17 +746,7 @@ init_new_play_0140:
 	lea	current_stage_43B8,a0                        	| [$0154: LD      L,$B8]
 	move.b	#0x08,d1                        	| [$0156: LD      B,$08]
 	jbsr	clear_area_05D8                   	| [$0158: CALL    clear_area_05D8]
-	
-	* to force reset of palette 0 after demo on ECS, as it's hacked
-	* to select palettes per level. Not required on AGA because it's much simpler
-	* and more faithful to the arcade palette system
-	.ifdef	__amiga__
-	.ifndef	AGA
-	moveq	#0,d0
-	jbsr	osd_write_5000
-	.endif
-	.endif
-	
+		
 	lea	nb_birds_to_kill_before_stage_completed_43BA,a0                        	| [$015b: LD      L,$BA]
 	move.b	#0x10,(a0)                      	| [$015d: LD      (HL),$10]
 	lea	extra_life_at_thousands_43BE,a0                        	| [$015f: LD      L,$BE]
@@ -880,6 +870,17 @@ draw_game_status_01d0:
 
 l_01e1:
 	jbsr	init_new_play_0140                            	| [$01e1: CALL    $0140]
+
+	* to force reset of palette 0 after demo on ECS, as it's hacked
+	* to select palettes per level. Not required on AGA because it's much simpler
+	* and more faithful to the arcade palette system
+	.ifdef	__amiga__
+	.ifndef	AGA
+	moveq	#0,d0
+	jbsr	osd_write_5000
+	.endif
+	.endif
+
 l_01e4:
 	lea	game_rom+0x1960,a0                      	| [$01e4: LD      HL,$1960]
 	move.b	#0x03,d2                        	| [$01e7: LD      C,$03]
@@ -1090,8 +1091,14 @@ l_02a7:
 
 	moveq	#1,d0			
 	jbsr	osd_write_5000                      	| [$02bc: LD      H,$50] 50xx video register
+	* init new play for player 2 (in bank 1)
+	* for instance nb_birds_to_kill_before_stage_completed_43BA depends
+	* on the player and each value should be in the respective bank to match
+	* the number of enemies that the player has shot. It must not be shared! or synced
+	* like other variables in copy_bank routine
 	                      	| [$02be: LD      (HL),$01] set bank 1, init new play for player 2???
 	jbsr	init_new_play_0140                            	| [$02c0: CALL    $0140]
+	* back to bank 0
 	moveq	#0,d0                        	| [$02c3: LD      H,$50] 50xx video register
 	jbsr	osd_write_5000                             	| [$02c5: LD      (HL),$00] set bank 0
 
@@ -1387,8 +1394,6 @@ set_proper_stage_palette_041E:
 
 * initialize game or demo for current player
 start_new_life_0430:
-	move.b	#55,0x200
-	
 	lea	game_state_43A4,a0             	| [$0430: LD      HL,game_state_43A4] Next function to run ...
 	move.b	#STATE_INIT_NEW_PLAY_CLEAR_SCREEN,(a0)+                      	| [$0433: LD      (HL),$01] ... is 1 ??
 	                           	| [$0435: INC     L]
@@ -1468,8 +1473,8 @@ l_0466:
 	move.b	d0,(a1,d3.w)                         	| [$0469: LD      (DE),A]
 	addq.b	#1,d3                           	| [$046a: INC     E]
 	
-	                           	| [$046b: LD      A,E]
-	and.b	#0x03,d3                         	| [$046c: AND     $03]
+	move.b	d3,d0                           	| [$046b: LD      A,E]
+	and.b	#0x03,d0                         	| [$046c: AND     $03]
 	jne	l_0466                             	| [$046e: JP      NZ,$0466]
 
 	                           	| [$0471: LD      A,E]
