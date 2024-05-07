@@ -885,7 +885,7 @@ platform_init:
 	* restrict borders: we don't see bobs on the borders!
 	*         VVHH
     move.w #0x1C99+0x18,diwstrt(a5)
-    move.w #0x2381,diwstop(a5)
+    move.w #0x2381-0x800,diwstop(a5)
      move.w #0x0064,bplcon2(a5)
 	.ifdef	AGA
     move.w #0x0610,bplcon0(a5) | 8 bitplanes, dual playfield
@@ -1313,7 +1313,6 @@ update_tile:
 	cmp.w	#5,d7
 	bcs.b	0f			| ignore those tiles on the left side (not shown anyway)
 	and.w	#0x1F,d3	| this is Y
-	addq	#1,d3
 	lea		mulNB_BYTES_PER_ROW_table(pc),a2
 
 	
