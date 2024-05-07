@@ -37,6 +37,7 @@ with open(os.path.join(outdir,"palette_aga.68k"),"w") as fp:
     for layer in ["back","fore"]:
 
         for level in [0,1]:
+            print(f"processing level {level}, layer {layer}")
 
             img_in = imgdict[layer,level]
 
@@ -53,7 +54,6 @@ with open(os.path.join(outdir,"palette_aga.68k"),"w") as fp:
             # blacken strips if needed, makes lighter tiles
 
 
-
             index = 0
             for y in range(0,64,8):
                 for x in range(0,256,8):
@@ -64,6 +64,8 @@ with open(os.path.join(outdir,"palette_aga.68k"),"w") as fp:
                             p =img_out.getpixel((x+dx,y+dy))
                             tile.putpixel((dx,dy),p)
                     #tile.save(f"tile_{x}_{y}_{level}_{layer}.png")
+                    # a KeyError can occur if one of the pics aren't 16 million but
+                    # paletted. Just convert to 16 million and it will work!
                     raw = bitplanelib.palette_image2raw(tile,None,palette)
                     tile_cache[raw].append((index,layer,level))
                     index += 1
