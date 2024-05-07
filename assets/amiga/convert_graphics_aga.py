@@ -18,7 +18,8 @@ if dump_pics and not os.path.exists(dumpdir):
 imgdict = dict()
 for layer in ["back","fore"]:
     for level in [0,1]:
-        img = Image.open(os.path.join(indir,f"sheet_{layer}_{level}.png"))
+        # open image, convert to RGB even if paletted!
+        img = Image.open(os.path.join(indir,f"sheet_{layer}_{level}.png")).convert("RGB")
         imgdict[layer,level] = img
 
 black_row = Image.new("RGB",(256,8))
