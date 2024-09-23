@@ -1,5 +1,6 @@
 logic:
 
+- 60Hz? or 50Hz?
 - shield inefficient against boss shots??
 - Minor: On the attract sequence, with the final boss and 1 alien flying around,
   when alien is destroyed the explosion does not disappear and is left as part of the background, so to speak. 
